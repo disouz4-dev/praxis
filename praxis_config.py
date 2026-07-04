@@ -18,7 +18,7 @@ import numpy as np
 import customtkinter as ctk
 
 CONFIG_FILE = Path.home() / ".config" / "praxis" / "config.json"
-VOICES_DIR  = Path.home() / ".local" / "share" / "praxis" / "voices"
+VOICES_DIR  = Path(__file__).parent / "voices"
 PRAXIS_PY   = Path(__file__).parent / "praxis.py"
 ASSETS_DIR  = Path(__file__).parent / "assets"
 
@@ -265,12 +265,19 @@ def _pa_defaults() -> tuple[str, str]:
 # ── Config ────────────────────────────────────────────────────────────────────
 
 def load_cfg() -> dict:
+    cfg = dict(DEFAULT_CFG)
     if CONFIG_FILE.exists():
         try:
-            return {**DEFAULT_CFG, **json.loads(CONFIG_FILE.read_text())}
+            cfg.update(json.loads(CONFIG_FILE.read_text()))
         except Exception:
             pass
-    return dict(DEFAULT_CFG)
+    # Migra voice_out para a pasta local do programa se ainda aponta para o path antigo
+    old_base = str(Path.home() / ".local" / "share" / "praxis" / "voices")
+    vo = cfg.get("voice_out", "")
+    if vo.startswith(old_base):
+        new_vo = str(VOICES_DIR / Path(vo).name)
+        cfg["voice_out"] = new_vo if Path(new_vo).exists() else ""
+    return cfg
 
 
 def save_cfg(cfg: dict) -> None:
