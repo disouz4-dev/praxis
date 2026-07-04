@@ -22,7 +22,8 @@ VOICES_DIR  = Path(__file__).parent / "voices"
 PRAXIS_PY   = Path(__file__).parent / "praxis.py"
 ASSETS_DIR  = Path(__file__).parent / "assets"
 
-LANGS = [
+# Idiomas que o Whisper reconhece como fonte (transcrição)
+SRC_LANGS = [
     ("pt", "Português"),
     ("en", "English"),
     ("es", "Español"),
@@ -33,28 +34,64 @@ LANGS = [
     ("zh", "中文"),
     ("ko", "한국어"),
     ("ru", "Русский"),
+    ("ar", "العربية"),
+    ("hi", "हिन्दी"),
+    ("nl", "Nederlands"),
+    ("pl", "Polski"),
+    ("uk", "Українська"),
+    ("tr", "Türkçe"),
 ]
-LANG_CODES  = [c for c, _ in LANGS]
-LANG_LABELS = [f"{n}  ({c})" for c, n in LANGS]
-MODELS      = ["tiny", "base", "small", "medium", "large-v2"]
 
 _HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 
+# Vozes verificadas em rhasspy/piper-voices voices.json (todas com HTTP 200)
 VOICE_CATALOG: list[dict] = [
-    # Verificado em rhasspy/piper-voices voices.json
-    {"lang": "it", "locale": "it_IT", "speaker": "paola",    "quality": "medium", "gender": "F", "name": "Paola"},
-    {"lang": "it", "locale": "it_IT", "speaker": "riccardo", "quality": "x_low",  "gender": "M", "name": "Riccardo"},
+    {"lang": "pt", "locale": "pt_BR", "speaker": "faber",    "quality": "medium", "gender": "M", "name": "Faber (BR)"},
+    {"lang": "pt", "locale": "pt_BR", "speaker": "cadu",     "quality": "medium", "gender": "M", "name": "Cadu (BR)"},
+    {"lang": "pt", "locale": "pt_PT", "speaker": "tugão",    "quality": "medium", "gender": "M", "name": "Tugão (PT)"},
+    {"lang": "en", "locale": "en_US", "speaker": "lessac",   "quality": "medium", "gender": "F", "name": "Lessac (US)"},
+    {"lang": "en", "locale": "en_US", "speaker": "ryan",     "quality": "medium", "gender": "M", "name": "Ryan (US)"},
+    {"lang": "en", "locale": "en_GB", "speaker": "alan",     "quality": "medium", "gender": "M", "name": "Alan (GB)"},
+    {"lang": "en", "locale": "en_GB", "speaker": "alba",     "quality": "medium", "gender": "F", "name": "Alba (GB)"},
+    {"lang": "es", "locale": "es_ES", "speaker": "sharvard", "quality": "medium", "gender": "M", "name": "Sharvard (ES)"},
+    {"lang": "es", "locale": "es_MX", "speaker": "ald",      "quality": "medium", "gender": "M", "name": "ALD (MX)"},
+    {"lang": "fr", "locale": "fr_FR", "speaker": "siwis",    "quality": "medium", "gender": "F", "name": "Siwis"},
+    {"lang": "fr", "locale": "fr_FR", "speaker": "gilles",   "quality": "low",    "gender": "M", "name": "Gilles"},
     {"lang": "de", "locale": "de_DE", "speaker": "thorsten", "quality": "high",   "gender": "M", "name": "Thorsten"},
     {"lang": "de", "locale": "de_DE", "speaker": "karlsson", "quality": "low",    "gender": "M", "name": "Karlsson"},
     {"lang": "de", "locale": "de_DE", "speaker": "mls",      "quality": "medium", "gender": "?", "name": "MLS"},
-    {"lang": "fr", "locale": "fr_FR", "speaker": "siwis",    "quality": "medium", "gender": "F", "name": "Siwis"},
-    {"lang": "fr", "locale": "fr_FR", "speaker": "gilles",   "quality": "low",    "gender": "M", "name": "Gilles"},
-    {"lang": "es", "locale": "es_ES", "speaker": "sharvard", "quality": "medium", "gender": "M", "name": "Sharvard"},
-    {"lang": "es", "locale": "es_MX", "speaker": "ald",      "quality": "medium", "gender": "M", "name": "ALD (MX)"},
+    {"lang": "it", "locale": "it_IT", "speaker": "paola",    "quality": "medium", "gender": "F", "name": "Paola"},
+    {"lang": "it", "locale": "it_IT", "speaker": "riccardo", "quality": "x_low",  "gender": "M", "name": "Riccardo"},
     {"lang": "ru", "locale": "ru_RU", "speaker": "dmitri",   "quality": "medium", "gender": "M", "name": "Dmitri"},
     {"lang": "ru", "locale": "ru_RU", "speaker": "irina",    "quality": "medium", "gender": "F", "name": "Irina"},
     {"lang": "zh", "locale": "zh_CN", "speaker": "huayan",   "quality": "medium", "gender": "F", "name": "Huayan"},
+    {"lang": "nl", "locale": "nl_NL", "speaker": "mls",      "quality": "medium", "gender": "?", "name": "MLS"},
+    {"lang": "pl", "locale": "pl_PL", "speaker": "gosia",    "quality": "medium", "gender": "F", "name": "Gosia"},
+    {"lang": "uk", "locale": "uk_UA", "speaker": "lada",     "quality": "x_low",  "gender": "F", "name": "Lada"},
+    {"lang": "tr", "locale": "tr_TR", "speaker": "dfki",     "quality": "medium", "gender": "?", "name": "DFKI"},
+    {"lang": "ar", "locale": "ar_JO", "speaker": "kareem",   "quality": "medium", "gender": "M", "name": "Kareem"},
+    {"lang": "hi", "locale": "hi_IN", "speaker": "rohan",    "quality": "medium", "gender": "M", "name": "Rohan"},
 ]
+
+# Idiomas de destino: apenas os que têm voz no catálogo ou já instalada
+def _tgt_langs_with_voices() -> list[tuple[str, str]]:
+    _names = {
+        "pt": "Português", "en": "English",  "es": "Español",
+        "fr": "Français",  "de": "Deutsch",  "it": "Italiano",
+        "ru": "Русский",   "zh": "中文",      "nl": "Nederlands",
+        "pl": "Polski",    "uk": "Українська","tr": "Türkçe",
+        "ar": "العربية",   "hi": "हिन्दी",
+    }
+    catalog_langs = {v["lang"] for v in VOICE_CATALOG}
+    installed_langs = {p.stem[:2] for p in VOICES_DIR.glob("*.onnx")} if VOICES_DIR.exists() else set()
+    available = catalog_langs | installed_langs
+    return [(c, n) for c, n in _names.items() if c in available]
+
+# LANGS unificado (compatibilidade com código existente) = união
+LANGS = SRC_LANGS
+LANG_CODES  = [c for c, _ in LANGS]
+LANG_LABELS = [f"{n}  ({c})" for c, n in LANGS]
+MODELS      = ["tiny", "base", "small", "medium", "large-v2"]
 
 
 def _catalog_filename(v: dict) -> str:
@@ -729,10 +766,17 @@ class ConfigWindow(ctk.CTk):
                                                   padx=20, pady=(0, 4))
         r += 1
         self.src_var = ctk.StringVar(value=lang_label(self.cfg["src"]))
-        self.tgt_var = ctk.StringVar(value=lang_label(self.cfg["tgt"]))
+        # destino: apenas idiomas com voz disponível no catálogo ou instalada
+        _tgt_pairs  = _tgt_langs_with_voices()
+        _tgt_labels = [f"{n}  ({c})" for c, n in _tgt_pairs]
+        self._tgt_pairs = _tgt_pairs
+        saved_tgt = lang_label(self.cfg["tgt"])
+        if saved_tgt not in _tgt_labels:
+            saved_tgt = _tgt_labels[0]
+        self.tgt_var = ctk.StringVar(value=saved_tgt)
         self.tgt_var.trace_add("write", lambda *_: self.after(0, self._on_tgt_change))
         self._optmenu(card, r, 0, LANG_LABELS, self.src_var, pr=8)
-        self._optmenu(card, r, 1, LANG_LABELS, self.tgt_var, pl=8)
+        self._optmenu(card, r, 1, _tgt_labels, self.tgt_var, pl=8)
         return r + 1
 
     def _whisper(self, r: int) -> int:
@@ -1535,9 +1579,19 @@ class ConfigWindow(ctk.CTk):
 
     def _tgt_code(self) -> str:
         """Retorna o código de idioma do destino atual."""
+        label = getattr(self, "tgt_var", None)
+        if label is None:
+            return self.cfg.get("tgt", "en")
+        lbl = label.get()
+        # Tenta _tgt_pairs primeiro (lista filtrada de destino)
+        pairs = getattr(self, "_tgt_pairs", None) or []
+        for code, name in pairs:
+            if f"{name}  ({code})" == lbl:
+                return code
+        # Fallback: lista global
         try:
-            return LANG_CODES[LANG_LABELS.index(self.tgt_var.get())]
-        except (ValueError, AttributeError):
+            return LANG_CODES[LANG_LABELS.index(lbl)]
+        except (ValueError, IndexError):
             return self.cfg.get("tgt", "en")
 
     def _on_tgt_change(self) -> None:

@@ -339,12 +339,20 @@ def pipeline_worker(
             continue
 
         audio_f32 = segment.astype(np.float32) / 32768.0
-        segs, _ = whisper.transcribe(
+        segs, info = whisper.transcribe(
             audio_f32, language=src, beam_size=1,
             condition_on_previous_text=False, without_timestamps=True,
+            temperature=0,
+            no_speech_threshold=0.5,
+            log_prob_threshold=-1.0,
+            compression_ratio_threshold=2.4,
+            vad_filter=True,
+            vad_parameters={"min_silence_duration_ms": 300},
         )
-        text = " ".join(s.text for s in segs).strip()
-        if not text:
+        # Filtra segmentos com alta probabilidade de não-fala
+        valid = [s for s in segs if s.no_speech_prob < 0.5]
+        text  = " ".join(s.text for s in valid).strip()
+        if not text or text in (".", ",", "...", "!"):
             continue
 
         translated = do_translate(text, src, tgt)
