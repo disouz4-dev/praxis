@@ -524,6 +524,9 @@ def load_whisper(model_name: str):
     console.print(f"[dim]Whisper ({model_name})...[/dim]", end=" ")
     try:
         m = WhisperModel(model_name, device="cuda", compute_type="int8_float16")
+        # Valida GPU com inferência real — cuBLAS é carregado na primeira chamada
+        dummy = np.zeros(1600, dtype=np.float32)
+        list(m.transcribe(dummy, language="pt")[0])
         console.print("[green]GPU[/green]")
     except Exception:
         m = WhisperModel(model_name, device="cpu", compute_type="int8")

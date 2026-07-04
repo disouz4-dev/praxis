@@ -631,8 +631,8 @@ class ConfigWindow(ctk.CTk):
         self._theme_btn = ctk.CTkButton(
             hdr, text="☀" if _is_dark else "☾",
             width=34, height=34,
-            fg_color=self.SEG_BG, hover_color=self.IBORDER,
-            text_color=self.MUTED, border_width=1, border_color=self.IBORDER,
+            fg_color=self.ACCENT, hover_color=self.HOVER,
+            text_color="#FFFFFF", border_width=0,
             corner_radius=17, font=ctk.CTkFont(size=15),
             command=self._toggle_theme,
         )
@@ -1926,7 +1926,14 @@ class ConfigWindow(ctk.CTk):
             box.delete("1.0", "end")
             box.configure(state="disabled")
 
-        # Inicia engine
+        # Inicia engine — inclui cuBLAS da Ollama no LD_LIBRARY_PATH para GPU funcionar
+        _env = os.environ.copy()
+        _cuda12 = "/usr/local/lib/ollama/cuda_v12"
+        if Path(_cuda12).exists():
+            _env["LD_LIBRARY_PATH"] = (
+                f"{_cuda12}:{_env['LD_LIBRARY_PATH']}"
+                if _env.get("LD_LIBRARY_PATH") else _cuda12
+            )
         self._engine_log = open("/tmp/praxis_engine.log", "w")
         self._engine_proc = subprocess.Popen(
             cmd_parts,
@@ -1934,6 +1941,7 @@ class ConfigWindow(ctk.CTk):
             stderr=self._engine_log,
             text=True,
             bufsize=1,
+            env=_env,
         )
         threading.Thread(target=self._engine_reader, daemon=True).start()
 
