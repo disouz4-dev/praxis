@@ -75,18 +75,28 @@ Todo funciona **100% localmente** — sin internet, sin nube, sin enviar nada fu
 
 ## Idiomas soportados
 
-| Idioma | Código | Voces Piper disponibles |
-|--------|--------|------------------------|
-| Português | `pt` | pt_BR · pt_PT |
-| English | `en` | en_US · en_GB |
-| Español | `es` | es_ES · es_MX |
-| Français | `fr` | fr_FR |
-| Deutsch | `de` | de_DE |
-| Italiano | `it` | it_IT |
-| 日本語 | `ja` | ja_JP |
-| 中文 | `zh` | zh_CN |
-| 한국어 | `ko` | ko_KR |
-| Русский | `ru` | ru_RU |
+### Idioma de salida (con voz Piper disponible)
+
+| Idioma | Código | Voces disponibles |
+|--------|--------|-------------------|
+| Português | `pt` | Faber, Cadu (BR) · Tugão (PT) |
+| English | `en` | Lessac, Ryan (US) · Alan, Alba (GB) |
+| Español | `es` | Sharvard (ES) · ALD (MX) |
+| Français | `fr` | Siwis, Gilles |
+| Deutsch | `de` | Thorsten, Karlsson, MLS |
+| Italiano | `it` | Paola, Riccardo |
+| Русский | `ru` | Dmitri, Irina |
+| 中文 | `zh` | Huayan |
+| Nederlands | `nl` | MLS |
+| Polski | `pl` | Gosia |
+| Українська | `uk` | Lada |
+| Türkçe | `tr` | DFKI |
+| العربية | `ar` | Kareem |
+| हिन्दी | `hi` | Rohan |
+
+### Idioma de entrada (reconocido por Whisper)
+
+Portugués · Inglés · Español · Francés · Alemán · Italiano · Japonés · Chino · Coreano · Ruso · Árabe · Hindi · Neerlandés · Polaco · Ucraniano · Turco — y decenas de otros idiomas compatibles con Whisper.
 
 > La traducción entre idiomas no ingleses usa **pivot automático por inglés** (ej: pt→it va pt→en→it).
 
