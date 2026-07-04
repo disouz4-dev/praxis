@@ -41,20 +41,19 @@ MODELS      = ["tiny", "base", "small", "medium", "large-v2"]
 _HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
 
 VOICE_CATALOG: list[dict] = [
-    {"lang": "it", "locale": "it_IT", "speaker": "paola",          "quality": "medium", "gender": "F", "name": "Paola"},
-    {"lang": "it", "locale": "it_IT", "speaker": "riccardo_fasol", "quality": "medium", "gender": "M", "name": "Riccardo Fasol"},
-    {"lang": "de", "locale": "de_DE", "speaker": "thorsten",       "quality": "high",   "gender": "M", "name": "Thorsten"},
-    {"lang": "de", "locale": "de_DE", "speaker": "karlsson",       "quality": "low",    "gender": "M", "name": "Karlsson"},
-    {"lang": "de", "locale": "de_DE", "speaker": "mls",            "quality": "medium", "gender": "?", "name": "MLS"},
-    {"lang": "fr", "locale": "fr_FR", "speaker": "siwis",          "quality": "medium", "gender": "F", "name": "Siwis"},
-    {"lang": "fr", "locale": "fr_FR", "speaker": "gilles",         "quality": "low",    "gender": "M", "name": "Gilles"},
-    {"lang": "es", "locale": "es_ES", "speaker": "sharvard",       "quality": "medium", "gender": "M", "name": "Sharvard"},
-    {"lang": "es", "locale": "es_MX", "speaker": "ald",            "quality": "medium", "gender": "M", "name": "ALD (MX)"},
-    {"lang": "ru", "locale": "ru_RU", "speaker": "dmitri",         "quality": "medium", "gender": "M", "name": "Dmitri"},
-    {"lang": "ru", "locale": "ru_RU", "speaker": "irina",          "quality": "medium", "gender": "F", "name": "Irina"},
-    {"lang": "zh", "locale": "zh_CN", "speaker": "huayan",         "quality": "x_low",  "gender": "F", "name": "Huayan"},
-    {"lang": "ja", "locale": "ja_JP", "speaker": "kokoro",         "quality": "medium", "gender": "?", "name": "Kokoro"},
-    {"lang": "ko", "locale": "ko_KR", "speaker": "kss",            "quality": "medium", "gender": "F", "name": "KSS"},
+    # Verificado em rhasspy/piper-voices voices.json
+    {"lang": "it", "locale": "it_IT", "speaker": "paola",    "quality": "medium", "gender": "F", "name": "Paola"},
+    {"lang": "it", "locale": "it_IT", "speaker": "riccardo", "quality": "x_low",  "gender": "M", "name": "Riccardo"},
+    {"lang": "de", "locale": "de_DE", "speaker": "thorsten", "quality": "high",   "gender": "M", "name": "Thorsten"},
+    {"lang": "de", "locale": "de_DE", "speaker": "karlsson", "quality": "low",    "gender": "M", "name": "Karlsson"},
+    {"lang": "de", "locale": "de_DE", "speaker": "mls",      "quality": "medium", "gender": "?", "name": "MLS"},
+    {"lang": "fr", "locale": "fr_FR", "speaker": "siwis",    "quality": "medium", "gender": "F", "name": "Siwis"},
+    {"lang": "fr", "locale": "fr_FR", "speaker": "gilles",   "quality": "low",    "gender": "M", "name": "Gilles"},
+    {"lang": "es", "locale": "es_ES", "speaker": "sharvard", "quality": "medium", "gender": "M", "name": "Sharvard"},
+    {"lang": "es", "locale": "es_MX", "speaker": "ald",      "quality": "medium", "gender": "M", "name": "ALD (MX)"},
+    {"lang": "ru", "locale": "ru_RU", "speaker": "dmitri",   "quality": "medium", "gender": "M", "name": "Dmitri"},
+    {"lang": "ru", "locale": "ru_RU", "speaker": "irina",    "quality": "medium", "gender": "F", "name": "Irina"},
+    {"lang": "zh", "locale": "zh_CN", "speaker": "huayan",   "quality": "medium", "gender": "F", "name": "Huayan"},
 ]
 
 
@@ -1701,15 +1700,15 @@ class ConfigWindow(ctk.CTk):
 
     def _dl_failed_msg(self, error: str) -> None:
         if hasattr(self, "_dl_status"):
-            self._dl_status.configure(text=f"Erro: {error[:70]}")
+            self._dl_status.configure(text=f"Erro: {error[:80]}", text_color="#EF4444")
         try: self._dl_progress.pack_forget()
         except Exception: pass
         try: self._dl_pct_lbl.pack_forget()
         except Exception: pass
-        # Restaura botões
+        # Restaura botões após 3 s para que o erro seja legível
         lang_code = getattr(self, "_dl_current_lang", None)
         if lang_code:
-            self._show_dl_card(lang_code)
+            self.after(3000, lambda: self._show_dl_card(lang_code))
 
     def _test_voice(self) -> None:
         """Testa a voz selecionada com uma frase no idioma de destino."""
