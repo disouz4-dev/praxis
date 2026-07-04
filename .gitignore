@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.onnx
+*.onnx.json
+contexto.md
+config.json
+/voices/
+.env
