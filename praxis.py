@@ -435,28 +435,6 @@ def _patch_argos_sbd() -> None:
     except Exception:
         pass
 
-    try:
-        import argostranslate.translate as _at
-
-        _orig_apply = _at.apply_packaged_translation
-
-        def _safe_apply(pkg, from_code, to_code, input_text):
-            try:
-                return _orig_apply(pkg, from_code, to_code, input_text)
-            except (KeyError, TypeError, AttributeError):
-                # Fallback: traduz sentença por sentença sem SBD
-                sentences = _regex_split(input_text) or [input_text]
-                results = []
-                for s in sentences:
-                    try:
-                        results.append(_orig_apply(pkg, from_code, to_code, s))
-                    except Exception:
-                        results.append(s)
-                return " ".join(results)
-
-        _at.apply_packaged_translation = _safe_apply
-    except Exception:
-        pass
 
 
 _patch_argos_sbd()
