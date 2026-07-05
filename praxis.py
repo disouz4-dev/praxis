@@ -185,7 +185,11 @@ def build_panel() -> Panel:
 # ── Workers ───────────────────────────────────────────────────────────────────
 
 def mic_worker(mic_device: str | None) -> None:
-    """Captura microfone via parec (PulseAudio/PipeWire) → _out_audio_q."""
+    """Captura microfone via parec (PulseAudio/PipeWire) → _out_audio_q.
+
+    Sempre drena o pipe mesmo quando inativo — evita acúmulo de áudio antigo
+    no buffer do SO que seria liberado na próxima ativação (bug PTT/gate).
+    """
     cmd = ["parec", "--format=s16le", f"--rate={SR}", "--channels=1", "--latency-msec=100"]
     if mic_device:
         cmd.append(f"--device={mic_device}")
@@ -194,12 +198,11 @@ def mic_worker(mic_device: str | None) -> None:
     chunk_bytes = VAD_CHUNK * 2  # s16le = 2 bytes por sample
     try:
         while not _stop.is_set():
-            if not _active.is_set():
-                time.sleep(0.1)
-                continue
             data = proc.stdout.read(chunk_bytes)
             if not data:
                 break
+            if not _active.is_set():
+                continue  # descarta: drena o pipe mas não enfileira
             arr = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
             if len(arr) == VAD_CHUNK:
                 try:
@@ -221,12 +224,11 @@ def monitor_worker() -> None:
     chunk_bytes = VAD_CHUNK * 2
     try:
         while not _stop.is_set():
-            if not _active.is_set():
-                time.sleep(0.1)
-                continue
             data = proc.stdout.read(chunk_bytes)
             if not data:
                 break
+            if not _active.is_set():
+                continue  # descarta: drena o pipe mas não enfileira
             arr = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
             if len(arr) == VAD_CHUNK:
                 try:
@@ -275,13 +277,16 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
             _active.clear()
 
         if not _active.is_set():
+            # Drena fila e DESCARTA buffer interno — áudio antes do botão/gate não deve
+            # ser enviado ao pipeline quando o modo voltar a estar ativo.
             while not audio_q.empty():
                 try:
                     audio_q.get_nowait()
                 except queue.Empty:
                     break
             if speaking:
-                _flush_buf()
+                buf, buf_dur, speaking = [], 0.0, False
+                vad.reset_states()
             time.sleep(0.05)
             continue
 
@@ -295,7 +300,9 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
             rms = float(np.sqrt(np.mean(chunk ** 2)))
             if rms < gate_threshold:
                 if speaking:
-                    _flush_buf()
+                    _flush_buf()   # envia fala já capturada acima do gate
+                else:
+                    vad.reset_states()  # sem fala: limpa estado VAD para não vazar
                 continue
 
         ev = vad(torch.from_numpy(chunk), return_seconds=False)
