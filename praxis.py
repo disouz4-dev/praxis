@@ -406,61 +406,60 @@ def input_worker(live: Live) -> None:
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
-def _patch_stanza() -> None:
-    """Força Stanza a usar CPU; contorna KeyError 'packages' nos resources.
+def _patch_argos_sbd() -> None:
+    """Substitui o sentencizador do argostranslate por regex simples.
 
-    O Stanza tenta chamar add_mwt() que acessa resources[lang]['packages'],
-    mas alguns pacotes instalados offline não têm essa chave. Remapeamos a
-    função para ignorar o erro silenciosamente.
+    O StanzaSentencizer falha com KeyError 'packages' em recursos stanza
+    que não contêm essa chave. Como o objetivo é apenas partir texto em
+    sentenças para tradução, um splitter regex é equivalente e mais robusto.
     """
+    import re
+
+    def _regex_split(text: str):
+        """Divide texto em sentenças por pontuação terminal."""
+        parts = re.split(r'(?<=[.!?])\s+', text.strip())
+        return [p for p in parts if p]
+
     try:
-        import stanza.pipeline.core as _sc
-        import stanza.resources.common as _rc
+        import argostranslate.sbd as _sbd
 
-        _orig_init = _sc.Pipeline.__init__
+        _orig_split = _sbd.StanzaSentencizer.split_sentences
 
-        def _patched_init(self, *args, **kwargs):
-            kwargs.setdefault("use_gpu", False)
-            kwargs.setdefault("download_method", None)
-            kwargs.setdefault("logging_level", "WARNING")
-            _orig_init(self, *args, **kwargs)
-
-        _sc.Pipeline.__init__ = _patched_init
-
-        # No-op para o download do resources JSON
-        _rc.download_resources_json = lambda *a, **k: None
-
-        # Patch add_mwt para não quebrar quando 'packages' está ausente no resources
-        _orig_add_mwt = _rc.add_mwt
-
-        def _safe_add_mwt(processors, resources, lang):
+        def _safe_split(self, text: str):
             try:
-                _orig_add_mwt(processors, resources, lang)
-            except (KeyError, TypeError):
-                pass
+                return _orig_split(self, text)
+            except Exception:
+                return _regex_split(text)
 
-        _rc.add_mwt = _safe_add_mwt
+        _sbd.StanzaSentencizer.split_sentences = _safe_split
+    except Exception:
+        pass
 
-        # Remapeia maintain_processor_list nos dois lugares onde pode estar vinculada:
-        # 1) no módulo resources.common (chamadas futuras via _rc)
-        # 2) no módulo pipeline.core (importação já realizada com 'from ... import')
-        _orig_mpl = _rc.maintain_processor_list
+    try:
+        import argostranslate.translate as _at
 
-        def _safe_mpl(resources, lang, package, processors, **kw):
+        _orig_apply = _at.apply_packaged_translation
+
+        def _safe_apply(pkg, from_code, to_code, input_text):
             try:
-                return _orig_mpl(resources, lang, package, processors, **kw)
-            except (KeyError, TypeError):
-                return processors if isinstance(processors, dict) else {}
+                return _orig_apply(pkg, from_code, to_code, input_text)
+            except (KeyError, TypeError, AttributeError):
+                # Fallback: traduz sentença por sentença sem SBD
+                sentences = _regex_split(input_text) or [input_text]
+                results = []
+                for s in sentences:
+                    try:
+                        results.append(_orig_apply(pkg, from_code, to_code, s))
+                    except Exception:
+                        results.append(s)
+                return " ".join(results)
 
-        _rc.maintain_processor_list = _safe_mpl
-        # Patch direto no namespace de stanza.pipeline.core
-        _sc.maintain_processor_list = _safe_mpl
-
+        _at.apply_packaged_translation = _safe_apply
     except Exception:
         pass
 
 
-_patch_stanza()
+_patch_argos_sbd()
 
 
 def _download_argos_pair(src: str, tgt: str) -> None:
