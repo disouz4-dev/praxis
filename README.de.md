@@ -129,6 +129,23 @@ Wählen Sie im Konfigurationsfenster den Aktivierungsmodus, das Mikrofon, Quell-
 
 ---
 
+## Stimmklonierung (RVC)
+
+Die Registerkarte **"Meine Stimme klonen"** ermöglicht das Training eines RVC-Modells mit Ihrer eigenen Stimme — ohne externe Tools. Die gesamte Pipeline läuft innerhalb von Praxis.
+
+### Verwendung
+
+1. Öffnen Sie die Registerkarte **🎙 Meine Stimme klonen**
+2. Geben Sie einen Namen für das Profil ein (z.B. `Diego`)
+3. Lesen Sie den Referenztext laut vor (4 Seiten, ~1000 Wörter) mit den Schaltflächen **← Zurück** / **Weiter →**
+4. Mit **3 Minuten oder mehr** aufgezeichnet, wird die Schaltfläche **🎙 Stimme trainieren** aktiviert
+5. Klicken Sie auf **Stimme trainieren** — die Pipeline führt Vorverarbeitung, Feature-Extraktion und Training durch (10-30 Min. mit GPU)
+6. Klicken Sie auf **Testen** zum Anhören und **Verwenden** zum Aktivieren der geklonten Stimme
+
+> Trainingsaudio akkumuliert automatisch: Sie können in mehreren kurzen Sitzungen aufnehmen.
+
+---
+
 <div align="center">
 
 **Eine Nachricht. Alle Sprachen.**

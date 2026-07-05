@@ -511,6 +511,8 @@ class ConfigWindow(ctk.CTk):
     MON_OFF = "#F0F1F3"
 
     def __init__(self) -> None:
+        """Inicializa a janela principal de configuração do Praxis.
+        Initializes the main Praxis configuration window."""
         super().__init__()
         ctk.set_default_color_theme("blue")
 
@@ -690,6 +692,8 @@ class ConfigWindow(ctk.CTk):
     # ── Construção da UI ──────────────────────────────────────────────────────
 
     def _build(self) -> None:
+        """Constrói toda a UI: painel esquerdo (config) + painel direito (monitoramento).
+        Builds the full UI: left config panel + right monitoring panel."""
         # Contêiner principal: esquerda (config) + direita (monitoramento, oculta)
         self._main = ctk.CTkFrame(self, fg_color="transparent")
         self._main.pack(fill="both", expand=True)
@@ -821,6 +825,8 @@ class ConfigWindow(ctk.CTk):
         self._build_monitoring_ui()
 
     def _idiomas(self, r: int) -> int:
+        """Seção de seleção de idiomas (fala → traduz para). Returns next grid row.
+        Language selection section (speaks → translates to). Returns next grid row."""
         card = self._card
         ctk.CTkLabel(card, text="Você fala",
                      font=ctk.CTkFont(size=11, weight="bold"),
@@ -847,6 +853,8 @@ class ConfigWindow(ctk.CTk):
         return r + 1
 
     def _whisper(self, r: int) -> int:
+        """Seção de seleção do modelo Whisper (tiny/base/small/medium/large-v2).
+        Whisper model selection section."""
         self.model_var = ctk.StringVar(value=self.cfg["model"])
         ctk.CTkSegmentedButton(
             self._card, values=MODELS, variable=self.model_var,
@@ -858,6 +866,8 @@ class ConfigWindow(ctk.CTk):
         return r + 1
 
     def _audio_section(self, r: int) -> int:
+        """Seção de áudio: modo, microfone, VU meter, saída e monitor.
+        Audio section: mode, microphone, VU meter, output and monitor."""
         card = self._card
 
         # 1. Modos de funcionamento (primeiro, antes dos dispositivos)
@@ -1015,6 +1025,8 @@ class ConfigWindow(ctk.CTk):
     # ── VU Meter ──────────────────────────────────────────────────────────────
 
     def _build_meter(self, r: int) -> int:
+        """Constrói o canvas do VU meter na aba de configuração. Returns next grid row.
+        Builds the VU meter canvas in the config tab. Returns next grid row."""
         self._meter_level  = 0.0
         self._meter_peak   = 0.0
         self._meter_q: "queue.Queue[float]" = queue.Queue(maxsize=20)
@@ -1240,6 +1252,8 @@ class ConfigWindow(ctk.CTk):
     # ── Modo de ativação (VAD / Gate / PTT) ───────────────────────────────────
 
     def _mode_section(self, row: int) -> int:
+        """Seção de seleção de modo de operação (VAD / Gate / PTT).
+        Operation mode selection section (VAD / Gate / PTT)."""
         # Três botões de modo no topo
         btn_frame = ctk.CTkFrame(self._card, fg_color="transparent")
         btn_frame.grid(row=row, column=0, columnspan=2, sticky="ew", padx=20, pady=(4, 6))
@@ -1299,6 +1313,8 @@ class ConfigWindow(ctk.CTk):
         return row
 
     def _set_mode(self, mode: str) -> None:
+        """Altera o modo de operação do motor (vad/gate/ptt) e atualiza a UI.
+        Changes the engine operation mode (vad/gate/ptt) and updates the UI."""
         self._mode_var.set(mode)
         if mode == "ptt" and self._ptt_key:
             self._start_ptt_config_listener(self._ptt_key)
@@ -1387,6 +1403,8 @@ class ConfigWindow(ctk.CTk):
     # ── UI de monitoramento (painel direito) ──────────────────────────────────
 
     def _build_monitoring_ui(self) -> None:
+        """Constrói o painel direito de monitoramento (transcrição, tradução, logs).
+        Builds the right monitoring panel (transcript, translation, logs)."""
         GREEN = "#22C55E"
         AMBER = "#F59E0B"
         RED   = "#EF4444"
@@ -2075,6 +2093,8 @@ class ConfigWindow(ctk.CTk):
     CLONES_DIR = VOICES_DIR / "clones"
 
     def _build_clone_tab(self, parent: ctk.CTkFrame) -> None:
+        """Constrói a aba de clonagem de voz: texto paginado, gravação, treino RVC.
+        Builds the voice cloning tab: paginated text, recording, RVC training."""
         self.CLONES_DIR.mkdir(parents=True, exist_ok=True)
         self._rec_thread   = None
         self._rec_stop_evt = None
@@ -2324,6 +2344,8 @@ class ConfigWindow(ctk.CTk):
         self._refresh_clone_list()
 
     def _refresh_clone_list(self) -> None:
+        """Atualiza a lista de clones existentes na aba de clonagem.
+        Refreshes the list of existing voice clones in the cloning tab."""
         for w in self._clone_list_frame.winfo_children():
             w.destroy()
         profiles = sorted(self.CLONES_DIR.glob("*.json"))
@@ -2383,12 +2405,15 @@ class ConfigWindow(ctk.CTk):
     _REC_MIN_TRAIN = 180  # mínimo para habilitar treino / minimum seconds to enable training
 
     def _toggle_recording(self) -> None:
+        """Alterna entre iniciar e parar a gravação. Toggle recording on/off."""
         if self._rec_thread and self._rec_thread.is_alive():
             self._stop_recording()
         else:
             self._start_recording()
 
     def _start_recording(self) -> None:
+        """Inicia a gravação de voz: pausa o VU meter, lança thread de captura.
+        Starts voice recording: pauses VU meter, launches capture thread."""
         try:
             import sounddevice as sd  # noqa: F401
         except ImportError:
@@ -2410,6 +2435,8 @@ class ConfigWindow(ctk.CTk):
         self._rec_tick()
 
     def _rec_tick(self) -> None:
+        """Tick a cada segundo durante a gravação: atualiza barra de progresso e timer.
+        Fires every second during recording: updates progress bar and timer."""
         if self._rec_stop_evt and not self._rec_stop_evt.is_set():
             self._rec_timer += 1
             pct = min(self._rec_timer / self._REC_MAX_S, 1.0)
@@ -2422,6 +2449,8 @@ class ConfigWindow(ctk.CTk):
             self.after(1000, self._rec_tick)
 
     def _stop_recording(self) -> None:
+        """Para a gravação e inicia o worker de salvamento do áudio.
+        Stops recording and starts the audio save worker."""
         if self._rec_stop_evt:
             self._rec_stop_evt.set()
         self._rec_btn.configure(text="● Gravar", fg_color="#DC2626",
@@ -2685,6 +2714,8 @@ class ConfigWindow(ctk.CTk):
             _done(False, f"❌  Erro inesperado: {e}")
 
     def _record_worker(self) -> None:
+        """Thread de captura: lê blocos de áudio do microfone e acumula em _rec_frames.
+        Capture thread: reads audio blocks from mic and accumulates in _rec_frames."""
         try:
             import sounddevice as sd
             import numpy as np
@@ -2705,6 +2736,8 @@ class ConfigWindow(ctk.CTk):
             self._start_meter()
 
     def _save_clone_worker(self) -> None:
+        """Worker: converte frames gravados para WAV e concatena com sessões anteriores.
+        Worker: converts recorded frames to WAV and concatenates with previous sessions."""
         def _status(msg, color=None):
             kw = {"text": msg}
             if color:
@@ -2930,6 +2963,8 @@ class ConfigWindow(ctk.CTk):
         self._tabs.set("⚙  Config")
 
     def _delete_clone(self, json_path: Path) -> None:
+        """Remove clone de voz: apaga JSON, WAV e .pth associados.
+        Deletes a voice clone: removes JSON, WAV and associated .pth files."""
         try:
             meta = json.loads(json_path.read_text())
             wav  = self.CLONES_DIR / meta.get("wav", "")
@@ -2943,6 +2978,8 @@ class ConfigWindow(ctk.CTk):
     # ── Monitor toggle ────────────────────────────────────────────────────────
 
     def _toggle_monitor(self) -> None:
+        """Alterna o monitor de áudio (ouvir a tradução na saída) e salva o estado.
+        Toggles the audio monitor (hear translation on output) and saves state."""
         self._monitor = not self._monitor
         if self._monitor:
             self._mon_btn.configure(
@@ -3066,6 +3103,8 @@ class ConfigWindow(ctk.CTk):
     # ── Coleta / salva / lança ────────────────────────────────────────────────
 
     def _collect(self) -> dict:
+        """Coleta todos os valores atuais da UI e retorna como dict de configuração.
+        Collects all current UI values and returns as a config dict."""
         def code_of(label: str) -> str:
             try:
                 return LANG_CODES[LANG_LABELS.index(label)]
@@ -3092,10 +3131,13 @@ class ConfigWindow(ctk.CTk):
         }
 
     def _save(self) -> None:
+        """Salva as configurações atuais no arquivo de config. Saves current config to file."""
         save_cfg(self._collect())
         messagebox.showinfo("Praxis", "Configurações salvas.")
 
     def _launch(self) -> None:
+        """Valida config e lança o motor Praxis (praxis.py) como subprocesso.
+        Validates config and launches the Praxis engine (praxis.py) as subprocess."""
         cfg = self._collect()
         voice_out = cfg["voice_out"]
         if not voice_out:
@@ -3173,6 +3215,8 @@ class ConfigWindow(ctk.CTk):
             self._theme_btn.configure(state="disabled")
 
     def _stop_engine(self, collapse: bool = True) -> None:
+        """Para o subprocesso do motor Praxis. Se collapse=True, recolhe o painel de monitoramento.
+        Stops the Praxis engine subprocess. If collapse=True, hides the monitoring panel."""
         proc = getattr(self, "_engine_proc", None)
         if proc and proc.poll() is None:
             proc.terminate()
@@ -3189,6 +3233,8 @@ class ConfigWindow(ctk.CTk):
             self._apply_voice_btn.configure(state="disabled", text="⟳  Aplicar")
 
     def _engine_reader(self) -> None:
+        """Thread que lê o stdout do motor (JSON por linha) e atualiza a UI de monitoramento.
+        Thread that reads engine stdout (JSON per line) and updates the monitoring UI."""
         proc = self._engine_proc
         if not proc:
             return

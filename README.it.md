@@ -129,6 +129,23 @@ Nella finestra di configurazione, seleziona la modalità di attivazione, il micr
 
 ---
 
+## Clonazione vocale (RVC)
+
+La scheda **"Clona la mia voce"** permette di addestrare un modello RVC con la propria voce, senza strumenti esterni. L'intera pipeline viene eseguita all'interno di Praxis.
+
+### Come usare
+
+1. Apri la scheda **🎙 Clona la mia voce**
+2. Inserisci un nome per il profilo (es. `Diego`)
+3. Leggi il testo di riferimento ad alta voce (4 pagine, ~1000 parole) con i pulsanti **← Precedente** / **Successivo →**
+4. Con **3 minuti o più** registrati, il pulsante **🎙 Addestra voce** viene abilitato
+5. Clicca su **Addestra voce** — la pipeline esegue preprocessing, estrazione features e addestramento (10-30 min con GPU)
+6. Clicca su **Test** per ascoltare e **Usa** per attivare la voce clonata
+
+> L'audio di addestramento si accumula automaticamente: puoi registrare in più sessioni brevi.
+
+---
+
 <div align="center">
 
 **Un messaggio. Tutte le lingue.**

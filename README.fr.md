@@ -129,6 +129,23 @@ Dans la fenêtre de configuration, sélectionnez le mode d'activation, le microp
 
 ---
 
+## Clonage de voix (RVC)
+
+L'onglet **"Cloner ma voix"** permet d'entraîner un modèle RVC avec votre propre voix, sans outils externes. Tout le pipeline s'exécute dans Praxis.
+
+### Comment utiliser
+
+1. Ouvrez l'onglet **🎙 Cloner ma voix**
+2. Saisissez un nom pour le profil (ex. `Diego`)
+3. Lisez le texte de référence à voix haute (4 pages, ~1000 mots) avec les boutons **← Précédent** / **Suivant →**
+4. Avec **3 minutes ou plus** enregistrées, le bouton **🎙 Entraîner la voix** est activé
+5. Cliquez sur **Entraîner la voix** — le pipeline exécute le prétraitement, l'extraction de features et l'entraînement (10-30 min avec GPU)
+6. Cliquez sur **Tester** pour écouter et sur **Utiliser** pour activer la voix clonée
+
+> L'audio d'entraînement s'accumule automatiquement : vous pouvez enregistrer en plusieurs sessions courtes.
+
+---
+
 <div align="center">
 
 **Un message. Toutes les langues.**

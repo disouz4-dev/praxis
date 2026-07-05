@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Praxis — tradutor de voz em tempo real com microfone virtual (bilateral)."""
+"""Praxis — tradutor de voz em tempo real com microfone virtual (bilateral).
+Real-time voice translator with virtual microphone (bilateral mode).
+"""
 
 import argparse
 import json
@@ -11,6 +13,7 @@ import sys
 import threading
 import time
 from collections import deque
+from pathlib import Path
 
 import numpy as np
 from rich import box
@@ -19,35 +22,51 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
-SR         = 16000
-VAD_CHUNK  = 512       # ~32 ms @ 16 kHz
-SILENCE_MS = 200       # silêncio para cortar segmento (era 500ms)
-MAX_SEG_S  = 4.0       # força corte em falas longas (era 6.0s)
-SINK_OUT   = "Praxis_Out"      # null sink → virtual mic outbound
-SRC_MIC    = "Praxis_Mic"
-SRC_DESC   = "Praxis_Microfone"
-SINK_IN    = "Praxis_In"       # null sink → captura audio do interlocutor (bilateral)
+# ── Constantes de áudio e PulseAudio / Audio and PulseAudio constants ─────────
+SR         = 16000          # taxa de amostragem Whisper / Whisper sample rate
+VAD_CHUNK  = 512            # ~32 ms @ 16 kHz — janela do VAD / VAD window size
+SILENCE_MS = 200            # silêncio para cortar segmento / silence to cut segment
+MAX_SEG_S  = 4.0            # força corte em falas longas / max segment length
+SINK_OUT   = "Praxis_Out"   # null sink → microfone virtual de saída / outbound virtual mic
+SRC_MIC    = "Praxis_Mic"   # nome da fonte de áudio virtual / virtual audio source name
+SRC_DESC   = "Praxis_Microfone"  # descrição legível no pavucontrol / human-readable description
+SINK_IN    = "Praxis_In"    # null sink → captura áudio do interlocutor / inbound capture sink
 
-_pactl_mods: list[int] = []
-_active = threading.Event()
-_stop   = threading.Event()
+# ── Estado global compartilhado entre threads / Global state shared between threads ──
+_pactl_mods: list[int] = []     # IDs dos módulos PulseAudio carregados / loaded PulseAudio module IDs
+_active = threading.Event()     # sinaliza se tradução está ativa / signals if translation is active
+_stop   = threading.Event()     # sinaliza encerramento do programa / signals program shutdown
 _active.set()
 
-_out_audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)
-_in_audio_q:  "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)
+# Filas de áudio bruto (chunks VAD) / Raw audio queues (VAD chunks)
+_out_audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)  # microfone do usuário / user mic
+_in_audio_q:  "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)  # áudio do interlocutor / peer audio
+
+# Filas de segmentos de fala detectados / Detected speech segment queues
 _out_seg_q:   "queue.Queue[np.ndarray]" = queue.Queue()
 _in_seg_q:    "queue.Queue[np.ndarray]" = queue.Queue()
-_ptt_flush    = threading.Event()   # PTT: sinaliza vad_worker para enviar buffer ao soltar
 
+# PTT (Push-to-Talk): sinaliza VAD para enviar buffer ao soltar o botão
+# PTT: signals VAD to flush buffer when button is released
+_ptt_flush    = threading.Event()
+
+# Histórico de transcrições para a TUI / Transcript history for TUI
 _transcripts: deque = deque(maxlen=8)
 _tr_lock = threading.Lock()
 _ui_state: dict = {"status": "INICIANDO", "src": "pt", "tgt": "en", "bilateral": False}
-_json_out: bool = False
+_json_out: bool = False  # modo JSON para integração com a UI Electron / JSON mode for Electron UI
+
+# Referência mutável para hot-swap de voz sem reiniciar Whisper
+# Mutable reference for voice hot-swap without restarting Whisper
+_piper_out_ref: list = [None]   # [PiperVoice | XttsVoice | RvcVoice]
+_piper_lock = threading.Lock()
 
 console = Console()
 
 
 def _emit(data: dict) -> None:
+    """Emite evento JSON para o processo pai (UI Electron) quando em modo --json-out.
+    Emits JSON event to parent process (Electron UI) when in --json-out mode."""
     if _json_out:
         print(json.dumps(data, ensure_ascii=False), flush=True)
 
@@ -55,11 +74,20 @@ def _emit(data: dict) -> None:
 # ── PulseAudio / PipeWire ─────────────────────────────────────────────────────
 
 def _pactl(*args: str) -> str:
+    """Executa comando pactl e retorna stdout. / Runs pactl command and returns stdout."""
     r = subprocess.run(["pactl", *args], capture_output=True, text=True, check=True)
     return r.stdout.strip()
 
 
 def setup_virtual_devices(bilateral: bool) -> None:
+    """Cria microfone virtual no PulseAudio/PipeWire.
+    Creates virtual microphone in PulseAudio/PipeWire.
+
+    Cria um null sink (SINK_OUT) + remap source (SRC_MIC) para o microfone virtual.
+    Em modo bilateral, também cria SINK_IN para capturar áudio do interlocutor.
+    Creates a null sink (SINK_OUT) + remap source (SRC_MIC) for the virtual mic.
+    In bilateral mode, also creates SINK_IN to capture peer audio.
+    """
     mod_sink = int(_pactl(
         "load-module", "module-null-sink",
         f"sink_name={SINK_OUT}",
@@ -83,6 +111,8 @@ def setup_virtual_devices(bilateral: bool) -> None:
 
 
 def teardown_virtual_devices() -> None:
+    """Remove todos os módulos PulseAudio criados pelo Praxis ao encerrar.
+    Removes all PulseAudio modules created by Praxis on shutdown."""
     for mod in reversed(_pactl_mods):
         try:
             _pactl("unload-module", str(mod))
@@ -115,17 +145,19 @@ def resolve_mic(mic_arg: str | None) -> str | None:
 
 
 def play_pcm(pcm: bytes, rate: int, *devices: str | None) -> None:
-    """Toca PCM em um ou mais dispositivos simultaneamente."""
+    """Toca PCM s16le em um ou mais dispositivos PulseAudio simultaneamente.
+    Plays s16le PCM on one or more PulseAudio devices simultaneously."""
     def _play(dev: str | None) -> None:
         cmd = ["pacat", "--playback", "--format=s16le", f"--rate={rate}", "--channels=1"]
         if dev:
             cmd.append(f"--device={dev}")
         subprocess.run(cmd, input=pcm, check=False)
 
-    targets = [d for d in devices]
+    targets = list(devices)
     if len(targets) == 1:
         _play(targets[0])
     else:
+        # Toca em múltiplos dispositivos em paralelo / play on multiple devices in parallel
         ts = [threading.Thread(target=_play, args=(d,), daemon=True) for d in targets]
         for t in ts: t.start()
         for t in ts: t.join()
@@ -243,9 +275,17 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
                seg_q:         "queue.Queue[np.ndarray]",
                mode:          str   = "vad",
                gate_threshold: float = 0.10) -> None:
-    import torch
-    from pathlib import Path
+    """Detecta segmentos de fala usando Silero VAD e enfileira em seg_q.
+    Detects speech segments using Silero VAD and enqueues them in seg_q.
 
+    Modos / modes:
+      vad  — detecção automática por probabilidade de fala / automatic speech probability detection
+      gate — threshold RMS simples / simple RMS threshold
+      ptt  — push-to-talk via _ptt_flush / push-to-talk via _ptt_flush event
+    """
+    import torch
+
+    # Carrega Silero VAD local se disponível, senão baixa / load local Silero VAD or download
     _local = Path.home() / ".cache/torch/hub/snakers4_silero-vad_master"
     if _local.exists():
         model, utils = torch.hub.load(str(_local), "silero_vad", source="local",
@@ -334,11 +374,16 @@ def pipeline_worker(
     piper,
     src: str,
     tgt: str,
-    direction: str,              # "out" | "in"
+    direction: str,              # "out" (usuário) | "in" (interlocutor) / "out" (user) | "in" (peer)
     monitor: bool = False,
-    monitor_output: str | None = None,  # sink de saída para monitor
+    monitor_output: str | None = None,
 ) -> None:
-    """ASR → tradução → TTS streaming por frase → play."""
+    """Pipeline completo: ASR (Whisper) → tradução (Argos) → TTS streaming por frase → play.
+    Full pipeline: ASR (Whisper) → translation (Argos) → per-sentence streaming TTS → play.
+
+    Sintetiza a próxima frase enquanto a atual está tocando para reduzir latência percebida.
+    Synthesizes the next sentence while the current one is playing to reduce perceived latency.
+    """
     while not _stop.is_set():
         try:
             segment = seg_q.get(timeout=0.2)
@@ -369,14 +414,17 @@ def pipeline_worker(
         _emit({"e": "translation", "dir": direction, "text": translated})
 
         # Streaming TTS: sintetiza próxima frase enquanto atual está tocando
+        # Lê piper via ref mutável para suportar hot-swap sem reiniciar Whisper
         sentences = _split_sentences(translated)
-        rate      = piper.config.sample_rate
+        with _piper_lock:
+            _cur_piper = _piper_out_ref[0] if direction == "out" else piper
+        rate      = _cur_piper.config.sample_rate
         play_q: "queue.Queue[bytes | None]" = queue.Queue()
 
-        def _synth(sents: list[str]) -> None:
+        def _synth(sents: list[str], _p=_cur_piper) -> None:
             try:
                 for s in sents:
-                    pcm = b"".join(c.audio_int16_bytes for c in piper.synthesize(s))
+                    pcm = b"".join(c.audio_int16_bytes for c in _p.synthesize(s))
                     play_q.put(pcm)
             finally:
                 play_q.put(None)
@@ -530,7 +578,178 @@ def load_whisper(model_name: str):
     return m
 
 
+def _patch_transformers_compat():
+    """Monkey-patch para transformers >= 5.x que removeu isin_mps_friendly.
+    Monkey-patch for transformers >= 5.x which removed isin_mps_friendly."""
+    try:
+        import torch
+        import transformers.pytorch_utils as _pu
+        if not hasattr(_pu, "isin_mps_friendly"):
+            _pu.isin_mps_friendly = torch.isin
+    except Exception:
+        pass
+
+
+class RvcVoice:
+    """Voz clonada via RVC — usa modelo .pth treinado + TTS intermediário para síntese.
+    Cloned voice via RVC — uses trained .pth model + intermediate TTS for synthesis.
+
+    Pipeline: texto → Piper TTS (voz genérica) → RVC (.pth) → áudio com voz do usuário
+    Pipeline: text → Piper TTS (generic voice) → RVC (.pth) → audio with user's voice
+    """
+
+    APPLIO_DIR = "/home/lab2/Documentos/praxis/applio/src"
+    PYTHON     = "/home/lab2/Documentos/praxis/applio/venv/bin/python"
+
+    def __init__(self, pth_path: str, sample_rate: int = 40000):
+        self._pth_path   = pth_path
+        self._index_path = str(Path(pth_path).with_suffix(".index")) if Path(
+            pth_path).with_suffix(".index").exists() else ""
+        self.config = type("cfg", (), {"sample_rate": sample_rate})()
+
+    def synthesize(self, text: str):
+        """Síntese em 2 etapas: TTS genérico → conversão de voz RVC.
+        Two-step synthesis: generic TTS → RVC voice conversion."""
+        import subprocess, tempfile, os, wave as _wave
+        import numpy as _np
+
+        # Passo 1: gera áudio com voz genérica usando edge-tts (rápido, sem GPU)
+        # Step 1: generate audio with generic voice using edge-tts (fast, no GPU)
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+            tmp_mp3 = f.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            tmp_tts = f.name
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            tmp_out = f.name
+
+        try:
+            # Edge-TTS: gera voz genérica PT-BR / generates generic PT-BR voice
+            subprocess.run([
+                "edge-tts", "--voice", "pt-BR-AntonioNeural",
+                "--text", text, "--write-media", tmp_mp3
+            ], check=True, capture_output=True)
+
+            # Converte MP3 para WAV mono 40kHz / convert MP3 to WAV mono 40kHz
+            subprocess.run([
+                "ffmpeg", "-y", "-i", tmp_mp3,
+                "-ar", "40000", "-ac", "1", tmp_tts
+            ], check=True, capture_output=True)
+
+            # Passo 2: RVC — converte voz genérica para voz do usuário
+            # Step 2: RVC — convert generic voice to user's voice
+            infer_script = Path(self.APPLIO_DIR) / "rvc" / "infer" / "infer.py"
+            subprocess.run([
+                self.PYTHON, str(infer_script),
+                "0",              # pitch shift semitones
+                "0.75",           # index rate
+                "0",              # gpu index
+                "0.25",           # protect
+                "rmvpe",          # f0 method
+                tmp_tts,          # input wav
+                tmp_out,          # output wav
+                self._pth_path,   # model .pth
+                self._index_path if self._index_path else "",
+                "wav",            # export format
+                "contentvec",     # embedder model
+            ], check=True, capture_output=True, cwd=self.APPLIO_DIR)
+
+            # Lê o WAV gerado e devolve como chunk compatível com PiperVoice
+            # Read generated WAV and return as PiperVoice-compatible chunk
+            with _wave.open(tmp_out, "rb") as wf:
+                raw = wf.readframes(wf.getnframes())
+                self.config = type("cfg", (), {"sample_rate": wf.getframerate()})()
+            pcm = _np.frombuffer(raw, dtype=_np.int16)
+
+        finally:
+            for p in (tmp_mp3, tmp_tts, tmp_out):
+                try:
+                    os.unlink(p)
+                except Exception:
+                    pass
+
+        class _Chunk:
+            def __init__(self, data):
+                self.audio_int16_bytes = data.tobytes()
+
+        yield _Chunk(pcm)
+
+
+class XttsVoice:
+    """Wrapper que imita a interface do PiperVoice usando XTTS v2 (Coqui TTS).
+    Wrapper mimicking PiperVoice interface using XTTS v2 (Coqui TTS).
+    Usado como fallback quando o modelo RVC ainda não foi treinado.
+    Used as fallback when the RVC model hasn't been trained yet.
+    """
+
+    _MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
+
+    def __init__(self, wav_path: str, lang: str = "pt"):
+        _patch_transformers_compat()
+        from TTS.api import TTS
+        device = "cuda" if _has_cuda() else "cpu"
+        self._tts     = TTS(self._MODEL_NAME).to(device)
+        self._wav_path = wav_path
+        self._lang     = lang
+        self.config    = type("cfg", (), {"sample_rate": 24000})()
+
+    def synthesize(self, text: str):
+        """Gera áudio e retorna iterador de chunks com .audio_int16_bytes."""
+        import numpy as np, tempfile, os, wave as _wave
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+            tmp = f.name
+        try:
+            self._tts.tts_to_file(
+                text=text,
+                speaker_wav=self._wav_path,
+                language=self._lang,
+                file_path=tmp,
+            )
+            with _wave.open(tmp, "rb") as wf:
+                raw = wf.readframes(wf.getnframes())
+            pcm = np.frombuffer(raw, dtype=np.int16)
+        finally:
+            os.unlink(tmp)
+
+        class _Chunk:
+            def __init__(self, data):
+                self.audio_int16_bytes = data.tobytes()
+
+        yield _Chunk(pcm)
+
+
+def _has_cuda() -> bool:
+    try:
+        import torch
+        return torch.cuda.is_available()
+    except Exception:
+        return False
+
+
 def load_piper(path: str):
+    """Carrega a voz correta com base no tipo definido no JSON do perfil.
+    Loads the correct voice engine based on the type field in the profile JSON.
+
+    Tipos suportados / supported types:
+      xtts / chatterbox — XTTS v2 (zero-shot, sem treino)
+      rvc               — RVC + modelo .pth treinado (alta fidelidade)
+      (padrão)          — PiperVoice (.onnx, voz genérica)
+    """
+    if path.endswith(".wav"):
+        jp = Path(path).with_suffix(".json")
+        if jp.exists():
+            meta = json.loads(jp.read_text())
+            voice_type = meta.get("type", "")
+            if voice_type == "rvc":
+                # Modelo RVC treinado — usa .pth gerado pelo pipeline de treino
+                # Trained RVC model — uses .pth generated by training pipeline
+                pth_path = str(Path(path).parent / meta.get("pth", ""))
+                if Path(pth_path).exists():
+                    return RvcVoice(pth_path)
+                # Fallback para XTTS se .pth não existe ainda
+                # Fallback to XTTS if .pth doesn't exist yet
+            if voice_type in ("chatterbox", "xtts", "rvc"):
+                lang = meta.get("lang", "pt")
+                return XttsVoice(path, lang)
     from piper import PiperVoice
     return PiperVoice.load(path)
 
@@ -626,6 +845,7 @@ def main() -> None:
     whisper   = load_whisper(args.model)
     _emit({"e": "progress", "pct": 75, "msg": "Carregando voz…"})
     piper_out = load_piper(args.voice_out)
+    _piper_out_ref[0] = piper_out
     piper_in  = load_piper(args.voice_in) if bilateral else None
     _emit({"e": "progress", "pct": 95, "msg": "Carregando VAD…"})
 
@@ -670,6 +890,35 @@ def main() -> None:
 
     if _json_out:
         _emit({"e": "ready"})
+
+        def _stdin_reader() -> None:
+            """Lê comandos JSON do stdin para hot-swap de configurações."""
+            for raw in sys.stdin:
+                raw = raw.strip()
+                if not raw:
+                    continue
+                try:
+                    cmd = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if cmd.get("cmd") == "reload_voice":
+                    path = cmd.get("path", "")
+                    if path and Path(path).exists():
+                        try:
+                            new_piper = load_piper(path)
+                            with _piper_lock:
+                                _piper_out_ref[0] = new_piper
+                            _emit({"e": "voice_reloaded", "path": path})
+                        except Exception as ex:
+                            _emit({"e": "error", "msg": str(ex)})
+                elif cmd.get("cmd") == "stop":
+                    _stop.set()
+                    break
+            # stdin fechou (UI encerrada) → sinaliza shutdown para teardown limpar os módulos
+            _stop.set()
+
+        threading.Thread(target=_stdin_reader, daemon=True).start()
+
         while not _stop.is_set():
             time.sleep(0.25)
     else:

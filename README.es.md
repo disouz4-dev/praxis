@@ -138,6 +138,23 @@ En la app de llamadas, selecciona **Praxis_Microfone** como dispositivo de entra
 
 ---
 
+## Clonación de voz (RVC)
+
+La pestaña **"Clonar mi voz"** permite entrenar un modelo RVC con tu propia voz, sin herramientas externas. Todo el pipeline corre dentro de Praxis.
+
+### Cómo usar
+
+1. Abre la pestaña **🎙 Clonar mi voz**
+2. Escribe un nombre para el perfil (ej. `Diego`)
+3. Lee el texto de referencia en voz alta (4 páginas, ~1000 palabras) usando los botones **← Anterior** / **Siguiente →**
+4. Con **3 minutos o más** grabados, el botón **🎙 Entrenar Voz** se activa
+5. Haz clic en **Entrenar Voz** — el pipeline ejecuta preprocesado, extracción de features y entrenamiento (10-30 min con GPU)
+6. Haz clic en **Probar** para escuchar y en **Usar** para activar la voz clonada
+
+> El audio de entrenamiento se acumula automáticamente: puedes grabar en múltiples sesiones cortas.
+
+---
+
 <div align="center">
 
 **Un mensaje. Todos los idiomas.**

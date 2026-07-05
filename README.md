@@ -150,8 +150,39 @@ No app de chamada, selecione **Praxis_Microfone** como dispositivo de entrada de
 
 ---
 
+## Clonagem de voz (RVC)
+
+A aba **"Clonar minha voz"** permite treinar um modelo RVC com a sua própria voz — sem precisar de ferramentas externas. Todo o pipeline roda dentro do Praxis.
+
+### Como usar
+
+1. Abra a aba **🎙 Clonar minha voz**
+2. Digite um nome para o perfil (ex: `Diego`)
+3. Leia o texto de referência em voz alta (4 páginas, ~1000 palavras)
+   - Use os botões **← Anterior** / **Próximo →** para navegar entre páginas
+   - Pode gravar várias sessões curtas — o áudio acumula automaticamente
+4. Com **3 minutos ou mais** gravados, o botão **🎙 Treinar Voz** é liberado
+5. Clique em **Treinar Voz** — o pipeline executa em 3 fases:
+   - **Fase 1** — Pré-processamento do áudio (corte em chunks de 3s)
+   - **Fase 2** — Extração de features (HuBERT + RMVPE para F0)
+   - **Fase 3** — Treino do modelo (300 épocas, HiFi-GAN vocoder)
+6. Após o treino (~10-30 min com GPU), clique em **Testar** para ouvir o resultado
+7. Clique em **Usar** para ativar a voz clonada como saída padrão
+
+### Tecnologia
+
+- **RVC** (Retrieval-based Voice Conversion) — conversão de voz baseada em retrieval
+- **Applio** — scripts de treino usados internamente (sem precisar abrir a interface web)
+- **edge-tts** — TTS intermediário para síntese antes da conversão
+- Modelo salvo em `voices/clones/` como `.pth` (pesos) + `.json` (metadados)
+
+> O áudio de treinamento é acumulado automaticamente: você pode gravar em múltiplas sessões e o total vai crescendo até atingir o mínimo de 3 minutos.
+
+---
+
 ## Roadmap
 
+- [x] Clonagem de voz com RVC (treino e inferência nativos no Praxis)
 - [ ] Tradução bidirecional completa (ouvir o interlocutor traduzido)
 - [ ] Tray icon e atalho global para pausar/retomar
 - [ ] Streaming speech-to-speech para latência menor ainda
