@@ -1990,49 +1990,88 @@ class ConfigWindow(ctk.CTk):
 
     # ── Aba Minha Voz — clonagem de voz ──────────────────────────────────────
 
-    # Texto longo para gravar ~3-5 minutos de áudio de treino.
-    # Long reading text to record ~3-5 minutes of training audio.
-    CLONE_TEXT = (
-        "Bom dia! Hoje vou gravar a minha voz para o sistema Praxis. "
-        "Vou falar de forma natural, como se estivesse numa conversa normal. "
-        "A tecnologia de clonagem de voz é algo que sempre me fascinou. "
-        "Quando criança, eu imaginava como seria falar com pessoas de todo o mundo. "
-        "Hoje isso é possível, e o Praxis vai tornar isso uma realidade para mim.\n\n"
-        "Vamos falar um pouco sobre tecnologia. "
-        "Os avanços da inteligência artificial nos últimos anos foram impressionantes. "
-        "Modelos de linguagem, síntese de voz, tradução automática — tudo isso evoluiu muito. "
-        "Mas o que me interessa mesmo é quando a tecnologia serve às pessoas, "
-        "quando ela remove barreiras e aproxima culturas diferentes.\n\n"
-        "Deixa eu te contar uma história. "
-        "Certa vez, viajei para um país onde ninguém falava português. "
-        "Foi uma experiência incrível, mas também desafiadora. "
-        "Tive que usar gestos, expressões faciais e muita paciência. "
-        "Imagina se eu tivesse uma ferramenta que traduzisse minha voz em tempo real. "
-        "Seria completamente diferente.\n\n"
-        "Agora vou falar sobre o meu dia a dia. "
-        "Acordo cedo, tomo um café forte, e começo a trabalhar. "
-        "Gosto de resolver problemas complexos, de criar soluções novas. "
-        "Às vezes as coisas não funcionam como o esperado, e tudo bem. "
-        "O importante é persistir, testar de novo e aprender com os erros.\n\n"
-        "Quais são os seus sonhos? O que você quer construir? "
-        "Eu acredito que cada pessoa tem algo único a oferecer para o mundo. "
-        "Minha missão é usar a tecnologia para amplificar essas vozes — literalmente.\n\n"
-        "Vou contar um número agora, só para variar o ritmo da fala. "
-        "Um, dois, três, quatro, cinco, seis, sete, oito, nove, dez. "
-        "Cem, duzentos, trezentos, mil, dez mil, um milhão. "
-        "Dois mil e vinte e seis. Vinte e três horas e quarenta minutos.\n\n"
-        "Voltando ao Praxis. O sistema escuta o que eu falo em português, "
-        "transcreve, traduz para outro idioma, e reproduz com a minha própria voz. "
-        "Não é uma voz robótica. É a minha voz. O meu timbre. A minha entonação. "
-        "Isso muda completamente a experiência de comunicação.\n\n"
-        "Estou quase terminando. Só mais alguns instantes de gravação. "
-        "Respira fundo. Fala com calma. Varia o ritmo às vezes mais rápido, às vezes mais devagar. "
-        "A diversidade de entonações ajuda o modelo a aprender melhor. "
-        "Por isso estou falando de formas diferentes ao longo dessa gravação.\n\n"
-        "Obrigado por me ouvir até aqui. "
-        "Com essa gravação, o Praxis vai aprender como eu soo de verdade. "
-        "E a partir de agora, em qualquer idioma, vou continuar sendo eu."
-    )
+    # Texto de ~1000 palavras dividido em 4 páginas para leitura paginada.
+    # ~1000-word text split into 4 pages for paginated reading.
+    CLONE_PAGES = [
+        # Página 1 / Page 1
+        (
+            "Bom dia! Hoje começo a gravar minha voz para o sistema Praxis. Vou falar de "
+            "forma natural e tranquila, como se estivesse conversando com um amigo. A ideia "
+            "é simples: quanto mais eu falar, melhor o sistema vai aprender como eu soo de "
+            "verdade. Então vou variar o ritmo — às vezes mais rápido, às vezes mais pausado. "
+            "Às vezes levantando a voz, outras vezes falando mais baixo.\n\n"
+            "Meu nome é Diego. Trabalho com tecnologia há muitos anos, e sempre acreditei que "
+            "as ferramentas certas podem transformar completamente a forma como as pessoas se "
+            "comunicam. Quando comecei a explorar inteligência artificial, percebi que "
+            "estávamos numa virada histórica. Não é exagero dizer isso.\n\n"
+            "A comunicação é a base de tudo. Ela constrói relacionamentos, fecha negócios, "
+            "resolve conflitos e cria pontes entre culturas. Mas o idioma sempre foi uma "
+            "barreira invisível que separa pessoas que poderiam se entender muito bem se "
+            "falassem a mesma língua. O Praxis existe para quebrar essa fronteira.\n\n"
+            "Respira fundo. Continua lendo com calma. Isso aqui não é uma corrida — é uma "
+            "conversa. E toda boa conversa começa com atenção e presença."
+        ),
+        # Página 2 / Page 2
+        (
+            "Vou falar agora sobre tecnologia. Nos últimos anos, os avanços em inteligência "
+            "artificial foram impressionantes. Modelos de linguagem, síntese de voz, visão "
+            "computacional, tradução automática — tudo evoluiu numa velocidade que a maioria "
+            "das pessoas não acompanhou.\n\n"
+            "Mas existe uma diferença fundamental entre tecnologia que impressiona e tecnologia "
+            "que serve. O que me interessa é a segunda. Uma ferramenta só tem valor real quando "
+            "resolve um problema verdadeiro na vida de alguém.\n\n"
+            "O reconhecimento de voz já existe há décadas. Mas por muito tempo era impreciso, "
+            "lento, e frustrava mais do que ajudava. Hoje, com modelos modernos, a transcrição "
+            "em tempo real ficou tão boa que você mal percebe o processamento acontecendo.\n\n"
+            "A síntese de voz seguiu o mesmo caminho. Lembro quando vozes sintetizadas soavam "
+            "mecânicas, robotizadas, sem emoção. Hoje um bom modelo consegue capturar timbre, "
+            "entonação, até a respiração de uma pessoa.\n\n"
+            "Deixa eu variar um pouco. Um, dois, três, quatro, cinco. Dez, vinte, cinquenta, "
+            "cem, mil. Dois mil e vinte e seis. Terça-feira, doze de agosto. Oito horas da "
+            "manhã. Trinta e dois graus. Cento e vinte quilômetros por hora."
+        ),
+        # Página 3 / Page 3
+        (
+            "Deixa eu contar algumas histórias. Certa vez, viajei para o Japão. Não falava "
+            "nenhuma palavra de japonês. Entrar num restaurante pequeno, sem cardápio em inglês, "
+            "foi uma experiência memorável. Usamos gestos, sorrisos e muita paciência dos dois "
+            "lados. Saí de lá com a barriga cheia e uma história boa para contar.\n\n"
+            "Em outra ocasião, participei de uma reunião de negócios com clientes que só falavam "
+            "espanhol. Eu me virava com o que tinha, mas sabia que estava perdendo nuances "
+            "importantes. Palavras que explicariam melhor minha proposta. Detalhes que fariam "
+            "diferença no contrato. O problema não era competência — era o idioma.\n\n"
+            "Pensa comigo: o que você deixou de aprender porque estava em outro idioma? Quantas "
+            "conversas nunca aconteceram porque ninguém queria enfrentar o desconforto de não "
+            "se entender? Quantos negócios não foram fechados, quantas amizades não floresceram, "
+            "quantos conhecimentos ficaram presos atrás de uma barreira linguística?\n\n"
+            "Isso me motivou a acreditar no Praxis desde o primeiro dia. A ideia de que a minha "
+            "voz, com o meu sotaque, com o meu jeito de falar, chegasse em qualquer idioma sem "
+            "perder a essência — isso é algo que vale a pena construir."
+        ),
+        # Página 4 / Page 4
+        (
+            "Estou chegando ao fim desta gravação, mas vou aproveitar para variar a entonação. "
+            "Às vezes uma pergunta: você já imaginou falar cinco idiomas com a mesma fluência "
+            "que fala o seu? Às vezes uma afirmação firme: isso é possível. Não hoje, não "
+            "amanhã — mas estamos construindo o caminho.\n\n"
+            "A voz humana é algo extraordinário. Ela carrega informação muito além das palavras. "
+            "O tom revela emoção. O ritmo revela confiança. A respiração revela tensão ou calma. "
+            "Quando você ouve alguém falar, não está só decodificando palavras — está lendo uma "
+            "pessoa inteira.\n\n"
+            "Por isso a clonagem de voz é tão desafiadora. Não basta replicar os fonemas "
+            "corretos. Precisa capturar o jeito. A cadência. O que torna aquela voz "
+            "reconhecível entre mil outras.\n\n"
+            "E é exatamente isso que essa gravação vai fazer. Ela vai alimentar um modelo que "
+            "aprende os padrões únicos da minha voz. Quando o Praxis sintetizar fala em inglês, "
+            "espanhol, francês ou italiano, quem vai estar falando ainda vou ser eu.\n\n"
+            "Obrigado por gravar até aqui. Faz diferença. Cada segundo de áudio ajuda o modelo "
+            "a ser mais fiel, mais preciso, mais meu."
+        ),
+    ]
+
+    # Texto completo concatenado — usado como ref_text no JSON do perfil.
+    # Full concatenated text — used as ref_text in profile JSON.
+    CLONE_TEXT = " ".join(CLONE_PAGES)
     CLONES_DIR = VOICES_DIR / "clones"
 
     def _build_clone_tab(self, parent: ctk.CTkFrame) -> None:
@@ -2045,6 +2084,7 @@ class ConfigWindow(ctk.CTk):
         self._meter_stream = None   # sounddevice stream do VU meter / VU meter audio stream
         self._testing      = False  # trava para evitar testes simultâneos / lock to prevent concurrent tests
         self._training     = False  # trava para evitar treinos simultâneos / lock to prevent concurrent training
+        self._clone_page   = 0      # página atual do texto de clonagem / current clone text page
 
         scroll = ctk.CTkScrollableFrame(
             parent, fg_color="transparent",
@@ -2084,27 +2124,77 @@ class ConfigWindow(ctk.CTk):
                      text_color=self.TEXT, font=ctk.CTkFont(size=13)).grid(
             row=0, column=1, sticky="ew")
 
-        # ── Texto de referência ─────────────────────────────────────────────
-        ctk.CTkLabel(scroll, text="Leia este texto em voz alta:",
+        # ── Texto de referência paginado ────────────────────────────────────
+        # Paginated reference text — no scroll, navigate with buttons
+        _total_pages = len(self.CLONE_PAGES)
+
+        # Cabeçalho: título + indicador de página / header: title + page indicator
+        ref_header = ctk.CTkFrame(scroll, fg_color="transparent")
+        ref_header.pack(fill="x", padx=16, pady=(12, 4))
+        ctk.CTkLabel(ref_header, text="Leia este texto em voz alta:",
                      font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.MUTED).pack(anchor="w", padx=16, pady=(12, 4))
+                     text_color=self.MUTED).pack(side="left")
+        self._page_lbl = ctk.CTkLabel(
+            ref_header,
+            text=f"Página 1 de {_total_pages}",
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._page_lbl.pack(side="right")
+
+        # Card com o texto da página atual / card showing current page text
         ref_card = ctk.CTkFrame(scroll, fg_color=self.INPUT,
                                 border_color=self.IBORDER, border_width=1,
                                 corner_radius=8)
         ref_card.pack(fill="x", padx=16)
-        _ref_lbl = ctk.CTkLabel(ref_card, text=self.CLONE_TEXT,
-                                font=ctk.CTkFont(size=12), text_color=self.TEXT,
-                                wraplength=400, justify="left", anchor="w")
-        _ref_lbl.pack(fill="x", padx=12, pady=10)
-        # Ajusta wraplength quando o card redimensiona (bind no card, não no label,
-        # evita loop infinito que ocorre quando wraplength muda a altura do label)
+        self._ref_lbl = ctk.CTkLabel(
+            ref_card, text=self.CLONE_PAGES[0],
+            font=ctk.CTkFont(size=12), text_color=self.TEXT,
+            wraplength=400, justify="left", anchor="nw")
+        self._ref_lbl.pack(fill="x", padx=12, pady=10)
+
+        # Ajusta wraplength ao redimensionar (bind no card evita loop infinito)
+        # Adjust wraplength on resize (bind on card to avoid infinite loop)
         _last_w = [0]
         def _on_card_resize(e):
-            new_w = max(100, e.width - 28)   # desconta padx=12 de cada lado + borda
+            new_w = max(100, e.width - 28)
             if abs(new_w - _last_w[0]) > 2:
                 _last_w[0] = new_w
-                _ref_lbl.configure(wraplength=new_w)
+                self._ref_lbl.configure(wraplength=new_w)
         ref_card.bind("<Configure>", _on_card_resize)
+
+        # Botões de navegação de página / page navigation buttons
+        nav_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        nav_row.pack(fill="x", padx=16, pady=(6, 2))
+
+        def _go_page(delta: int):
+            # Navega entre páginas, atualizando texto e indicador
+            # Navigate between pages, updating text and indicator
+            self._clone_page = max(0, min(_total_pages - 1, self._clone_page + delta))
+            self._ref_lbl.configure(text=self.CLONE_PAGES[self._clone_page])
+            self._page_lbl.configure(
+                text=f"Página {self._clone_page + 1} de {_total_pages}")
+            _prev_btn.configure(state="normal" if self._clone_page > 0 else "disabled")
+            _next_btn.configure(state="normal" if self._clone_page < _total_pages - 1 else "disabled")
+
+        _prev_btn = ctk.CTkButton(
+            nav_row, text="← Anterior", width=100, height=28,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11),
+            state="disabled",
+            command=lambda: _go_page(-1),
+        )
+        _prev_btn.pack(side="left")
+
+        _next_btn = ctk.CTkButton(
+            nav_row, text="Próximo →", width=100, height=28,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11),
+            command=lambda: _go_page(1),
+        )
+        _next_btn.pack(side="right")
 
         # ── VU Meter ────────────────────────────────────────────────────────
         meter_frame = ctk.CTkFrame(scroll, fg_color=self.INPUT,
