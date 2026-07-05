@@ -536,6 +536,14 @@ class ConfigWindow(ctk.CTk):
 
     def _toggle_theme(self) -> None:
         """Alterna entre light/dark mode: salva preferência e reconstrói a UI."""
+        try:
+            self._toggle_theme_impl()
+        except Exception as _te:
+            import traceback
+            with open("/tmp/praxis_theme_err.log", "a") as _f:
+                traceback.print_exc(file=_f)
+
+    def _toggle_theme_impl(self) -> None:
         is_dark = ctk.get_appearance_mode().lower() == "dark"
         new_name = "light" if is_dark else "dark"
         new_theme = THEME_DARK if new_name == "dark" else THEME_LIGHT
@@ -1605,12 +1613,18 @@ class ConfigWindow(ctk.CTk):
             self._voice_menu.configure(values=labels)
             if self.voice_var.get() not in labels:
                 self.voice_var.set(labels[0])
-            if hasattr(self, "_dl_card"):
-                self._dl_card.grid_remove()
         else:
             self._voice_menu.configure(values=["(nenhuma voz)"])
             self.voice_var.set("(nenhuma voz)")
+
+        # Mostra card de download se houver vozes do catálogo ainda não baixadas
+        remaining = [v for v in VOICE_CATALOG
+                     if v["lang"] == tgt_code
+                     and not (VOICES_DIR / _catalog_filename(v)).exists()]
+        if remaining:
             self._show_dl_card(tgt_code)
+        elif hasattr(self, "_dl_card"):
+            self._dl_card.grid_remove()
 
     def _show_dl_card(self, lang_code: str) -> None:
         """Reconstrói o card de download listando TODAS as vozes do catálogo para o idioma."""
@@ -1632,9 +1646,15 @@ class ConfigWindow(ctk.CTk):
             self._dl_card.grid(**self._dl_card_kw)
             return
 
-        # Cabeçalho
+        # Cabeçalho — texto muda conforme há vozes instaladas ou não
+        installed_any = any(
+            (VOICES_DIR / _catalog_filename(v)).exists()
+            for v in VOICE_CATALOG if v["lang"] == lang_code
+        )
+        hdr_text = (f"Mais vozes para {lang_name}:" if installed_any
+                    else f"Sem voz para {lang_name}. Baixar do catálogo:")
         ctk.CTkLabel(self._dl_inner,
-                     text=f"Sem voz para {lang_name}. Baixar do catálogo:",
+                     text=hdr_text,
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED, anchor="w",
                      ).pack(fill="x", pady=(0, 6))
@@ -1776,29 +1796,18 @@ class ConfigWindow(ctk.CTk):
         tgt_code = self._tgt_code()
         phrase   = TEST_PHRASES.get(tgt_code, "Uma mensagem. Todas as línguas.")
 
-        # Localiza o binário piper
-        venv_piper  = Path.home() / ".local/share/praxis/venv/bin/piper"
-        local_piper = Path.home() / ".local/bin/piper"
-        if venv_piper.exists():
-            piper = str(venv_piper)
-        elif local_piper.exists():
-            piper = str(local_piper)
-        else:
-            piper = "piper"
-
-        tmp_wav = "/tmp/praxis_voice_test.wav"
-
         def _run():
             try:
                 self.after(0, lambda: self._test_btn.configure(
                     state="disabled", text="▶  …"))
-                proc = subprocess.Popen(
-                    [piper, "--model", voice_path, "--output_file", tmp_wav, "--quiet"],
-                    stdin=subprocess.PIPE, stderr=subprocess.DEVNULL)
-                proc.communicate(input=phrase.encode())
-                if proc.returncode == 0 and Path(tmp_wav).exists():
-                    subprocess.run(["aplay", tmp_wav],
-                                   stderr=subprocess.DEVNULL, timeout=30)
+                from piper import PiperVoice
+                import wave, io
+                voice = PiperVoice.load(voice_path)
+                tmp_wav = "/tmp/praxis_voice_test.wav"
+                with wave.open(tmp_wav, "wb") as wf:
+                    voice.synthesize_wav(phrase, wf)
+                subprocess.run(["aplay", tmp_wav],
+                               stderr=subprocess.DEVNULL, timeout=30)
             except Exception:
                 pass
             finally:

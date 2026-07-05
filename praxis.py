@@ -441,16 +441,20 @@ def _patch_stanza() -> None:
 
         _rc.add_mwt = _safe_add_mwt
 
-        # Também remapeia maintain_processor_list para não propagar esse erro
+        # Remapeia maintain_processor_list nos dois lugares onde pode estar vinculada:
+        # 1) no módulo resources.common (chamadas futuras via _rc)
+        # 2) no módulo pipeline.core (importação já realizada com 'from ... import')
         _orig_mpl = _rc.maintain_processor_list
 
         def _safe_mpl(resources, lang, package, processors, **kw):
             try:
                 return _orig_mpl(resources, lang, package, processors, **kw)
             except (KeyError, TypeError):
-                return processors
+                return processors if isinstance(processors, dict) else {}
 
         _rc.maintain_processor_list = _safe_mpl
+        # Patch direto no namespace de stanza.pipeline.core
+        _sc.maintain_processor_list = _safe_mpl
 
     except Exception:
         pass
