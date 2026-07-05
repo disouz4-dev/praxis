@@ -160,16 +160,42 @@ def _get_primary_monitor() -> tuple[int, int, int, int]:
 # ── Voz / catálogo ────────────────────────────────────────────────────────────
 
 TEST_PHRASES: dict[str, str] = {
-    "pt": "Olá! Este é um teste da voz selecionada.",
-    "en": "Hello! This is a test of the selected voice.",
-    "es": "¡Hola! Esta es una prueba de la voz seleccionada.",
-    "fr": "Bonjour ! Ceci est un test de la voix sélectionnée.",
-    "de": "Hallo! Dies ist ein Test der ausgewählten Stimme.",
-    "it": "Ciao! Questo è un test della voce selezionata.",
-    "ja": "こんにちは！これは選択された音声のテストです。",
-    "zh": "你好！这是所选语音的测试。",
-    "ko": "안녕하세요! 이것은 선택된 음성의 테스트입니다.",
-    "ru": "Привет! Это тест выбранного голоса.",
+    "pt": (
+        "Olá! Estou testando a clonagem de voz no Praxis. "
+        "É incrível poder falar em português e ser ouvido em inglês, "
+        "mantendo o meu próprio timbre e entonação."
+    ),
+    "en": (
+        "Hello! I'm testing voice cloning in Praxis. "
+        "It's incredible to speak in English and be heard in Portuguese, "
+        "while keeping my own voice and tone."
+    ),
+    "es": (
+        "¡Hola! Estoy probando la clonación de voz en Praxis. "
+        "Es increíble poder hablar en español y ser escuchado en otro idioma, "
+        "manteniendo mi propio timbre y entonación."
+    ),
+    "fr": (
+        "Bonjour ! Je teste le clonage vocal dans Praxis. "
+        "C'est incroyable de pouvoir parler en français et être entendu dans une autre langue, "
+        "tout en conservant ma propre voix."
+    ),
+    "de": (
+        "Hallo! Ich teste das Voice-Cloning in Praxis. "
+        "Es ist unglaublich, auf Deutsch zu sprechen und in einer anderen Sprache gehört zu werden, "
+        "während ich meine eigene Stimme behalte."
+    ),
+    "it": (
+        "Ciao! Sto testando la clonazione vocale in Praxis. "
+        "È incredibile poter parlare in italiano ed essere ascoltato in un'altra lingua, "
+        "mantenendo la mia voce e la mia intonazione."
+    ),
+    "ru": (
+        "Привет! Я тестирую клонирование голоса в Praxis. "
+        "Невероятно говорить по-русски и быть услышанным на другом языке, "
+        "сохраняя свой собственный голос."
+    ),
+    "zh": "你好！我正在测试Praxis中的语音克隆功能。保持我自己的声音和语调，同时用另一种语言被听到，这真是令人难以置信。",
 }
 
 
@@ -497,7 +523,8 @@ class ConfigWindow(ctk.CTk):
             setattr(ConfigWindow, k, v)
         ctk.set_appearance_mode("Dark" if theme_name == "dark" else "Light")
 
-        self._monitor: bool = self.cfg.get("monitor", False)
+        self._monitor: bool  = self.cfg.get("monitor", False)
+        self._bilateral: bool = bool(self.cfg.get("voice_in", ""))
         self._mode_var      = ctk.StringVar(value=self.cfg.get("mode", "vad"))
         self._gate_frac     = min(1.0, self.cfg.get("gate_threshold", 0.10) / 0.28)
         self._ptt_key: str  = self.cfg.get("ptt_key", "")
@@ -511,7 +538,7 @@ class ConfigWindow(ctk.CTk):
         self._outputs: list[tuple[str, str]] = []
 
         self.title("Praxis — Configuração")
-        self.resizable(False, False)
+        self.resizable(False, True)
         self.configure(fg_color=self.BG)
 
         # Centraliza na tela do monitor primário
@@ -520,9 +547,11 @@ class ConfigWindow(ctk.CTk):
             sw = self.winfo_screenwidth()
             sh = self.winfo_screenheight()
             ox = oy = 0
+        win_h = max(680, min(sh - 80, sh))   # usa quase toda a tela, mínimo 680
+        self.minsize(560, 640)
         x = ox + (sw - 560) // 2
-        y = oy + max(0, (sh - 720) // 2)
-        self.geometry(f"560x720+{x}+{y}")
+        y = oy + max(0, (sh - win_h) // 2)
+        self.geometry(f"560x{win_h}+{x}+{y}")
 
         self.withdraw()  # oculta enquanto splash está aberta
 
@@ -598,6 +627,8 @@ class ConfigWindow(ctk.CTk):
                 self._meter_proc.terminate()
             except Exception:
                 pass
+        if hasattr(self, "_stop_meter"):
+            self._stop_meter()
         self.destroy()
 
     # ── Ícone e splash ────────────────────────────────────────────────────────
@@ -670,26 +701,33 @@ class ConfigWindow(ctk.CTk):
 
         hdr = ctk.CTkFrame(self._left, fg_color="transparent")
         hdr.pack(fill="x", padx=24, pady=(20, 10))
-        # 3 colunas: [spacer, minsize=34] [logo] [botão 34px]
-        # minsize=34 espelha largura do botão → logo fica geometricamente centrada
-        hdr.grid_columnconfigure(0, weight=1, minsize=34)
-        hdr.grid_columnconfigure(1, weight=0)
-        hdr.grid_columnconfigure(2, weight=1, minsize=34)
 
         _is_dark = ctk.get_appearance_mode().lower() == "dark"
 
-        # Botão de tema — canto superior direito, alinhado ao topo
+        # Estrutura: [spacer 34px] [centro expand] [botão 34px]
+        # O spacer espelha a largura do botão → centro fica geometricamente centrado
+        _hdr_spacer = ctk.CTkFrame(hdr, fg_color="transparent", width=34, height=34)
+        _hdr_spacer.pack(side="left")
+        _hdr_spacer.pack_propagate(False)
+
+        _hdr_right = ctk.CTkFrame(hdr, fg_color="transparent", width=34)
+        _hdr_right.pack(side="right", anchor="n")
+        _hdr_right.pack_propagate(False)
+
         self._theme_btn = ctk.CTkButton(
-            hdr, text="☀" if _is_dark else "☾",
+            _hdr_right, text="☀" if _is_dark else "☾",
             width=34, height=34,
             fg_color=self.ACCENT, hover_color=self.HOVER,
             text_color="#FFFFFF", border_width=0,
             corner_radius=17, font=ctk.CTkFont(size=15),
             command=self._toggle_theme,
         )
-        self._theme_btn.grid(row=0, column=2, sticky="ne")
+        self._theme_btn.pack()
 
-        # Logo centralizada (col 1, entre os dois spacers de peso igual)
+        _hdr_center = ctk.CTkFrame(hdr, fg_color="transparent")
+        _hdr_center.pack(side="left", fill="both", expand=True)
+
+        # Logo centrada horizontalmente dentro do centro
         try:
             from PIL import Image
             _logo_file = "praxis_logo_white.png" if _is_dark else "praxis_logo_black.png"
@@ -699,25 +737,40 @@ class ConfigWindow(ctk.CTk):
             _logo_pil = Image.open(_logo_path).convert("RGBA")
             self._logo_img = ctk.CTkImage(
                 light_image=_logo_pil, dark_image=_logo_pil, size=(110, 110))
-            ctk.CTkLabel(hdr, image=self._logo_img, text="").grid(row=0, column=1)
+            ctk.CTkLabel(_hdr_center, image=self._logo_img, text="").pack()
         except Exception:
             pass
 
-        # Slogan — abaixo da logo, span nas 3 colunas (centralizado automaticamente)
         ctk.CTkLabel(
-            hdr,
+            _hdr_center,
             text="Uma mensagem. Todas as línguas.",
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self.MUTED,
-        ).grid(row=1, column=0, columnspan=3, pady=(6, 0))
+        ).pack(pady=(6, 0))
 
+        # ── Abas principais ───────────────────────────────────────────────────
+        self._tabs = ctk.CTkTabview(
+            self._left,
+            fg_color=self.CARD,
+            segmented_button_fg_color=self.SEG_BG,
+            segmented_button_selected_color=self.ACCENT,
+            segmented_button_selected_hover_color=self.HOVER,
+            segmented_button_unselected_color=self.SEG_BG,
+            segmented_button_unselected_hover_color=self.IBORDER,
+            text_color=self.TEXT,
+        )
+        self._tabs.pack(fill="both", expand=True, padx=24, pady=(12, 4))
+        self._tabs.add("⚙  Config")
+        self._tabs.add("🎙  Clonar minha voz")
+
+        # ── Aba Config ────────────────────────────────────────────────────────
         self._card = ctk.CTkScrollableFrame(
-            self._left, fg_color=self.CARD, corner_radius=14,
-            border_width=1, border_color=self.BORDER,
+            self._tabs.tab("⚙  Config"),
+            fg_color="transparent",
             scrollbar_button_color=self.SEG_BG,
             scrollbar_button_hover_color=self.IBORDER,
         )
-        self._card.pack(fill="both", expand=True, padx=24, pady=(12, 8))
+        self._card.pack(fill="both", expand=True)
         self._card.grid_columnconfigure((0, 1), weight=1)
 
         r = 0
@@ -736,6 +789,11 @@ class ConfigWindow(ctk.CTk):
         r = self._section(r, "Voz de saída",
                           right_widget=self._make_voice_header_btns())
         r = self._voice_field(r)
+        r = self._sep(r)
+        r = self._bilateral_section(r)
+
+        # ── Aba Minha Voz ─────────────────────────────────────────────────────
+        self._build_clone_tab(self._tabs.tab("🎙  Clonar minha voz"))
 
         footer = ctk.CTkFrame(self._left, fg_color="transparent")
         footer.pack(fill="x", padx=24, pady=(4, 20))
@@ -783,6 +841,7 @@ class ConfigWindow(ctk.CTk):
             saved_tgt = _tgt_labels[0]
         self.tgt_var = ctk.StringVar(value=saved_tgt)
         self.tgt_var.trace_add("write", lambda *_: self.after(0, self._on_tgt_change))
+        self.src_var.trace_add("write", lambda *_: self.after(0, self._on_src_change))
         self._optmenu(card, r, 0, LANG_LABELS, self.src_var, pr=8)
         self._optmenu(card, r, 1, _tgt_labels, self.tgt_var, pl=8)
         return r + 1
@@ -1602,6 +1661,20 @@ class ConfigWindow(ctk.CTk):
         except (ValueError, IndexError):
             return self.cfg.get("tgt", "en")
 
+    def _on_src_change(self) -> None:
+        """Atualiza o seletor de voz bilateral quando o idioma de origem muda."""
+        if not hasattr(self, "_voice_in_menu"):
+            return
+        try:
+            src_code = LANG_CODES[LANG_LABELS.index(self.src_var.get())]
+        except ValueError:
+            return
+        in_voices = _voices_for_lang(self._voices, src_code)
+        in_labels = [lbl for _, lbl in in_voices] or [f"(nenhuma voz {src_code})"]
+        self._voice_in_menu.configure(values=in_labels)
+        if self.voice_in_var.get() not in in_labels:
+            self.voice_in_var.set(in_labels[0])
+
     def _on_tgt_change(self) -> None:
         """Chamado quando o idioma de destino muda: filtra vozes e mostra download se vazio."""
         if not hasattr(self, "_voice_menu"):
@@ -1824,11 +1897,31 @@ class ConfigWindow(ctk.CTk):
         ctk.CTkButton(frame, text="⬇  Baixar", width=80,
                       command=self._open_download_dialog, **btn_kw).pack(side="left", padx=(0, 4))
         ctk.CTkButton(frame, text="↺  Atualizar", width=100,
-                      command=self._refresh_voices, **btn_kw).pack(side="left")
+                      command=self._refresh_voices, **btn_kw).pack(side="left", padx=(0, 4))
+        self._apply_voice_btn = ctk.CTkButton(
+            frame, text="⟳  Aplicar", width=90,
+            command=self._apply_voice, state="disabled", **btn_kw)
+        self._apply_voice_btn.pack(side="left")
         return frame
 
     def _open_download_dialog(self) -> None:
         VoiceDownloadDialog(self, on_downloaded=self._refresh_voices)
+
+    def _apply_voice(self) -> None:
+        proc = getattr(self, "_engine_proc", None)
+        if not proc or proc.poll() is not None or proc.stdin is None:
+            return
+        selected = self.voice_var.get()
+        voice_path = next((p for p, lbl in self._voices if lbl == selected), "")
+        if not voice_path or not Path(voice_path).exists():
+            return
+        cmd = json.dumps({"cmd": "reload_voice", "path": voice_path}) + "\n"
+        try:
+            proc.stdin.write(cmd)
+            proc.stdin.flush()
+            self._apply_voice_btn.configure(state="disabled", text="Aplicando…")
+        except Exception:
+            pass
 
     def _make_voices_refresh_btn(self) -> ctk.CTkButton:
         return ctk.CTkButton(
@@ -1895,6 +1988,868 @@ class ConfigWindow(ctk.CTk):
                 return n
         return ""
 
+    # ── Aba Minha Voz — clonagem de voz ──────────────────────────────────────
+
+    # Texto longo para gravar ~3-5 minutos de áudio de treino.
+    # Long reading text to record ~3-5 minutes of training audio.
+    CLONE_TEXT = (
+        "Bom dia! Hoje vou gravar a minha voz para o sistema Praxis. "
+        "Vou falar de forma natural, como se estivesse numa conversa normal. "
+        "A tecnologia de clonagem de voz é algo que sempre me fascinou. "
+        "Quando criança, eu imaginava como seria falar com pessoas de todo o mundo. "
+        "Hoje isso é possível, e o Praxis vai tornar isso uma realidade para mim.\n\n"
+        "Vamos falar um pouco sobre tecnologia. "
+        "Os avanços da inteligência artificial nos últimos anos foram impressionantes. "
+        "Modelos de linguagem, síntese de voz, tradução automática — tudo isso evoluiu muito. "
+        "Mas o que me interessa mesmo é quando a tecnologia serve às pessoas, "
+        "quando ela remove barreiras e aproxima culturas diferentes.\n\n"
+        "Deixa eu te contar uma história. "
+        "Certa vez, viajei para um país onde ninguém falava português. "
+        "Foi uma experiência incrível, mas também desafiadora. "
+        "Tive que usar gestos, expressões faciais e muita paciência. "
+        "Imagina se eu tivesse uma ferramenta que traduzisse minha voz em tempo real. "
+        "Seria completamente diferente.\n\n"
+        "Agora vou falar sobre o meu dia a dia. "
+        "Acordo cedo, tomo um café forte, e começo a trabalhar. "
+        "Gosto de resolver problemas complexos, de criar soluções novas. "
+        "Às vezes as coisas não funcionam como o esperado, e tudo bem. "
+        "O importante é persistir, testar de novo e aprender com os erros.\n\n"
+        "Quais são os seus sonhos? O que você quer construir? "
+        "Eu acredito que cada pessoa tem algo único a oferecer para o mundo. "
+        "Minha missão é usar a tecnologia para amplificar essas vozes — literalmente.\n\n"
+        "Vou contar um número agora, só para variar o ritmo da fala. "
+        "Um, dois, três, quatro, cinco, seis, sete, oito, nove, dez. "
+        "Cem, duzentos, trezentos, mil, dez mil, um milhão. "
+        "Dois mil e vinte e seis. Vinte e três horas e quarenta minutos.\n\n"
+        "Voltando ao Praxis. O sistema escuta o que eu falo em português, "
+        "transcreve, traduz para outro idioma, e reproduz com a minha própria voz. "
+        "Não é uma voz robótica. É a minha voz. O meu timbre. A minha entonação. "
+        "Isso muda completamente a experiência de comunicação.\n\n"
+        "Estou quase terminando. Só mais alguns instantes de gravação. "
+        "Respira fundo. Fala com calma. Varia o ritmo às vezes mais rápido, às vezes mais devagar. "
+        "A diversidade de entonações ajuda o modelo a aprender melhor. "
+        "Por isso estou falando de formas diferentes ao longo dessa gravação.\n\n"
+        "Obrigado por me ouvir até aqui. "
+        "Com essa gravação, o Praxis vai aprender como eu soo de verdade. "
+        "E a partir de agora, em qualquer idioma, vou continuar sendo eu."
+    )
+    CLONES_DIR = VOICES_DIR / "clones"
+
+    def _build_clone_tab(self, parent: ctk.CTkFrame) -> None:
+        self.CLONES_DIR.mkdir(parents=True, exist_ok=True)
+        self._rec_thread   = None
+        self._rec_stop_evt = None
+        self._rec_frames   = []
+        self._xtts_model   = None   # cache — carrega só uma vez por sessão / loaded once per session
+        self._xtts_latents = {}     # cache de latents por wav_path / latents cache by wav path
+        self._meter_stream = None   # sounddevice stream do VU meter / VU meter audio stream
+        self._testing      = False  # trava para evitar testes simultâneos / lock to prevent concurrent tests
+        self._training     = False  # trava para evitar treinos simultâneos / lock to prevent concurrent training
+
+        scroll = ctk.CTkScrollableFrame(
+            parent, fg_color="transparent",
+            scrollbar_button_color=self.SEG_BG,
+            scrollbar_button_hover_color=self.IBORDER,
+        )
+        scroll.pack(fill="both", expand=True, padx=4, pady=4)
+
+        # ── Instruções ─────────────────────────────────────────────────────
+        info = ctk.CTkFrame(scroll, fg_color=self.SEG_BG,
+                            corner_radius=10, border_width=1,
+                            border_color=self.IBORDER)
+        info.pack(fill="x", padx=16, pady=(14, 8))
+        ctk.CTkLabel(info, text="Como funciona",
+                     font=ctk.CTkFont(size=12, weight="bold"),
+                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(10, 2))
+        ctk.CTkLabel(info,
+                     text=(
+                         "1. Dê um nome e grave lendo o texto abaixo (pode gravar várias vezes — o áudio acumula)\n"
+                         "2. Meta: 3 minutos no total — quanto mais, melhor a qualidade\n"
+                         "3. Com 3min+ gravados, clique em Treinar Voz (leva 10-30 min)\n"
+                         "4. Após o treino, use Testar para ouvir e Usar para ativar"
+                     ),
+                     font=ctk.CTkFont(size=11), text_color=self.MUTED,
+                     justify="left", anchor="w").pack(anchor="w", padx=12, pady=(0, 10))
+
+        # ── Nome do perfil ──────────────────────────────────────────────────
+        name_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        name_row.pack(fill="x", padx=16, pady=(4, 0))
+        name_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(name_row, text="Nome do perfil:",
+                     font=ctk.CTkFont(size=12), text_color=self.TEXT).grid(
+            row=0, column=0, sticky="w", padx=(0, 8))
+        self._clone_name_var = ctk.StringVar(value="minha_voz")
+        ctk.CTkEntry(name_row, textvariable=self._clone_name_var,
+                     fg_color=self.INPUT, border_color=self.IBORDER,
+                     text_color=self.TEXT, font=ctk.CTkFont(size=13)).grid(
+            row=0, column=1, sticky="ew")
+
+        # ── Texto de referência ─────────────────────────────────────────────
+        ctk.CTkLabel(scroll, text="Leia este texto em voz alta:",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.MUTED).pack(anchor="w", padx=16, pady=(12, 4))
+        ref_card = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+                                border_color=self.IBORDER, border_width=1,
+                                corner_radius=8)
+        ref_card.pack(fill="x", padx=16)
+        _ref_lbl = ctk.CTkLabel(ref_card, text=self.CLONE_TEXT,
+                                font=ctk.CTkFont(size=12), text_color=self.TEXT,
+                                wraplength=400, justify="left", anchor="w")
+        _ref_lbl.pack(fill="x", padx=12, pady=10)
+        # Ajusta wraplength quando o card redimensiona (bind no card, não no label,
+        # evita loop infinito que ocorre quando wraplength muda a altura do label)
+        _last_w = [0]
+        def _on_card_resize(e):
+            new_w = max(100, e.width - 28)   # desconta padx=12 de cada lado + borda
+            if abs(new_w - _last_w[0]) > 2:
+                _last_w[0] = new_w
+                _ref_lbl.configure(wraplength=new_w)
+        ref_card.bind("<Configure>", _on_card_resize)
+
+        # ── VU Meter ────────────────────────────────────────────────────────
+        meter_frame = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+                                   border_color=self.IBORDER, border_width=1,
+                                   corner_radius=8)
+        meter_frame.pack(fill="x", padx=16, pady=(12, 4))
+
+        meter_top = ctk.CTkFrame(meter_frame, fg_color="transparent")
+        meter_top.pack(fill="x", padx=10, pady=(8, 2))
+        ctk.CTkLabel(meter_top, text="Nível do microfone",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.MUTED).pack(side="left")
+        self._meter_db_lbl = ctk.CTkLabel(meter_top, text="— dB",
+                                           font=ctk.CTkFont(size=11),
+                                           text_color=self.MUTED)
+        self._meter_db_lbl.pack(side="right")
+
+        self._meter_bar = ctk.CTkProgressBar(meter_frame, height=14,
+                                              corner_radius=4,
+                                              fg_color=self.SEG_BG,
+                                              progress_color="#22C55E")
+        self._meter_bar.set(0)
+        self._meter_bar.pack(fill="x", padx=10, pady=(2, 4))
+
+        # marcas de referência: -40  -20  -12  -6  0 dB
+        marks_row = ctk.CTkFrame(meter_frame, fg_color="transparent")
+        marks_row.pack(fill="x", padx=10, pady=(0, 6))
+        for label, pos in [("-40", 0.0), ("-20", 0.33), ("-12", 0.55),
+                            ("-6", 0.73), ("0", 1.0)]:
+            ctk.CTkLabel(marks_row, text=label,
+                         font=ctk.CTkFont(size=9), text_color=self.MUTED,
+                         ).place(relx=pos, anchor="n" if pos < 1.0 else "ne")
+        marks_row.configure(height=14)
+        marks_row.pack_propagate(False)
+
+        self._start_meter()
+
+        # ── Botão + barra de progresso da gravação ─────────────────────────
+        rec_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        rec_row.pack(fill="x", padx=16, pady=(10, 2))
+        self._rec_btn = ctk.CTkButton(
+            rec_row, text="● Gravar", width=130, height=36,
+            fg_color="#DC2626", hover_color="#B91C1C",
+            text_color="#FFFFFF", corner_radius=10,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            command=self._toggle_recording,
+        )
+        self._rec_btn.pack(side="left", padx=(0, 10))
+        self._rec_status = ctk.CTkLabel(
+            rec_row, text="Pronto para gravar",
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._rec_status.pack(side="left")
+
+        self._rec_prog = ctk.CTkProgressBar(scroll, height=6,
+                                             fg_color=self.SEG_BG,
+                                             progress_color="#DC2626")
+        self._rec_prog.set(0)
+        self._rec_prog.pack(fill="x", padx=16, pady=(2, 4))
+
+        # ── Duração acumulada + botão Treinar ──────────────────────────────
+        # Accumulated duration + Train button
+        dur_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        dur_row.pack(fill="x", padx=16, pady=(0, 4))
+        self._dur_lbl = ctk.CTkLabel(
+            dur_row, text="0s gravados — mínimo 180s para treinar",
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._dur_lbl.pack(side="left")
+
+        # Botão Treinar — habilitado somente quando há áudio suficiente
+        # Train button — enabled only when enough audio is recorded
+        self._train_btn = ctk.CTkButton(
+            dur_row, text="🎙 Treinar Voz", width=120, height=30,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=8,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            state="disabled",
+            command=self._start_train_rvc,
+        )
+        self._train_btn.pack(side="right")
+
+        # Barra + status do treino RVC (ocultos até começar)
+        # RVC training progress bar + status (hidden until training starts)
+        self._train_prog = ctk.CTkProgressBar(scroll, height=8,
+                                              fg_color=self.SEG_BG,
+                                              progress_color="#8B5CF6")
+        self._train_prog.set(0)
+        self._train_prog.pack(fill="x", padx=16, pady=(0, 2))
+        self._train_status = ctk.CTkLabel(
+            scroll, text="",
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._train_status.pack(anchor="w", padx=16, pady=(0, 6))
+
+        # Atualiza label de duração se já existe arquivo wav salvo
+        # Update duration label if wav file already exists
+        self._refresh_dur_label()
+
+        # ── Seletor de idioma para teste ───────────────────────────────────
+        lang_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        lang_row.pack(fill="x", padx=16, pady=(0, 8))
+        lang_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(lang_row, text="Testar em:",
+                     font=ctk.CTkFont(size=12), text_color=self.TEXT).grid(
+            row=0, column=0, sticky="w", padx=(0, 8))
+        _test_lang_options = [
+            "pt — Português", "en — English", "es — Español",
+            "fr — Français", "de — Deutsch", "it — Italiano",
+            "ru — Русский", "zh — 中文",
+        ]
+        self._test_lang_var = ctk.StringVar(value="pt — Português")
+        ctk.CTkOptionMenu(
+            lang_row, values=_test_lang_options, variable=self._test_lang_var,
+            fg_color=self.INPUT, button_color=self.IBORDER,
+            button_hover_color=self.SEG_BG, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=12),
+        ).grid(row=0, column=1, sticky="ew")
+
+        # ── Separador + lista de vozes clonadas ────────────────────────────
+        ctk.CTkFrame(scroll, height=1, fg_color=self.BORDER).pack(
+            fill="x", padx=16, pady=(6, 0))
+        ctk.CTkLabel(scroll, text="VOZES SALVAS",
+                     font=ctk.CTkFont(size=10, weight="bold"),
+                     text_color=self.MUTED).pack(anchor="w", padx=16, pady=(10, 6))
+        self._clone_list_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        self._clone_list_frame.pack(fill="x", padx=16)
+        self._refresh_clone_list()
+
+    def _refresh_clone_list(self) -> None:
+        for w in self._clone_list_frame.winfo_children():
+            w.destroy()
+        profiles = sorted(self.CLONES_DIR.glob("*.json"))
+        if not profiles:
+            ctk.CTkLabel(self._clone_list_frame,
+                         text="Nenhuma voz clonada ainda.",
+                         font=ctk.CTkFont(size=11), text_color=self.MUTED).pack(
+                             anchor="w", pady=4)
+            return
+        for jp in profiles:
+            try:
+                meta = json.loads(jp.read_text())
+            except Exception:
+                continue
+            name = meta.get("name", jp.stem)
+            dur  = meta.get("duration_s", 0)
+            row  = ctk.CTkFrame(self._clone_list_frame, fg_color=self.SEG_BG,
+                                corner_radius=8, border_width=1,
+                                border_color=self.IBORDER)
+            row.pack(fill="x", pady=(0, 6))
+            row.grid_columnconfigure(0, weight=1)
+            ctk.CTkLabel(row, text=f"{name}  ({dur:.0f}s)",
+                         font=ctk.CTkFont(size=12), text_color=self.TEXT,
+                         anchor="w").grid(row=0, column=0, sticky="w",
+                                          padx=10, pady=6)
+            btn_frame = ctk.CTkFrame(row, fg_color="transparent")
+            btn_frame.grid(row=0, column=1, padx=6)
+            wav_path = str(self.CLONES_DIR / meta.get("wav", f"{jp.stem}.wav"))
+            _tbtn = ctk.CTkButton(
+                btn_frame, text="▶ Testar", width=80, height=26,
+                fg_color=self.SEG_BG, hover_color=self.IBORDER,
+                text_color=self.MUTED, border_width=1,
+                border_color=self.IBORDER, corner_radius=6,
+                font=ctk.CTkFont(size=11),
+            )
+            _tbtn.configure(
+                command=lambda p=wav_path, rt=meta.get("ref_text", ""), b=_tbtn:
+                    self._test_clone(p, rt, b))
+            _tbtn.pack(side="left", padx=(0, 4))
+            ctk.CTkButton(
+                btn_frame, text="Usar", width=60, height=26,
+                fg_color=self.ACCENT, hover_color=self.HOVER,
+                text_color="#FFFFFF", corner_radius=6,
+                font=ctk.CTkFont(size=11),
+                command=lambda p=wav_path, n=name: self._use_clone(p, n),
+            ).pack(side="left", padx=(0, 4))
+            ctk.CTkButton(
+                btn_frame, text="✕", width=26, height=26,
+                fg_color=self.SEG_BG, hover_color="#FEE2E2",
+                text_color=self.MUTED, border_width=1,
+                border_color=self.IBORDER, corner_radius=6,
+                font=ctk.CTkFont(size=11),
+                command=lambda jp=jp: self._delete_clone(jp),
+            ).pack(side="left")
+
+    _REC_MAX_S    = 300   # máximo por sessão de gravação / max seconds per recording session
+    _REC_MIN_TRAIN = 180  # mínimo para habilitar treino / minimum seconds to enable training
+
+    def _toggle_recording(self) -> None:
+        if self._rec_thread and self._rec_thread.is_alive():
+            self._stop_recording()
+        else:
+            self._start_recording()
+
+    def _start_recording(self) -> None:
+        try:
+            import sounddevice as sd  # noqa: F401
+        except ImportError:
+            self._rec_status.configure(
+                text="❌ Instale sounddevice:  pip install sounddevice")
+            return
+        # Pausa o VU meter para liberar o dispositivo de áudio
+        self._stop_meter()
+        self._rec_frames = []
+        self._rec_stop_evt = threading.Event()
+        self._rec_btn.configure(text="■ Parar", fg_color="#7C3AED",
+                                hover_color="#6D28D9")
+        self._rec_status.configure(text="● Gravando — fale agora", text_color="#DC2626")
+        self._rec_prog.configure(progress_color="#DC2626")
+        self._rec_prog.set(0)
+        self._rec_thread = threading.Thread(target=self._record_worker, daemon=True)
+        self._rec_thread.start()
+        self._rec_timer = 0
+        self._rec_tick()
+
+    def _rec_tick(self) -> None:
+        if self._rec_stop_evt and not self._rec_stop_evt.is_set():
+            self._rec_timer += 1
+            pct = min(self._rec_timer / self._REC_MAX_S, 1.0)
+            self._rec_prog.set(pct)
+            self._rec_status.configure(
+                text=f"● Gravando — {self._rec_timer}s / {self._REC_MAX_S}s")
+            if self._rec_timer >= self._REC_MAX_S:
+                self._stop_recording()
+                return
+            self.after(1000, self._rec_tick)
+
+    def _stop_recording(self) -> None:
+        if self._rec_stop_evt:
+            self._rec_stop_evt.set()
+        self._rec_btn.configure(text="● Gravar", fg_color="#DC2626",
+                                hover_color="#B91C1C", state="disabled")
+        self._rec_status.configure(text="Salvando áudio…", text_color=self.MUTED)
+        self._rec_prog.configure(progress_color="#60A5FA")
+        self._rec_prog.set(0.1)
+        threading.Thread(target=self._save_clone_worker, daemon=True).start()
+
+    def _start_meter(self) -> None:
+        """Inicia stream de monitoramento de nível do microfone (VU meter)."""
+        def _run():
+            try:
+                import sounddevice as sd, numpy as np
+                SR = 22050
+                def _cb(indata, frames, time, status):
+                    rms = float(np.sqrt(np.mean(indata.astype(np.float32) ** 2)))
+                    # Converte RMS (0..32767) para dB e normaliza para 0..1
+                    # Faixa: -60dB (silêncio) a 0dB (pico máximo)
+                    if rms > 0:
+                        db = 20 * np.log10(rms / 32768.0)
+                    else:
+                        db = -60.0
+                    db = max(-60.0, min(0.0, db))
+                    level = (db + 60.0) / 60.0          # 0..1
+                    if db > -6:
+                        color = "#EF4444"               # vermelho — pico perigoso
+                    elif db > -18:
+                        color = "#F59E0B"               # amarelo — ok
+                    else:
+                        color = "#22C55E"               # verde — bom
+                    db_str = f"{db:.0f} dB"
+                    self.after(0, self._meter_bar.set, level)
+                    self.after(0, self._meter_bar.configure, {"progress_color": color})
+                    self.after(0, self._meter_db_lbl.configure, {"text": db_str})
+
+                with sd.InputStream(samplerate=SR, channels=1, dtype="int16",
+                                    blocksize=SR // 20, callback=_cb) as stream:
+                    self._meter_stream = stream
+                    while self._meter_stream is not None:
+                        import time; time.sleep(0.05)
+            except Exception:
+                pass   # sem microfone — meter fica silencioso
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _stop_meter(self) -> None:
+        self._meter_stream = None
+
+    def _refresh_dur_label(self) -> None:
+        """Atualiza o label de duração acumulada e habilita/desabilita botão de treino.
+        Updates accumulated duration label and enables/disables train button."""
+        import wave as _wave
+        name = self._clone_name_var.get().strip() or "minha_voz"
+        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+        wav_p = self.CLONES_DIR / f"{safe}.wav"
+        dur = 0.0
+        if wav_p.exists():
+            try:
+                with _wave.open(str(wav_p), "rb") as wf:
+                    dur = wf.getnframes() / wf.getframerate()
+            except Exception:
+                pass
+        mins = int(dur) // 60
+        secs = int(dur) % 60
+        meta = self._REC_MIN_TRAIN
+        if dur >= meta:
+            # Áudio suficiente — habilita treino / enough audio — enable training
+            self._dur_lbl.configure(
+                text=f"✅ {mins}m{secs:02d}s gravados — pronto para treinar!",
+                text_color="#22C55E")
+            self._train_btn.configure(
+                state="normal", fg_color=self.ACCENT,
+                hover_color=self.HOVER, text_color="#FFFFFF",
+                border_color=self.ACCENT)
+        else:
+            falta = meta - int(dur)
+            self._dur_lbl.configure(
+                text=f"{mins}m{secs:02d}s gravados — faltam {falta}s para treinar",
+                text_color=self.MUTED)
+            self._train_btn.configure(
+                state="disabled", fg_color=self.SEG_BG,
+                text_color=self.MUTED, border_color=self.IBORDER)
+
+    def _start_train_rvc(self) -> None:
+        """Inicia o pipeline de treino RVC em thread separada.
+        Starts the RVC training pipeline in a separate thread."""
+        if self._training:
+            return
+        name = self._clone_name_var.get().strip() or "minha_voz"
+        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+        wav_p = self.CLONES_DIR / f"{safe}.wav"
+        if not wav_p.exists():
+            return
+        self._training = True
+        self._train_btn.configure(state="disabled", text="Treinando…")
+        self._train_prog.set(0)
+        self._train_status.configure(text="Iniciando pipeline de treino…", text_color=self.MUTED)
+        threading.Thread(
+            target=self._train_rvc_worker,
+            args=(safe, str(wav_p)),
+            daemon=True
+        ).start()
+
+    def _train_rvc_worker(self, model_name: str, wav_path: str) -> None:
+        """Pipeline completo de treino RVC: pré-processamento → extração → treino.
+        Full RVC training pipeline: preprocessing → feature extraction → training."""
+        import subprocess, sys, os
+
+        APPLIO_DIR = "/home/lab2/Documentos/praxis/applio/src"
+        PYTHON     = "/home/lab2/Documentos/praxis/applio/venv/bin/python"
+        LOGS_DIR   = os.path.join(APPLIO_DIR, "logs")
+        DATASET_DIR = os.path.join(APPLIO_DIR, "assets", "datasets", model_name)
+
+        def _status(msg, color=None):
+            kw = {"text": msg}
+            if color:
+                kw["text_color"] = color
+            self.after(0, self._train_status.configure, kw)
+
+        def _prog(v):
+            self.after(0, self._train_prog.set, v)
+
+        def _done(ok: bool, msg: str):
+            self._training = False
+            color = "#22C55E" if ok else "#DC2626"
+            _status(msg, color)
+            _prog(1.0 if ok else 0.0)
+            label = "🎙 Treinar Voz" if ok else "🎙 Tentar de novo"
+            self.after(0, self._train_btn.configure, {
+                "state": "normal", "text": label})
+
+        try:
+            # ── Fase 1/3: Pré-processamento ───────────────────────────────
+            # Phase 1/3: Preprocessing — slice audio into chunks
+            _status("📂  Fase 1/3 — Pré-processando áudio…", "#F59E0B")
+            _prog(0.05)
+            os.makedirs(DATASET_DIR, exist_ok=True)
+            import shutil, wave as _wave, numpy as _np
+
+            # Copia wav para a pasta de dataset do Applio / copy wav to Applio dataset folder
+            dst = os.path.join(DATASET_DIR, f"{model_name}.wav")
+            shutil.copy2(wav_path, dst)
+
+            preprocess_cmd = [
+                PYTHON,
+                os.path.join(APPLIO_DIR, "rvc", "train", "preprocess", "preprocess.py"),
+                os.path.join(LOGS_DIR, model_name),  # log/model output dir
+                DATASET_DIR,                          # dataset path
+                "40000",                              # sample rate
+                "4",                                  # cpu cores
+                "True",                               # cut_preprocess
+                "False",                              # process_effects
+                "False",                              # noise_reduction
+                "0.7",                                # clean_strength
+                "3.0",                                # chunk_len seconds
+                "0.3",                                # overlap_len seconds
+                "none",                               # normalization_mode
+            ]
+            result = subprocess.run(
+                preprocess_cmd, cwd=APPLIO_DIR,
+                capture_output=True, text=True)
+            if result.returncode != 0:
+                _done(False, f"❌ Pré-processamento falhou:\n{result.stderr[-200:]}")
+                return
+            _status("✅  Fase 1/3 concluída — Extraindo features…", "#F59E0B")
+            _prog(0.33)
+
+            # ── Fase 2/3: Extração de features ────────────────────────────
+            # Phase 2/3: Feature extraction — HuBERT embeddings + F0 (RMVPE)
+            _status("🔬  Fase 2/3 — Extraindo features (HuBERT + RMVPE)…", "#F59E0B")
+            extract_cmd = [
+                PYTHON,
+                os.path.join(APPLIO_DIR, "rvc", "train", "extract", "extract.py"),
+                os.path.join(LOGS_DIR, model_name),  # model path
+                "rmvpe",                              # f0 method
+                "4",                                  # cpu cores
+                "0",                                  # gpu index
+                "40000",                              # sample rate
+                "contentvec",                         # embedder model
+                "None",                               # embedder_model_custom
+                "2",                                  # include_mutes
+            ]
+            result = subprocess.run(
+                extract_cmd, cwd=APPLIO_DIR,
+                capture_output=True, text=True)
+            if result.returncode != 0:
+                _done(False, f"❌ Extração falhou:\n{result.stderr[-200:]}")
+                return
+            _status("✅  Fase 2/3 concluída — Iniciando treino…", "#F59E0B")
+            _prog(0.60)
+
+            # ── Fase 3/3: Treino ──────────────────────────────────────────
+            # Phase 3/3: Model training — generator + discriminator
+            _status("🧠  Fase 3/3 — Treinando modelo (pode levar 10-30 min)…", "#8B5CF6")
+
+            # Seleciona modelo pré-treinado / select pretrained model
+            from rvc.lib.tools.pretrained_selector import pretrained_selector
+            pg, pd = pretrained_selector("HiFi-GAN", 40000)
+
+            train_cmd = [
+                PYTHON,
+                os.path.join(APPLIO_DIR, "rvc", "train", "train.py"),
+                model_name,   # model name
+                "10",         # save_every_epoch
+                "300",        # total_epoch
+                pg,           # G pretrained
+                pd,           # D pretrained
+                "0",          # gpu index
+                "4",          # batch_size
+                "40000",      # sample_rate
+                "True",       # save_only_latest
+                "True",       # save_every_weights
+                "False",      # cache_data_in_gpu
+                "True",       # overtraining_detector
+                "50",         # overtraining_threshold
+                "False",      # cleanup
+                "HiFi-GAN",   # vocoder
+                "False",      # checkpointing
+            ]
+            result = subprocess.run(
+                train_cmd, cwd=APPLIO_DIR,
+                capture_output=True, text=True)
+            if result.returncode != 0:
+                _done(False, f"❌ Treino falhou:\n{result.stderr[-300:]}")
+                return
+
+            # ── Copia modelo treinado para pasta do Praxis ────────────────
+            # Copy trained model to Praxis voices folder
+            _status("📦  Copiando modelo para o Praxis…", "#F59E0B")
+            _prog(0.95)
+            import glob
+            pth_files = glob.glob(
+                os.path.join(LOGS_DIR, model_name, f"{model_name}*.pth"))
+            if not pth_files:
+                # Tenta pasta de weights / try weights folder
+                pth_files = glob.glob(
+                    os.path.join(APPLIO_DIR, "assets", "weights", f"{model_name}*.pth"))
+
+            if pth_files:
+                # Ordena por data de modificação, pega o mais recente / sort by mtime, take newest
+                pth_files.sort(key=os.path.getmtime)
+                src_pth = pth_files[-1]
+                dst_pth = str(self.CLONES_DIR / f"{model_name}.pth")
+                shutil.copy2(src_pth, dst_pth)
+
+                # Atualiza JSON para tipo "rvc" / update JSON to type "rvc"
+                json_p = self.CLONES_DIR / f"{model_name}.json"
+                if json_p.exists():
+                    meta = json.loads(json_p.read_text())
+                    meta["type"] = "rvc"
+                    meta["pth"]  = f"{model_name}.pth"
+                    json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+
+                _done(True, f"✅  Modelo treinado! {model_name}.pth pronto para uso.")
+                self.after(0, self._refresh_clone_list)
+            else:
+                _done(False, "❌  Modelo treinado mas arquivo .pth não encontrado.")
+
+        except Exception as e:
+            _done(False, f"❌  Erro inesperado: {e}")
+
+    def _record_worker(self) -> None:
+        try:
+            import sounddevice as sd
+            import numpy as np
+            SR = 22050
+            with sd.InputStream(samplerate=SR, channels=1, dtype="int16") as stream:
+                while not self._rec_stop_evt.is_set():
+                    data, _ = stream.read(SR // 10)
+                    self._rec_frames.append(data.copy())
+        except Exception as e:
+            self.after(0, self._rec_status.configure,
+                       {"text": f"❌ Erro na gravação: {e}", "text_color": "#DC2626"})
+            self.after(0, self._rec_prog.set, 0)
+            self.after(0, self._rec_btn.configure,
+                       {"text": "● Gravar", "fg_color": "#DC2626",
+                        "hover_color": "#B91C1C", "state": "normal"})
+            if self._rec_stop_evt:
+                self._rec_stop_evt.set()
+            self._start_meter()
+
+    def _save_clone_worker(self) -> None:
+        def _status(msg, color=None):
+            kw = {"text": msg}
+            if color:
+                kw["text_color"] = color
+            self.after(0, self._rec_status.configure, kw)
+
+        def _prog(v, color=None):
+            self.after(0, self._rec_prog.set, v)
+            if color:
+                self.after(0, self._rec_prog.configure, {"progress_color": color})
+
+        try:
+            if not self._rec_frames:
+                _status("❌ Nenhum áudio capturado — tente gravar novamente.", "#DC2626")
+                self.after(0, self._rec_btn.configure, {"state": "normal"})
+                _prog(0)
+                return
+
+            import numpy as np, wave
+            SR = 22050
+
+            _status("Concatenando áudio da sessão…")
+            _prog(0.3, "#F59E0B")
+            # Concatena frames da sessão atual / concatenate frames from current session
+            new_pcm = np.concatenate(self._rec_frames, axis=0).astype(np.float32)
+
+            name   = self._clone_name_var.get().strip() or "minha_voz"
+            safe   = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
+            wav_p  = self.CLONES_DIR / f"{safe}.wav"
+            json_p = self.CLONES_DIR / f"{safe}.json"
+
+            # Acumula com gravação anterior se existir / accumulate with previous recording
+            if wav_p.exists():
+                _status("Acumulando com gravação anterior…")
+                _prog(0.45, "#F59E0B")
+                with wave.open(str(wav_p), "rb") as wf:
+                    existing_raw = wf.readframes(wf.getnframes())
+                existing_pcm = np.frombuffer(existing_raw, dtype=np.int16).astype(np.float32)
+                # Adiciona 0.3s de silêncio entre sessões / add 0.3s silence between sessions
+                silence = np.zeros(int(SR * 0.3), dtype=np.float32)
+                combined = np.concatenate([existing_pcm, silence, new_pcm])
+            else:
+                combined = new_pcm
+
+            dur = len(combined) / SR
+
+            # Normaliza para amplitude 0.88 / normalize to 0.88 amplitude
+            _status(f"Normalizando áudio ({dur:.0f}s total)…")
+            _prog(0.65, "#F59E0B")
+            peak = np.max(np.abs(combined))
+            if peak > 0:
+                pcm16 = np.clip(combined * (32767 * 0.88 / peak), -32767, 32767).astype(np.int16)
+            else:
+                pcm16 = combined.astype(np.int16)
+
+            _status(f"Salvando {safe}.wav…")
+            _prog(0.8, "#F59E0B")
+            with wave.open(str(wav_p), "wb") as wf:
+                wf.setnchannels(1)
+                wf.setsampwidth(2)
+                wf.setframerate(SR)
+                wf.writeframes(pcm16.tobytes())
+
+            meta = {
+                "name":       name,
+                "wav":        wav_p.name,
+                "ref_text":   self.CLONE_TEXT,
+                "duration_s": round(dur, 1),
+                "type":       "xtts",
+                "lang":       self.cfg.get("src", "pt"),
+            }
+            json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+
+            _prog(1.0, "#22C55E")
+            new_s = len(new_pcm) / SR
+            _status(f"✅ +{new_s:.0f}s adicionados — total: {dur:.0f}s gravados.", "#22C55E")
+            self.after(0, self._rec_btn.configure, {"state": "normal"})
+            self.after(0, self._refresh_clone_list)
+            self.after(0, self._refresh_dur_label)
+
+        except Exception as e:
+            _status(f"❌ Erro ao salvar: {e}", "#DC2626")
+            _prog(0)
+
+        finally:
+            self.after(0, self._rec_btn.configure, {"state": "normal"})
+            self._start_meter()   # reativa VU meter após gravar/salvar
+
+    def _test_clone(self, wav_path: str, ref_text: str, test_btn: ctk.CTkButton | None = None) -> None:
+        """Sintetiza frase de teste com XTTS v2 no idioma selecionado."""
+        if self._testing:
+            return
+        self._testing = True
+
+        lang_code = getattr(self, "_test_lang_var", ctk.StringVar(value="pt")).get()
+        lang_code = lang_code.split(" ")[0] if " " in lang_code else lang_code
+        phrase = TEST_PHRASES.get(lang_code, TEST_PHRASES.get("en", "Hello, this is a voice test."))
+
+        if test_btn:
+            try:
+                test_btn.configure(state="disabled", text="…")
+            except Exception:
+                pass
+
+        _anim_stop = threading.Event()
+        _phase_range = [0.05, 0.50]
+
+        def _animate():
+            import time
+            while not _anim_stop.is_set():
+                lo, hi = _phase_range
+                cur = self._rec_prog.get()
+                nxt = cur + 0.012 if cur < hi - 0.04 else lo
+                self.after(0, self._rec_prog.set, nxt)
+                time.sleep(0.18)
+
+        def _update(msg, color=None, phase=None):
+            kw = {"text": msg}
+            if color:
+                kw["text_color"] = color
+            self.after(0, self._rec_status.configure, kw)
+            if phase:
+                _phase_range[0], _phase_range[1] = phase
+
+        def _done():
+            _anim_stop.set()
+            self._testing = False
+            if test_btn:
+                try:
+                    self.after(0, test_btn.configure,
+                               {"state": "normal", "text": "▶ Testar"})
+                except Exception:
+                    pass
+
+        def _worker():
+            anim = threading.Thread(target=_animate, daemon=True)
+            anim.start()
+            try:
+                import torch, torchaudio, transformers.pytorch_utils as _pu
+                if not hasattr(_pu, "isin_mps_friendly"):
+                    _pu.isin_mps_friendly = torch.isin
+                from TTS.tts.configs.xtts_config import XttsConfig
+                from TTS.tts.models.xtts import Xtts
+
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                MODEL_DIR = "/home/lab2/.local/share/tts/tts_models--multilingual--multi-dataset--xtts_v2"
+
+                if self._xtts_model is None:
+                    _update(f"1/3  Carregando XTTS v2 ({device}) — ~15s…",
+                            phase=(0.05, 0.48))
+                    cfg = XttsConfig()
+                    cfg.load_json(f"{MODEL_DIR}/config.json")
+                    m = Xtts.init_from_config(cfg)
+                    m.load_checkpoint(cfg, checkpoint_dir=MODEL_DIR, use_deepspeed=False)
+                    if device == "cuda":
+                        m.cuda()
+                    self._xtts_model = m
+                else:
+                    _update(f"1/3  Modelo em memória ({device})…", phase=(0.05, 0.12))
+
+                # Latents em cache por arquivo de referência
+                if wav_path not in self._xtts_latents:
+                    _update("2/3  Extraindo embedding de voz…", phase=(0.48, 0.62))
+                    gpt_lat, spk_emb = self._xtts_model.get_conditioning_latents(
+                        audio_path=[wav_path],
+                        gpt_cond_len=self._xtts_model.config.gpt_cond_len,
+                        max_ref_length=60,
+                        sound_norm_refs=True,
+                    )
+                    self._xtts_latents[wav_path] = (gpt_lat, spk_emb)
+                else:
+                    gpt_lat, spk_emb = self._xtts_latents[wav_path]
+
+                _update("2/3  Sintetizando — ~10s…", phase=(0.62, 0.90))
+                out = self._xtts_model.inference(
+                    text=phrase,
+                    language=lang_code,
+                    gpt_cond_latent=gpt_lat,
+                    speaker_embedding=spk_emb,
+                    temperature=0.65,
+                    top_p=0.85,
+                    repetition_penalty=5.0,
+                    enable_text_splitting=True,
+                )
+
+                tmp = "/tmp/praxis_clone_test.wav"
+                torchaudio.save(tmp, torch.tensor(out["wav"]).unsqueeze(0), 24000)
+
+                _anim_stop.set()
+                self.after(0, self._rec_prog.set, 0.94)
+                _update("3/3  Reproduzindo…")
+                subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
+
+                self.after(0, self._rec_prog.set, 1.0)
+                self.after(0, self._rec_prog.configure, {"progress_color": "#22C55E"})
+                _update("✅ Concluído.", "#22C55E")
+
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                self.after(0, self._rec_prog.set, 0)
+                _update(f"❌ {e}", "#DC2626")
+
+            finally:
+                _done()
+
+        self._rec_prog.configure(progress_color="#60A5FA")
+        self._rec_prog.set(0.05)
+        threading.Thread(target=_worker, daemon=True).start()
+
+    def _use_clone(self, wav_path: str, name: str) -> None:
+        """Define a voz clonada como voz de saída e vai para aba Config."""
+        self._clone_voice_path = wav_path
+        self._clone_voice_name = name
+        # Atualiza o seletor de voz na aba Config (adiciona item se não existe)
+        if hasattr(self, "_voice_menu"):
+            cur_vals = list(self._voice_menu.cget("values"))
+            label = f"🎙 {name}"
+            if label not in cur_vals:
+                cur_vals.insert(0, label)
+                self._voices.insert(0, (wav_path, label))
+                self._voice_menu.configure(values=cur_vals)
+            self.voice_var.set(label)
+        self._tabs.set("⚙  Config")
+
+    def _delete_clone(self, json_path: Path) -> None:
+        try:
+            meta = json.loads(json_path.read_text())
+            wav  = self.CLONES_DIR / meta.get("wav", "")
+            if wav.exists():
+                wav.unlink()
+            json_path.unlink()
+        except Exception:
+            pass
+        self._refresh_clone_list()
+
     # ── Monitor toggle ────────────────────────────────────────────────────────
 
     def _toggle_monitor(self) -> None:
@@ -1911,6 +2866,112 @@ class ConfigWindow(ctk.CTk):
                 fg_color=self.MON_OFF, hover_color=self.IBORDER,
                 text_color=self.MUTED,
             )
+
+    # ── Bilateral ─────────────────────────────────────────────────────────────
+
+    def _bilateral_section(self, row: int) -> int:
+        """Seção de tradução bilateral — capta áudio da chamada e traduz de volta."""
+        # Cabeçalho
+        hdr = ctk.CTkFrame(self._card, fg_color="transparent")
+        hdr.grid(row=row, column=0, columnspan=2, sticky="ew", padx=20, pady=(10, 4))
+        hdr.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(hdr, text="BILATERAL",
+                     font=ctk.CTkFont(size=10, weight="bold"),
+                     text_color=self.MUTED).grid(row=0, column=0, sticky="w")
+        row += 1
+
+        # Botão toggle
+        self._bilat_btn = ctk.CTkButton(
+            self._card,
+            text="● Bilateral ativo" if self._bilateral else "○ Bilateral desligado",
+            height=32, corner_radius=8,
+            fg_color=self.MON_ON if self._bilateral else self.MON_OFF,
+            hover_color=self.HOVER if self._bilateral else self.IBORDER,
+            text_color="#FFFFFF" if self._bilateral else self.MUTED,
+            border_width=1, border_color=self.IBORDER,
+            font=ctk.CTkFont(size=12),
+            command=self._toggle_bilateral,
+        )
+        self._bilat_btn.grid(row=row, column=0, columnspan=2, sticky="ew",
+                             padx=20, pady=(0, 6))
+        row += 1
+
+        # Seletor de voz para "voz deles" (voice_in) — aparece só quando ativo
+        self._bilat_voice_frame = ctk.CTkFrame(self._card, fg_color="transparent")
+        self._bilat_voice_frame.grid(row=row, column=0, columnspan=2,
+                                     sticky="ew", padx=20, pady=(0, 4))
+        self._bilat_voice_frame.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(self._bilat_voice_frame,
+                     text="Voz deles (você ouve):",
+                     font=ctk.CTkFont(size=12), text_color=self.TEXT).grid(
+            row=0, column=0, sticky="w", padx=(0, 8))
+
+        src_code = self.cfg.get("src", "pt")
+        in_voices = _voices_for_lang(self._voices if hasattr(self, "_voices") else get_voices(), src_code)
+        in_labels = [lbl for _, lbl in in_voices] or ["(nenhuma voz pt)"]
+        saved_in = self.cfg.get("voice_in", "")
+        saved_in_label = next((lbl for p, lbl in in_voices if p == saved_in), in_labels[0])
+        self.voice_in_var = ctk.StringVar(value=saved_in_label)
+        self._voice_in_menu = ctk.CTkOptionMenu(
+            self._bilat_voice_frame, values=in_labels, variable=self.voice_in_var,
+            fg_color=self.INPUT, button_color=self.IBORDER,
+            button_hover_color=self.SEG_BG, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=13),
+        )
+        self._voice_in_menu.grid(row=0, column=1, sticky="ew")
+        row += 1
+
+        # Card de instrução de roteamento
+        self._bilat_info = ctk.CTkFrame(
+            self._card, fg_color=self.SEG_BG,
+            border_width=1, border_color=self.IBORDER, corner_radius=8,
+        )
+        self._bilat_info.grid(row=row, column=0, columnspan=2,
+                               sticky="ew", padx=20, pady=(0, 8))
+        ctk.CTkLabel(
+            self._bilat_info,
+            text=(
+                "Durante a chamada: no pavucontrol (aba Reprodução),\n"
+                "altere a saída do app de chamada para  \"Praxis_Entrada\".\n"
+                "A fala deles será traduzida e tocada nos seus fones."
+            ),
+            font=ctk.CTkFont(size=11), text_color=self.MUTED,
+            justify="left", anchor="w",
+        ).pack(padx=10, pady=8, anchor="w")
+        row += 1
+
+        # Esconde frame de voz/info se bilateral estiver desligado
+        if not self._bilateral:
+            self._bilat_voice_frame.grid_remove()
+            self._bilat_info.grid_remove()
+
+        return row
+
+    def _toggle_bilateral(self) -> None:
+        self._bilateral = not self._bilateral
+        if self._bilateral:
+            self._bilat_btn.configure(
+                text="● Bilateral ativo",
+                fg_color=self.MON_ON, hover_color=self.HOVER,
+                text_color="#FFFFFF",
+            )
+            self._bilat_voice_frame.grid()
+            self._bilat_info.grid()
+        else:
+            self._bilat_btn.configure(
+                text="○ Bilateral desligado",
+                fg_color=self.MON_OFF, hover_color=self.IBORDER,
+                text_color=self.MUTED,
+            )
+            self._bilat_voice_frame.grid_remove()
+            self._bilat_info.grid_remove()
+
+    def _bilateral_voice_path(self) -> str:
+        if not hasattr(self, "voice_in_var") or not hasattr(self, "_voices"):
+            return ""
+        selected = self.voice_in_var.get()
+        return next((p for p, lbl in self._voices if lbl == selected), "")
 
     # ── Coleta / salva / lança ────────────────────────────────────────────────
 
@@ -1929,7 +2990,7 @@ class ConfigWindow(ctk.CTk):
             "src":            code_of(self.src_var.get()),
             "tgt":            code_of(self.tgt_var.get()),
             "voice_out":      voice_path,
-            "voice_in":       "",
+            "voice_in":       self._bilateral_voice_path() if self._bilateral else "",
             "model":          self.model_var.get(),
             "mic":            self._label_to_name(self.mic_var.get(), self._inputs),
             "output":         self._label_to_name(self.out_var.get(), self._outputs),
@@ -1949,12 +3010,11 @@ class ConfigWindow(ctk.CTk):
         voice_out = cfg["voice_out"]
         if not voice_out:
             messagebox.showerror("Praxis",
-                                 "Selecione a voz de saída (.onnx) antes de iniciar.")
+                                 "Selecione a voz de saída antes de iniciar.")
             return
         if not Path(voice_out).exists():
             messagebox.showerror("Praxis",
-                                 f"Arquivo de voz não encontrado:\n{voice_out}\n\n"
-                                 "Baixe uma voz Piper e selecione o arquivo .onnx.")
+                                 f"Arquivo de voz não encontrado:\n{voice_out}")
             return
         save_cfg(cfg)
 
@@ -2006,6 +3066,7 @@ class ConfigWindow(ctk.CTk):
         self._engine_log = open("/tmp/praxis_engine.log", "w")
         self._engine_proc = subprocess.Popen(
             cmd_parts,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=self._engine_log,
             text=True,
@@ -2016,7 +3077,7 @@ class ConfigWindow(ctk.CTk):
 
         # Expande janela para a direita e exibe painel de monitoramento
         self._right.pack(side="left", fill="both", expand=True)
-        self.geometry("1120x720")
+        self.geometry(f"1120x{self.winfo_height()}")
         self._iniciar_btn.configure(state="disabled", text="Rodando…")
         if hasattr(self, "_theme_btn"):
             self._theme_btn.configure(state="disabled")
@@ -2029,11 +3090,13 @@ class ConfigWindow(ctk.CTk):
 
         if collapse:
             self._right.pack_forget()
-            self.geometry("560x720")
+            self.geometry(f"560x{self.winfo_height()}")
             self._iniciar_btn.configure(state="normal", text="✦  Iniciar")
             self._mon_set_status("Parado", "#EF4444")
         if hasattr(self, "_theme_btn"):
             self._theme_btn.configure(state="normal")
+        if hasattr(self, "_apply_voice_btn"):
+            self._apply_voice_btn.configure(state="disabled", text="⟳  Aplicar")
 
     def _engine_reader(self) -> None:
         proc = self._engine_proc
@@ -2059,6 +3122,16 @@ class ConfigWindow(ctk.CTk):
                 self.after(0, self._mon_append, self._orig_box, ev.get("text", ""))
             elif etype == "translation":
                 self.after(0, self._mon_append, self._trans_box, ev.get("text", ""))
+            elif etype == "voice_reloaded":
+                label = next((lbl for p, lbl in self._voices
+                              if p == ev.get("path", "")), ev.get("path", ""))
+                self.after(0, self._log_append, f"[voz] {label}")
+                self.after(0, lambda: self._apply_voice_btn.configure(
+                    state="normal", text="⟳  Aplicar") if hasattr(self, "_apply_voice_btn") else None)
+            elif etype == "error":
+                self.after(0, self._log_append, f"[erro] {ev.get('msg', '')}")
+                self.after(0, lambda: self._apply_voice_btn.configure(
+                    state="normal", text="⟳  Aplicar") if hasattr(self, "_apply_voice_btn") else None)
         self.after(0, self._mon_set_status, "Encerrado", "#EF4444")
 
     def _set_progress(self, pct: float, msg: str) -> None:
@@ -2072,6 +3145,8 @@ class ConfigWindow(ctk.CTk):
         self._mon_prog_bar.configure(progress_color="#22C55E")
         self._mon_set_status("Traduzindo", "#22C55E")
         self.after(800, self._hide_mon_progress)
+        if hasattr(self, "_apply_voice_btn"):
+            self._apply_voice_btn.configure(state="normal", text="⟳  Aplicar")
 
     def _hide_mon_progress(self) -> None:
         self._mon_prog_frame.pack_forget()
