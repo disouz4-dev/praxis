@@ -2314,8 +2314,30 @@ class ConfigWindow(ctk.CTk):
         )
         scroll.pack(fill="both", expand=True, padx=4, pady=4)
 
+        # ── Seletor de modo de clonagem ─────────────────────────────────────
+        # Clone mode selector: RVC (training) vs OmniVoice (zero-shot)
+        self._clone_mode_var = ctk.StringVar(value="rvc")
+        ctk.CTkSegmentedButton(
+            scroll,
+            values=["🎙 RVC — Treino", "🤖 OmniVoice"],
+            variable=self._clone_mode_var,
+            command=self._switch_clone_mode,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            fg_color=self.SEG_BG, selected_color=self.ACCENT,
+            selected_hover_color=self.HOVER, unselected_color=self.SEG_BG,
+            text_color=self.TEXT,
+        ).pack(fill="x", padx=16, pady=(12, 4))
+
+        # Frames por modo — só um fica visível / only one visible at a time
+        self._rvc_section = ctk.CTkFrame(scroll, fg_color="transparent")
+        self._rvc_section.pack(fill="x")
+        self._ov_section = ctk.CTkFrame(scroll, fg_color="transparent")
+
+        # Alias local para construção da seção RVC / local alias for RVC section build
+        _s = self._rvc_section
+
         # ── Instruções ─────────────────────────────────────────────────────
-        info = ctk.CTkFrame(scroll, fg_color=self.SEG_BG,
+        info = ctk.CTkFrame(_s, fg_color=self.SEG_BG,
                             corner_radius=10, border_width=1,
                             border_color=self.IBORDER)
         info.pack(fill="x", padx=16, pady=(14, 8))
@@ -2333,7 +2355,7 @@ class ConfigWindow(ctk.CTk):
                      justify="left", anchor="w").pack(anchor="w", padx=12, pady=(0, 10))
 
         # ── Nome do perfil ──────────────────────────────────────────────────
-        name_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        name_row = ctk.CTkFrame(_s, fg_color="transparent")
         name_row.pack(fill="x", padx=16, pady=(4, 0))
         name_row.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(name_row, text="Nome do perfil:",
@@ -2350,7 +2372,7 @@ class ConfigWindow(ctk.CTk):
         _total_pages = len(self.CLONE_PAGES)
 
         # Cabeçalho: título + indicador de página / header: title + page indicator
-        ref_header = ctk.CTkFrame(scroll, fg_color="transparent")
+        ref_header = ctk.CTkFrame(_s, fg_color="transparent")
         ref_header.pack(fill="x", padx=16, pady=(12, 4))
         ctk.CTkLabel(ref_header, text="Leia este texto em voz alta:",
                      font=ctk.CTkFont(size=11, weight="bold"),
@@ -2362,7 +2384,7 @@ class ConfigWindow(ctk.CTk):
         self._page_lbl.pack(side="right")
 
         # Card com o texto da página atual / card showing current page text
-        ref_card = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+        ref_card = ctk.CTkFrame(_s, fg_color=self.INPUT,
                                 border_color=self.IBORDER, border_width=1,
                                 corner_radius=8)
         ref_card.pack(fill="x", padx=16)
@@ -2383,7 +2405,7 @@ class ConfigWindow(ctk.CTk):
         ref_card.bind("<Configure>", _on_card_resize)
 
         # Botões de navegação de página / page navigation buttons
-        nav_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        nav_row = ctk.CTkFrame(_s, fg_color="transparent")
         nav_row.pack(fill="x", padx=16, pady=(6, 2))
 
         def _go_page(delta: int):
@@ -2417,87 +2439,11 @@ class ConfigWindow(ctk.CTk):
         )
         _next_btn.pack(side="right")
 
-        # ── Seletor de dispositivo de áudio ────────────────────────────────
-        # Audio device selector — auto-populated with available input devices
-        dev_row = ctk.CTkFrame(scroll, fg_color="transparent")
-        dev_row.pack(fill="x", padx=16, pady=(10, 2))
-        dev_row.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(dev_row, text="Microfone:",
-                     font=ctk.CTkFont(size=11), text_color=self.MUTED).grid(
-            row=0, column=0, sticky="w", padx=(0, 8))
-
-        # Listar via pactl (igual à seção Config) — enxerga Scarlett e outros dispositivos PipeWire
-        # List via pactl (same as Config section) — sees Scarlett and other PipeWire devices
-        def _clone_pa_devs(pa_type: str, exclude: list) -> list:
-            """Retorna [(name, desc, sr)] via pactl. Returns [(name, desc, sr)] via pactl."""
-            import re as _re
-            try:
-                raw = subprocess.check_output(
-                    ["pactl", "list", pa_type], text=True, stderr=subprocess.DEVNULL,
-                    env={**__import__("os").environ, "LANG": "C", "LC_ALL": "C"},
-                )
-            except Exception:
-                return []
-            result, name, desc, sr = [], "", "", 48000
-            for line in raw.splitlines():
-                s = line.strip()
-                if s.startswith("Name:"):
-                    name = s.split(":", 1)[1].strip(); desc = ""; sr = 48000
-                elif s.startswith("Description:"):
-                    desc = s.split(":", 1)[1].strip()
-                elif s.startswith("Sample Specification:"):
-                    m = _re.search(r"(\d+)Hz", s)
-                    if m:
-                        sr = int(m.group(1))
-                elif s.startswith("Channel Map:"):
-                    if name and desc and not any(ex in name for ex in exclude):
-                        result.append((name, desc, sr))
-                    name = desc = ""; sr = 48000
-            return result
-
-        _in_raw  = _clone_pa_devs("sources", exclude=[".monitor", "Praxis", "Atos2"])
-        _out_raw = _clone_pa_devs("sinks",   exclude=["Praxis", "Atos2"])
-
-        # Mapas: descrição → (pa_name, sr) / maps: description → (pa_name, sr)
-        self._dev_in_map  = {d: (n, s) for n, d, s in _in_raw}  or {"(sem entrada)": ("", 48000)}
-        self._dev_out_map = {d: (n, s) for n, d, s in _out_raw} or {"(sem saída)":  ("", 48000)}
-
-        _in_labels  = list(self._dev_in_map.keys())
-        _out_labels = list(self._dev_out_map.keys())
-
-        # Pré-selecionar Focusrite/Scarlett se disponível / pre-select Focusrite/Scarlett if present
-        _default_in_lbl  = next((l for l in _in_labels
-            if "scarlett" in l.lower() or "focusrite" in l.lower()), _in_labels[0])
-        _default_out_lbl = next((l for l in _out_labels
-            if "scarlett" in l.lower() or "focusrite" in l.lower()), _out_labels[0])
-
-        self._dev_in_var  = ctk.StringVar(value=_default_in_lbl)
-        self._dev_out_var = ctk.StringVar(value=_default_out_lbl)
-        ctk.CTkOptionMenu(
-            dev_row, values=_in_labels, variable=self._dev_in_var,
-            width=260, height=26,
-            fg_color=self.SEG_BG, button_color=self.IBORDER,
-            button_hover_color=self.ACCENT, text_color=self.TEXT,
-            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
-            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=11),
-            command=lambda _: self._restart_audio_stream(),
-        ).grid(row=0, column=1, sticky="ew")
-
-        ctk.CTkLabel(dev_row, text="Saída:",
-                     font=ctk.CTkFont(size=11), text_color=self.MUTED).grid(
-            row=1, column=0, sticky="w", padx=(0, 8), pady=(4, 0))
-        ctk.CTkOptionMenu(
-            dev_row, values=_out_labels, variable=self._dev_out_var,
-            width=260, height=26,
-            fg_color=self.SEG_BG, button_color=self.IBORDER,
-            button_hover_color=self.ACCENT, text_color=self.TEXT,
-            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
-            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=11),
-            command=lambda _: self._restart_audio_stream(),
-        ).grid(row=1, column=1, sticky="ew", pady=(4, 0))
+        # Dispositivo herdado da aba Config — sem seletor próprio na aba de clonagem
+        # Device inherited from Config tab — no separate selector in clone tab
 
         # ── VU Meter ────────────────────────────────────────────────────────
-        meter_frame = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+        meter_frame = ctk.CTkFrame(_s, fg_color=self.INPUT,
                                    border_color=self.IBORDER, border_width=1,
                                    corner_radius=8)
         meter_frame.pack(fill="x", padx=16, pady=(8, 4))
@@ -2549,7 +2495,7 @@ class ConfigWindow(ctk.CTk):
         self.after(300, self._start_meter)
 
         # ── Botão + barra de progresso da gravação ─────────────────────────
-        rec_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        rec_row = ctk.CTkFrame(_s, fg_color="transparent")
         rec_row.pack(fill="x", padx=16, pady=(10, 2))
         self._rec_btn = ctk.CTkButton(
             rec_row, text="● Gravar", width=130, height=36,
@@ -2564,7 +2510,7 @@ class ConfigWindow(ctk.CTk):
             font=ctk.CTkFont(size=11), text_color=self.MUTED)
         self._rec_status.pack(side="left")
 
-        self._rec_prog = ctk.CTkProgressBar(scroll, height=6,
+        self._rec_prog = ctk.CTkProgressBar(_s, height=6,
                                              fg_color=self.SEG_BG,
                                              progress_color="#DC2626")
         self._rec_prog.set(0)
@@ -2572,7 +2518,7 @@ class ConfigWindow(ctk.CTk):
 
         # ── Card de efeitos de áudio: Denoise + Compressor ─────────────────
         # Audio FX card: applied after recording before saving
-        fx_card = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+        fx_card = ctk.CTkFrame(_s, fg_color=self.INPUT,
                                border_color=self.IBORDER, border_width=1,
                                corner_radius=8)
         fx_card.pack(fill="x", padx=16, pady=(6, 4))
@@ -2652,7 +2598,7 @@ class ConfigWindow(ctk.CTk):
 
         # ── Duração acumulada + botão Treinar ──────────────────────────────
         # Accumulated duration + Train button
-        dur_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        dur_row = ctk.CTkFrame(_s, fg_color="transparent")
         dur_row.pack(fill="x", padx=16, pady=(0, 4))
         self._dur_lbl = ctk.CTkLabel(
             dur_row, text="0s gravados — mínimo 180s para treinar",
@@ -2674,7 +2620,7 @@ class ConfigWindow(ctk.CTk):
 
         # ── Dashboard visual de treino RVC ─────────────────────────────────
         # Visual training dashboard — phases, epoch counter, metric cards, ETA
-        _dash = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+        _dash = ctk.CTkFrame(_s, fg_color=self.INPUT,
                              border_color=self.IBORDER, border_width=1,
                              corner_radius=10)
         _dash.pack(fill="x", padx=16, pady=(0, 8))
@@ -2751,7 +2697,7 @@ class ConfigWindow(ctk.CTk):
         self._refresh_dur_label()
 
         # ── Seletor de idioma para teste ───────────────────────────────────
-        lang_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        lang_row = ctk.CTkFrame(_s, fg_color="transparent")
         lang_row.pack(fill="x", padx=16, pady=(0, 8))
         lang_row.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(lang_row, text="Testar em:",
@@ -2772,14 +2718,286 @@ class ConfigWindow(ctk.CTk):
         ).grid(row=0, column=1, sticky="ew")
 
         # ── Separador + lista de vozes clonadas ────────────────────────────
-        ctk.CTkFrame(scroll, height=1, fg_color=self.BORDER).pack(
+        ctk.CTkFrame(_s, height=1, fg_color=self.BORDER).pack(
             fill="x", padx=16, pady=(6, 0))
-        ctk.CTkLabel(scroll, text="VOZES SALVAS",
+        ctk.CTkLabel(_s, text="VOZES SALVAS",
                      font=ctk.CTkFont(size=10, weight="bold"),
                      text_color=self.MUTED).pack(anchor="w", padx=16, pady=(10, 6))
-        self._clone_list_frame = ctk.CTkFrame(scroll, fg_color="transparent")
+        self._clone_list_frame = ctk.CTkFrame(_s, fg_color="transparent")
         self._clone_list_frame.pack(fill="x", padx=16)
         self._refresh_clone_list()
+
+        # ── Seção OmniVoice (zero-shot) ─────────────────────────────────────
+        # OmniVoice section — shown only when mode="ov"
+        _ov = self._ov_section
+
+        # Card de explicação / Explanation card
+        _ov_info = ctk.CTkFrame(_ov, fg_color=self.SEG_BG,
+                                corner_radius=10, border_width=1,
+                                border_color=self.IBORDER)
+        _ov_info.pack(fill="x", padx=16, pady=(14, 8))
+        ctk.CTkLabel(_ov_info, text="OmniVoice — Clonagem zero-shot",
+                     font=ctk.CTkFont(size=12, weight="bold"),
+                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(10, 2))
+        ctk.CTkLabel(
+            _ov_info,
+            text=(
+                "Sem treino. Usa o áudio de referência da última sessão (ou selecione um WAV)\n"
+                "e gera a voz com o texto que você digitar. Qualidade depende do áudio de referência."
+            ),
+            font=ctk.CTkFont(size=11), text_color=self.MUTED,
+            justify="left", anchor="w",
+        ).pack(anchor="w", padx=12, pady=(0, 10))
+
+        # Card de referência / Reference card
+        _ov_ref = ctk.CTkFrame(_ov, fg_color=self.INPUT,
+                               border_color=self.IBORDER, border_width=1,
+                               corner_radius=8)
+        _ov_ref.pack(fill="x", padx=16, pady=(0, 6))
+
+        _ref_top = ctk.CTkFrame(_ov_ref, fg_color="transparent")
+        _ref_top.pack(fill="x", padx=12, pady=(8, 4))
+        ctk.CTkLabel(_ref_top, text="Áudio de referência",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.TEXT).pack(side="left")
+
+        # Caminho do WAV de referência / Reference WAV path
+        self._ov_ref_path = ctk.StringVar(value="")
+        _ov_path_lbl = ctk.CTkLabel(
+            _ov_ref, textvariable=self._ov_ref_path,
+            font=ctk.CTkFont(size=10), text_color=self.MUTED,
+            anchor="w", wraplength=340)
+        _ov_path_lbl.pack(fill="x", padx=12, pady=(0, 4))
+
+        # Botões: usar último WAV do perfil ou escolher arquivo
+        # Buttons: use latest profile WAV or browse file
+        _ref_btns = ctk.CTkFrame(_ov_ref, fg_color="transparent")
+        _ref_btns.pack(fill="x", padx=12, pady=(0, 8))
+
+        def _ov_use_latest() -> None:
+            """Pega o WAV mais recente de CLONES_DIR. Use latest WAV from CLONES_DIR."""
+            wavs = sorted(self.CLONES_DIR.glob("*.wav"), key=lambda p: p.stat().st_mtime)
+            if wavs:
+                self._ov_ref_path.set(str(wavs[-1]))
+                _ov_path_lbl.configure(text_color=self.TEXT)
+            else:
+                self._ov_ref_path.set("")
+                _ov_path_lbl.configure(text_color="#EF4444")
+                _ov_path_lbl.configure(textvariable=None,
+                                        text="Nenhum WAV encontrado — grave primeiro no modo RVC")
+
+        def _ov_browse() -> None:
+            """Abre diálogo de arquivo para selecionar WAV. Open file dialog to pick WAV."""
+            import tkinter.filedialog as fd
+            path = fd.askopenfilename(
+                title="Selecionar áudio de referência",
+                filetypes=[("WAV", "*.wav"), ("Todos", "*.*")],
+            )
+            if path:
+                self._ov_ref_path.set(path)
+                _ov_path_lbl.configure(text_color=self.TEXT)
+
+        ctk.CTkButton(
+            _ref_btns, text="Usar último gravado", width=140, height=26,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11),
+            command=_ov_use_latest,
+        ).pack(side="left", padx=(0, 6))
+        ctk.CTkButton(
+            _ref_btns, text="Procurar arquivo…", width=130, height=26,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11),
+            command=_ov_browse,
+        ).pack(side="left")
+
+        # Transcrição do áudio de referência (ref_text obrigatório no OmniVoice)
+        # Reference transcription (ref_text is required by OmniVoice)
+        ctk.CTkLabel(_ov_ref, text="O que foi dito nesse áudio (transcrição):",
+                     font=ctk.CTkFont(size=11), text_color=self.MUTED).pack(
+            anchor="w", padx=12, pady=(4, 2))
+
+        _ref_txt_row = ctk.CTkFrame(_ov_ref, fg_color="transparent")
+        _ref_txt_row.pack(fill="x", padx=12, pady=(0, 8))
+        self._ov_ref_text = ctk.CTkEntry(
+            _ref_txt_row, placeholder_text="Ex: Bom dia, meu nome é Diego…",
+            fg_color=self.SEG_BG, border_color=self.IBORDER,
+            text_color=self.TEXT, font=ctk.CTkFont(size=11),
+        )
+        self._ov_ref_text.pack(side="left", fill="x", expand=True, padx=(0, 6))
+
+        def _ov_transcribe() -> None:
+            """Transcreve o WAV de referência com Whisper. Transcribe ref WAV with Whisper."""
+            path = self._ov_ref_path.get()
+            if not path:
+                return
+            self._ov_transcribe_btn.configure(state="disabled", text="…")
+            def _worker():
+                try:
+                    import whisper as _w
+                    _model = _w.load_model("base")
+                    result = _model.transcribe(path, task="transcribe")
+                    text = result.get("text", "").strip()
+                    self.after(0, lambda: self._ov_ref_text.delete(0, "end"))
+                    self.after(0, lambda: self._ov_ref_text.insert(0, text))
+                except Exception:
+                    import traceback; traceback.print_exc()
+                finally:
+                    self.after(0, lambda: self._ov_transcribe_btn.configure(
+                        state="normal", text="Transcrever"))
+            threading.Thread(target=_worker, daemon=True).start()
+
+        self._ov_transcribe_btn = ctk.CTkButton(
+            _ref_txt_row, text="Transcrever", width=100, height=28,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11),
+            command=_ov_transcribe,
+        )
+        self._ov_transcribe_btn.pack(side="right")
+
+        # Card de geração / Generation card
+        _ov_gen = ctk.CTkFrame(_ov, fg_color=self.INPUT,
+                               border_color=self.IBORDER, border_width=1,
+                               corner_radius=8)
+        _ov_gen.pack(fill="x", padx=16, pady=(0, 6))
+
+        ctk.CTkLabel(_ov_gen, text="Texto para gerar",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(8, 4))
+
+        self._ov_gen_text = ctk.CTkTextbox(
+            _ov_gen, height=80, wrap="word",
+            fg_color=self.SEG_BG, border_color=self.IBORDER, border_width=1,
+            text_color=self.TEXT, font=ctk.CTkFont(size=12),
+        )
+        self._ov_gen_text.pack(fill="x", padx=12, pady=(0, 8))
+
+        _gen_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
+        _gen_row.pack(fill="x", padx=12, pady=(0, 10))
+
+        self._ov_status_lbl = ctk.CTkLabel(
+            _gen_row, text="",
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._ov_status_lbl.pack(side="left")
+
+        self._ov_play_btn = ctk.CTkButton(
+            _gen_row, text="▶ Ouvir", width=70, height=28,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11), state="disabled",
+            command=self._ov_play_result,
+        )
+        self._ov_play_btn.pack(side="right", padx=(6, 0))
+
+        self._ov_gen_btn = ctk.CTkButton(
+            _gen_row, text="🤖 Gerar voz", width=120, height=30,
+            fg_color=self.ACCENT, hover_color=self.HOVER,
+            text_color="#FFFFFF", corner_radius=8,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._ov_generate,
+        )
+        self._ov_gen_btn.pack(side="right")
+
+        # Pré-popula o caminho com o último WAV gravado / pre-fill with latest recorded WAV
+        _ov_use_latest()
+
+        # Ativa o modo padrão (RVC) / activate default mode (RVC)
+        self._switch_clone_mode("🎙 RVC — Treino")
+
+    def _switch_clone_mode(self, mode: str) -> None:
+        """Alterna entre seção RVC e OmniVoice na aba Clone.
+        Switches between RVC and OmniVoice sections in the Clone tab."""
+        if "OmniVoice" in mode:
+            self._rvc_section.pack_forget()
+            self._ov_section.pack(fill="x")
+        else:
+            self._ov_section.pack_forget()
+            self._rvc_section.pack(fill="x")
+
+    def _ov_generate(self) -> None:
+        """Dispara geração OmniVoice em thread separada.
+        Fires OmniVoice generation in a background thread."""
+        ref_path = self._ov_ref_path.get()
+        ref_text = self._ov_ref_text.get().strip()
+        gen_text = self._ov_gen_text.get("1.0", "end").strip()
+
+        if not ref_path:
+            self._ov_status_lbl.configure(
+                text="❌ Selecione um áudio de referência", text_color="#EF4444")
+            return
+        if not ref_text:
+            self._ov_status_lbl.configure(
+                text="❌ Preencha a transcrição do áudio", text_color="#EF4444")
+            return
+        if not gen_text:
+            self._ov_status_lbl.configure(
+                text="❌ Digite o texto a gerar", text_color="#EF4444")
+            return
+
+        self._ov_gen_btn.configure(state="disabled", text="Gerando…")
+        self._ov_play_btn.configure(state="disabled")
+        self._ov_status_lbl.configure(text="Carregando modelo…", text_color=self.MUTED)
+        threading.Thread(
+            target=self._ov_generate_worker,
+            args=(ref_path, ref_text, gen_text),
+            daemon=True,
+        ).start()
+
+    def _ov_generate_worker(self, ref_path: str, ref_text: str, gen_text: str) -> None:
+        """Worker: roda OmniVoice e salva resultado em /tmp/ov_result.wav.
+        Worker: runs OmniVoice and saves result to /tmp/ov_result.wav."""
+        def _st(msg, color=None):
+            self.after(0, lambda: self._ov_status_lbl.configure(
+                text=msg, **({"text_color": color} if color else {})))
+
+        try:
+            _st("Carregando OmniVoice…")
+            from omnivoice import OmniVoice
+            import torch, soundfile as sf
+
+            if not hasattr(self, "_ov_model") or self._ov_model is None:
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                dtype  = torch.float16 if device == "cuda" else torch.float32
+                _st(f"Baixando modelo ({device})… pode demorar na 1ª vez")
+                self._ov_model = OmniVoice.from_pretrained(
+                    "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
+
+            _st("Gerando voz…")
+            audio = self._ov_model.generate(
+                text=gen_text,
+                ref_audio=ref_path,
+                ref_text=ref_text,
+            )
+
+            out_path = "/tmp/ov_result.wav"
+            sf.write(out_path, audio[0], 24000)
+            self._ov_result_path = out_path
+            _st("✓ Pronto — clique em Ouvir", "#22C55E")
+            self.after(0, lambda: self._ov_play_btn.configure(state="normal"))
+        except Exception:
+            import traceback; traceback.print_exc()
+            _st("❌ Erro na geração — veja o terminal", "#EF4444")
+        finally:
+            self.after(0, lambda: self._ov_gen_btn.configure(
+                state="normal", text="🤖 Gerar voz"))
+
+    def _ov_play_result(self) -> None:
+        """Reproduz /tmp/ov_result.wav. Plays the OmniVoice result WAV."""
+        path = getattr(self, "_ov_result_path", "/tmp/ov_result.wav")
+        if not __import__("os").path.exists(path):
+            return
+        def _play():
+            import sounddevice as sd, soundfile as sf
+            data, sr = sf.read(path, dtype="float32")
+            sd.play(data, sr)
+            sd.wait()
+        threading.Thread(target=_play, daemon=True).start()
 
     def _refresh_clone_list(self) -> None:
         """Atualiza a lista de clones existentes na aba de clonagem.
@@ -2891,15 +3109,9 @@ class ConfigWindow(ctk.CTk):
         self._rec_prog.set(0.1)
         threading.Thread(target=self._save_clone_worker, daemon=True).start()
 
-    def _parse_dev_idx(self, var: "ctk.StringVar") -> int | None:
-        """Extrai índice numérico de '[N] Nome'. Extracts numeric index from '[N] Name'."""
-        import re
-        m = re.match(r"\[(\d+)\]", var.get())
-        return int(m.group(1)) if m else None
-
     def _restart_audio_stream(self) -> None:
-        """Reinicia o stream com os dispositivos selecionados pelo usuário.
-        Restarts the stream with the user-selected devices."""
+        """Reinicia o stream quando o dispositivo da Config muda.
+        Restarts the stream when the Config device changes."""
         self._stop_meter()
         import time; time.sleep(0.2)
         self._start_meter()
@@ -2907,14 +3119,21 @@ class ConfigWindow(ctk.CTk):
     def _start_meter(self) -> None:
         """Stream full-duplex compartilhado: VU meter + monitor + gravação.
         Shared full-duplex stream: VU meter + monitor + recording.
-        Usa dispositivos pactl e define padrão no PipeWire antes de abrir o stream.
-        Uses pactl devices and sets PipeWire default before opening stream."""
-        in_lbl  = self._dev_in_var.get()
-        out_lbl = self._dev_out_var.get()
-        # Obter nome PulseAudio e SR do mapa / get PulseAudio name and SR from map
-        pa_in,  SR_in  = getattr(self, "_dev_in_map",  {}).get(in_lbl,  ("", 48000))
-        pa_out, _      = getattr(self, "_dev_out_map", {}).get(out_lbl, ("", 48000))
-        SR = SR_in
+        Herda o dispositivo selecionado na aba Config via self.mic_var.
+        Inherits the device selected in the Config tab via self.mic_var."""
+        # Obter nome PA do dispositivo configurado (sem sufixo :left/:right)
+        # Get PA name from configured device (strip :left/:right channel suffix)
+        mic_label = getattr(self, "mic_var", None)
+        mic_name  = self._label_to_name(mic_label.get(), self._inputs) if mic_label else ""
+        pa_in     = mic_name.split(":")[0] if mic_name else ""
+
+        out_label = getattr(self, "out_var", None)
+        out_name  = self._label_to_name(out_label.get(), self._outputs) if out_label else ""
+        pa_out    = out_name.split(":")[0] if out_name else ""
+
+        # SR: 48000 para Focusrite/USB, 44100 caso contrário
+        # SR: 48000 for Focusrite/USB, 44100 otherwise
+        SR = 48000 if (pa_in and "usb" in pa_in.lower()) else 44100
 
         def _run():
             try:
