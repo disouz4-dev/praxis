@@ -3819,20 +3819,29 @@ class ConfigWindow(ctk.CTk):
                 if not hasattr(self, "_ov_model") or self._ov_model is None:
                     device = "cuda" if torch.cuda.is_available() else "cpu"
                     dtype  = torch.float16 if device == "cuda" else torch.float32
-                    _update(f"Carregando OmniVoice ({device})… 1ª vez demora",
+                    _update(f"Carregando OmniVoice ({device})… aguarde",
                             phase=(0.05, 0.45))
                     self._ov_model = OmniVoice.from_pretrained(
                         "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
                 else:
-                    _update("Modelo em memória…", phase=(0.05, 0.15))
+                    _update("OmniVoice em memória…", phase=(0.05, 0.15))
 
-                # Trima referência longa para evitar OOM / trim long reference to avoid OOM
+                # Trima referência longa (OmniVoice pede ≤10s) / trim long ref (OmniVoice needs ≤10s)
                 trimmed = self._trim_ref_wav(wav_path)
+
+                # ref_text deve bater com os primeiros ~8s do áudio
+                # ref_text must match the first ~8s of audio content
+                _ref = (ref_text or phrase).strip()
+                # Aproxima o texto às primeiras 2 frases (≈8s de fala) / approximate first 2 sentences
+                import re as _re
+                _sentences = _re.split(r'(?<=[.!?])\s+', _ref)
+                _short_ref = " ".join(_sentences[:2]) if len(_sentences) > 1 else _ref[:120]
+
                 _update("Gerando voz de teste…", phase=(0.45, 0.88))
                 audio = self._ov_model.generate(
                     text=phrase,
                     ref_audio=trimmed,
-                    ref_text=ref_text or phrase,
+                    ref_text=_short_ref,
                 )
                 tmp = "/tmp/praxis_clone_test.wav"
                 sf.write(tmp, audio[0], 24000)
