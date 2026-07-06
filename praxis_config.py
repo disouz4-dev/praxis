@@ -3194,17 +3194,33 @@ class ConfigWindow(ctk.CTk):
                 meta = json.loads(jp.read_text())
             except Exception:
                 continue
-            name = meta.get("name", jp.stem)
-            dur  = meta.get("duration_s", 0)
+            name       = meta.get("name", jp.stem)
+            dur        = meta.get("duration_s", 0)
+            clone_type = meta.get("type", "xtts")
+            # Rótulo e cor do motor de clonagem / engine badge label and color
+            if clone_type == "omnivoice":
+                _engine_lbl, _engine_color = "OmniVoice", "#7C3AED"
+            else:
+                _engine_lbl, _engine_color = "RVC", "#0EA5E9"
+
             row  = ctk.CTkFrame(self._clone_list_frame, fg_color=self.SEG_BG,
                                 corner_radius=8, border_width=1,
                                 border_color=self.IBORDER)
             row.pack(fill="x", pady=(0, 6))
             row.grid_columnconfigure(0, weight=1)
-            ctk.CTkLabel(row, text=f"{name}  ({dur:.0f}s)",
-                         font=ctk.CTkFont(size=12), text_color=self.TEXT,
-                         anchor="w").grid(row=0, column=0, sticky="w",
-                                          padx=10, pady=6)
+
+            # Linha de nome: nome + badge de motor / name row: name + engine badge
+            name_row = ctk.CTkFrame(row, fg_color="transparent")
+            name_row.grid(row=0, column=0, sticky="w", padx=10, pady=6)
+            ctk.CTkLabel(name_row, text=name,
+                         font=ctk.CTkFont(size=12, weight="bold"),
+                         text_color=self.TEXT).pack(side="left")
+            ctk.CTkLabel(name_row, text=f"  {dur:.0f}s",
+                         font=ctk.CTkFont(size=11),
+                         text_color=self.MUTED).pack(side="left")
+            ctk.CTkLabel(name_row, text=f" {_engine_lbl}",
+                         font=ctk.CTkFont(size=10),
+                         text_color=_engine_color).pack(side="left", padx=(6, 0))
             btn_frame = ctk.CTkFrame(row, fg_color="transparent")
             btn_frame.grid(row=0, column=1, padx=6)
             wav_path = str(self.CLONES_DIR / meta.get("wav", f"{jp.stem}.wav"))
