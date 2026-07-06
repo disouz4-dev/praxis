@@ -540,7 +540,7 @@ class ConfigWindow(ctk.CTk):
         self._outputs: list[tuple[str, str]] = []
 
         self.title("Praxis — Configuração")
-        self.resizable(False, True)
+        self.resizable(True, True)
         self.configure(fg_color=self.BG)
 
         # Centraliza na tela do monitor primário
@@ -613,6 +613,7 @@ class ConfigWindow(ctk.CTk):
                        "_meter_canvas", "_btn_vad", "_btn_gate", "_btn_ptt",
                        "_mode_cond", "_mode_cond_kw", "_ptt_info",
                        "_voice_menu", "_test_btn", "_theme_btn",
+                       "_tab_seg", "_config_frame_outer", "_clone_frame_outer",
                        "_dl_card", "_dl_card_kw", "_dl_inner",
                        "_dl_progress", "_dl_pct_lbl", "_dl_status"):
             try: delattr(self, _attr)
@@ -698,10 +699,10 @@ class ConfigWindow(ctk.CTk):
         self._main = ctk.CTkFrame(self, fg_color="transparent")
         self._main.pack(fill="both", expand=True)
 
-        # PAINEL ESQUERDO — sempre visível, 560px
-        self._left = ctk.CTkFrame(self._main, fg_color=self.BG, width=560)
-        self._left.pack(side="left", fill="y")
-        self._left.pack_propagate(False)
+        # PAINEL ESQUERDO — expande com a janela quando o painel de monitoramento está oculto
+        # Left panel — expands with the window when the monitoring panel is hidden
+        self._left = ctk.CTkFrame(self._main, fg_color=self.BG)
+        self._left.pack(side="left", fill="both", expand=True)
 
         hdr = ctk.CTkFrame(self._left, fg_color="transparent")
         hdr.pack(fill="x", padx=24, pady=(20, 10))
@@ -752,24 +753,34 @@ class ConfigWindow(ctk.CTk):
             text_color=self.MUTED,
         ).pack(pady=(6, 0))
 
-        # ── Abas principais ───────────────────────────────────────────────────
-        self._tabs = ctk.CTkTabview(
+        # ── Seletor de abas (sem CTkTabview — evita janela separada no Linux) ──
+        # Tab selector using SegmentedButton (avoids CTkTabview opening a new window on Linux)
+        self._tab_seg = ctk.CTkSegmentedButton(
             self._left,
-            fg_color=self.CARD,
-            segmented_button_fg_color=self.SEG_BG,
-            segmented_button_selected_color=self.ACCENT,
-            segmented_button_selected_hover_color=self.HOVER,
-            segmented_button_unselected_color=self.SEG_BG,
-            segmented_button_unselected_hover_color=self.IBORDER,
+            values=["⚙  Config", "🎙  Clonar minha voz"],
+            fg_color=self.SEG_BG,
+            selected_color=self.ACCENT,
+            selected_hover_color=self.HOVER,
+            unselected_color=self.SEG_BG,
+            unselected_hover_color=self.IBORDER,
             text_color=self.TEXT,
+            font=ctk.CTkFont(size=13),
+            command=self._on_tab_change,
         )
-        self._tabs.pack(fill="both", expand=True, padx=24, pady=(12, 4))
-        self._tabs.add("⚙  Config")
-        self._tabs.add("🎙  Clonar minha voz")
+        self._tab_seg.set("⚙  Config")
+        self._tab_seg.pack(fill="x", padx=24, pady=(8, 0))
+
+        # ── Frame container das abas (só um visível por vez) ─────────────────
+        # Container for tab content — only one frame is visible at a time
+        self._config_frame_outer = ctk.CTkFrame(self._left, fg_color="transparent")
+        self._config_frame_outer.pack(fill="both", expand=True)
+
+        self._clone_frame_outer = ctk.CTkFrame(self._left, fg_color="transparent")
+        # Não empacotado ainda — aparece ao selecionar a aba / not packed yet
 
         # ── Aba Config ────────────────────────────────────────────────────────
         self._card = ctk.CTkScrollableFrame(
-            self._tabs.tab("⚙  Config"),
+            self._config_frame_outer,
             fg_color="transparent",
             scrollbar_button_color=self.SEG_BG,
             scrollbar_button_hover_color=self.IBORDER,
@@ -796,8 +807,8 @@ class ConfigWindow(ctk.CTk):
         r = self._sep(r)
         r = self._bilateral_section(r)
 
-        # ── Aba Minha Voz ─────────────────────────────────────────────────────
-        self._build_clone_tab(self._tabs.tab("🎙  Clonar minha voz"))
+        # ── Aba Clonar minha voz ──────────────────────────────────────────────
+        self._build_clone_tab(self._clone_frame_outer)
 
         footer = ctk.CTkFrame(self._left, fg_color="transparent")
         footer.pack(fill="x", padx=24, pady=(4, 20))
@@ -817,12 +828,23 @@ class ConfigWindow(ctk.CTk):
         )
         self._iniciar_btn.pack(side="right")
 
-        # PAINEL DIREITO — monitoramento, oculto até Iniciar
+        # PAINEL DIREITO — monitoramento, oculto até Iniciar, largura fixa 560px
+        # Right panel — monitoring, hidden until Start, fixed 560px width
         self._right = ctk.CTkFrame(self._main, fg_color=self.BG,
                                     border_width=1, border_color=self.BORDER,
                                     width=560)
         self._right.pack_propagate(False)
         self._build_monitoring_ui()
+
+    def _on_tab_change(self, value: str) -> None:
+        """Alterna a aba visível entre Config e Clonar, mostrando/ocultando os frames.
+        Switches the visible tab between Config and Clone by showing/hiding frames."""
+        if "Config" in value:
+            self._clone_frame_outer.pack_forget()
+            self._config_frame_outer.pack(fill="both", expand=True)
+        else:
+            self._config_frame_outer.pack_forget()
+            self._clone_frame_outer.pack(fill="both", expand=True)
 
     def _idiomas(self, r: int) -> int:
         """Seção de seleção de idiomas (fala → traduz para). Returns next grid row.
@@ -2960,7 +2982,8 @@ class ConfigWindow(ctk.CTk):
                 self._voices.insert(0, (wav_path, label))
                 self._voice_menu.configure(values=cur_vals)
             self.voice_var.set(label)
-        self._tabs.set("⚙  Config")
+        self._tab_seg.set("⚙  Config")
+        self._on_tab_change("⚙  Config")
 
     def _delete_clone(self, json_path: Path) -> None:
         """Remove clone de voz: apaga JSON, WAV e .pth associados.
@@ -3207,9 +3230,10 @@ class ConfigWindow(ctk.CTk):
         )
         threading.Thread(target=self._engine_reader, daemon=True).start()
 
-        # Expande janela para a direita e exibe painel de monitoramento
-        self._right.pack(side="left", fill="both", expand=True)
-        self.geometry(f"1120x{self.winfo_height()}")
+        # Exibe painel de monitoramento à direita — _left encolhe, _right ocupa 560px
+        # Show monitoring panel on the right — _left shrinks, _right takes 560px
+        self._left.pack_configure(expand=False)
+        self._right.pack(side="left", fill="y")
         self._iniciar_btn.configure(state="disabled", text="Rodando…")
         if hasattr(self, "_theme_btn"):
             self._theme_btn.configure(state="disabled")
@@ -3224,7 +3248,7 @@ class ConfigWindow(ctk.CTk):
 
         if collapse:
             self._right.pack_forget()
-            self.geometry(f"560x{self.winfo_height()}")
+            self._left.pack_configure(expand=True)  # restaura expansão total
             self._iniciar_btn.configure(state="normal", text="✦  Iniciar")
             self._mon_set_status("Parado", "#EF4444")
         if hasattr(self, "_theme_btn"):
