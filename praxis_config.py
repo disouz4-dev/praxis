@@ -2433,14 +2433,19 @@ class ConfigWindow(ctk.CTk):
                                            text_color=self.MUTED)
         self._meter_db_lbl.pack(side="right")
         # Botão monitor: roteia mic → caixa em tempo real / Monitor: routes mic → speakers live
+        # ⚠ Use fones de ouvido para evitar eco / use headphones to avoid echo feedback
         self._monitor_var = ctk.BooleanVar(value=False)
-        ctk.CTkSwitch(
-            meter_top, text="Monitor", width=90,
-            variable=self._monitor_var, onvalue=True, offvalue=False,
+        self._monitor_lbl = ctk.CTkLabel(
+            meter_top, text="🎧 Monitor",
             font=ctk.CTkFont(size=10), text_color=self.MUTED,
+            cursor="hand2")
+        self._monitor_lbl.pack(side="right", padx=(0, 4))
+        ctk.CTkSwitch(
+            meter_top, text="", width=36,
+            variable=self._monitor_var, onvalue=True, offvalue=False,
             progress_color=self.ACCENT,
-            command=lambda: setattr(self, "_monitor_on", self._monitor_var.get()),
-        ).pack(side="right", padx=(0, 10))
+            command=self._toggle_monitor,
+        ).pack(side="right", padx=(0, 6))
 
         self._meter_bar = ctk.CTkProgressBar(meter_frame, height=14,
                                               corner_radius=4,
@@ -2846,6 +2851,18 @@ class ConfigWindow(ctk.CTk):
 
         threading.Thread(target=_run, daemon=True).start()
 
+    def _toggle_monitor(self) -> None:
+        """Liga/desliga o monitor de áudio (loopback mic → caixas).
+        Toggles audio monitor (mic → speakers loopback). Warns about echo if speakers."""
+        on = self._monitor_var.get()
+        setattr(self, "_monitor_on", on)
+        if on:
+            # Aviso de eco quando monitor ligado / echo warning when monitor enabled
+            self._monitor_lbl.configure(
+                text="🎧 Monitor  ⚠ use fones", text_color="#F59E0B")
+        else:
+            self._monitor_lbl.configure(text="🎧 Monitor", text_color=self.MUTED)
+
     def _stop_meter(self) -> None:
         self._meter_stream = None
 
@@ -3058,9 +3075,12 @@ class ConfigWindow(ctk.CTk):
 
     def _apply_audio_fx(self, pcm: "np.ndarray", sr: int,
                         status_fn: "callable") -> "np.ndarray":
-        """Aplica denoise (DeepFilterNet) e compressor (pedalboard) ao áudio gravado.
-        Applies DeepFilterNet denoising and pedalboard compression to recorded audio."""
+        """Aplica denoise (DeepFilterNet com resample) e compressor (pedalboard).
+        Applies DeepFilterNet denoising (with resampling) and pedalboard compression."""
         import numpy as np
+
+        # Normaliza shape para 1D float32 / normalize to 1D float32
+        pcm = np.asarray(pcm, dtype=np.float32).flatten()
 
         # ── Denoise ────────────────────────────────────────────────────────
         strength = self._denoise_var.get()   # 0.0 → 1.0
@@ -3069,15 +3089,27 @@ class ConfigWindow(ctk.CTk):
                 status_fn(f"Reduzindo ruído ({int(strength * 100)}%)…")
                 from df import enhance, init_df
                 import torch
+                from torchaudio.functional import resample as torch_resample
+
                 model, df_state, _ = init_df()
                 df_state.set_atten_lim_db(strength * 40.0)   # 0–40 dB de atenuação
-                norm = pcm / 32768.0
-                tensor = torch.from_numpy(
-                    norm.reshape(1, -1).astype(np.float32))
+
+                # Resample para o SR do modelo (48 kHz) antes de processar
+                # Resample to model SR (48 kHz) before processing
+                model_sr = df_state.sr()
+                tensor = torch.from_numpy(pcm.reshape(1, -1))
+                if sr != model_sr:
+                    tensor = torch_resample(tensor, sr, model_sr)
+
                 enhanced = enhance(model, df_state, tensor)
-                pcm = enhanced.squeeze(0).numpy() * 32768.0
+
+                # Resample de volta ao SR original / resample back to original SR
+                if sr != model_sr:
+                    enhanced = torch_resample(enhanced, model_sr, sr)
+
+                pcm = enhanced.squeeze(0).numpy()
             except Exception:
-                pass   # Falha silenciosa — áudio original preservado / silent fail
+                import traceback; traceback.print_exc()
 
         # ── Compressor ─────────────────────────────────────────────────────
         if getattr(self, "_cmp_on_var", None) and self._cmp_on_var.get():
@@ -3090,10 +3122,12 @@ class ConfigWindow(ctk.CTk):
                 from pedalboard import Pedalboard, Compressor as PBComp
                 board = Pedalboard([PBComp(threshold_db=th, ratio=ratio,
                                            attack_ms=atk, release_ms=rel)])
+                # pedalboard espera float32 normalizado em (canais, amostras)
+                # pedalboard expects normalized float32 in (channels, samples)
                 norm = pcm.reshape(1, -1).astype(np.float32) / 32768.0
                 pcm = board(norm, sample_rate=float(sr)).reshape(-1) * 32768.0
             except Exception:
-                pass
+                import traceback; traceback.print_exc()
 
         return pcm
 
