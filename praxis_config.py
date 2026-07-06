@@ -2860,34 +2860,70 @@ class ConfigWindow(ctk.CTk):
                                corner_radius=8)
         _ov_gen.pack(fill="x", padx=16, pady=(0, 6))
 
-        ctk.CTkLabel(_ov_gen, text="Texto para gerar",
+        # Frases genéricas por idioma — todos os idiomas suportados pela plataforma
+        # Generic phrases per language — all languages supported by the platform
+        _OV_LANG_PHRASES: dict[str, tuple[str, str]] = {
+            "🇧🇷 Português":   ("pt", "Olá! Esta é uma demonstração de síntese de voz. A tecnologia reproduz qualquer texto mantendo o timbre natural da voz original."),
+            "🇺🇸 English":     ("en", "Hello! This is a voice synthesis demonstration. The technology reproduces any text while preserving the natural timbre of the original voice."),
+            "🇪🇸 Español":     ("es", "¡Hola! Esta es una demostración de síntesis de voz. La tecnología reproduce cualquier texto manteniendo el timbre natural de la voz original."),
+            "🇫🇷 Français":    ("fr", "Bonjour! Ceci est une démonstration de synthèse vocale. La technologie reproduit n'importe quel texte en conservant le timbre naturel de la voix."),
+            "🇩🇪 Deutsch":     ("de", "Hallo! Dies ist eine Demonstration der Sprachsynthese. Die Technologie reproduziert jeden Text und bewahrt dabei den natürlichen Klang der Stimme."),
+            "🇮🇹 Italiano":    ("it", "Ciao! Questa è una dimostrazione di sintesi vocale. La tecnologia riproduce qualsiasi testo mantenendo il timbro naturale della voce originale."),
+            "🇷🇺 Русский":     ("ru", "Привет! Это демонстрация синтеза речи. Технология воспроизводит любой текст, сохраняя естественный тембр оригинального голоса."),
+            "🇨🇳 中文":         ("zh", "你好！这是语音合成演示。该技术可以保持原始声音的自然音色，重现任何文本内容。"),
+            "🇳🇱 Nederlands":   ("nl", "Hallo! Dit is een demonstratie van spraaksynthese. De technologie reproduceert elke tekst met behoud van het natuurlijke timbre van de stem."),
+            "🇵🇱 Polski":      ("pl", "Cześć! To jest demonstracja syntezy mowy. Technologia reprodukuje dowolny tekst, zachowując naturalną barwę oryginalnego głosu."),
+            "🇺🇦 Українська":  ("uk", "Привіт! Це демонстрація синтезу мовлення. Технологія відтворює будь-який текст, зберігаючи природний тембр голосу."),
+            "🇹🇷 Türkçe":      ("tr", "Merhaba! Bu bir ses sentezi gösterimidir. Teknoloji, orijinal sesin doğal tınısını koruyarak herhangi bir metni yeniden üretebilir."),
+            "🇸🇦 العربية":      ("ar", "مرحباً! هذا عرض توضيحي لتوليف الصوت. تستطيع هذه التقنية إعادة إنتاج أي نص مع الحفاظ على الجرس الطبيعي للصوت الأصلي."),
+            "🇮🇳 हिन्दी":       ("hi", "नमस्ते! यह एक वाक् संश्लेषण प्रदर्शन है। यह तकनीक मूल आवाज़ की प्राकृतिक ध्वनि को बनाए रखते हुए किसी भी पाठ को पुनः उत्पन्न कर सकती है।"),
+        }
+
+        # Linha de seleção de idioma para teste / language selection row for test
+        _lang_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
+        _lang_row.pack(fill="x", padx=12, pady=(8, 4))
+
+        ctk.CTkLabel(_lang_row, text="Testar por idioma:",
                      font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(8, 2))
+                     text_color=self.TEXT).pack(side="left")
 
-        # Frases de teste rápido / quick-test phrases
-        _test_phrases = [
-            "Olá! Este é um teste de síntese de voz.",
-            "A inteligência artificial está transformando o mundo.",
-            "Praxis — tradução de voz em tempo real.",
-            "Hoje está um dia incrível para testar novas tecnologias.",
-        ]
-        _quick_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
-        _quick_row.pack(fill="x", padx=12, pady=(0, 4))
+        self._ov_test_lang_var = ctk.StringVar(value="🇧🇷 Português")
+        _ov_lang_menu = ctk.CTkOptionMenu(
+            _lang_row, values=list(_OV_LANG_PHRASES.keys()),
+            variable=self._ov_test_lang_var,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
+            button_hover_color=self.SEG_BG, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=12),
+            width=160,
+        )
+        _ov_lang_menu.pack(side="left", padx=(8, 8))
 
-        def _set_test(phrase: str) -> None:
+        def _ov_fill_test_phrase() -> None:
+            """Preenche o campo de texto com a frase genérica do idioma selecionado.
+            Fills the text field with the generic phrase for the selected language."""
+            lang_label = self._ov_test_lang_var.get()
+            _, phrase = _OV_LANG_PHRASES.get(lang_label, ("pt", "Olá! Teste de voz."))
             self._ov_gen_text.delete("1.0", "end")
             self._ov_gen_text.insert("1.0", phrase)
 
-        for _phrase in _test_phrases:
-            _short = _phrase[:30] + "…"
-            ctk.CTkButton(
-                _quick_row, text=_short, height=22,
-                fg_color=self.SEG_BG, hover_color=self.IBORDER,
-                text_color=self.MUTED, border_width=1,
-                border_color=self.IBORDER, corner_radius=6,
-                font=ctk.CTkFont(size=10),
-                command=lambda p=_phrase: _set_test(p),
-            ).pack(side="left", padx=(0, 4), pady=(0, 4))
+        def _ov_quick_test() -> None:
+            """Preenche a frase e dispara geração imediatamente.
+            Fills phrase and triggers generation immediately."""
+            _ov_fill_test_phrase()
+            self._ov_generate()
+
+        ctk.CTkButton(
+            _lang_row, text="🔊 Testar", width=90, height=28,
+            fg_color=self.ACCENT, hover_color=self.HOVER,
+            text_color="#FFFFFF", corner_radius=8,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=_ov_quick_test,
+        ).pack(side="left")
+
+        # Separador / divider
+        ctk.CTkLabel(_ov_gen, text="— ou edite o texto manualmente —",
+                     font=ctk.CTkFont(size=10), text_color=self.MUTED).pack(pady=(0, 2))
 
         self._ov_gen_text = ctk.CTkTextbox(
             _ov_gen, height=72, wrap="word",
@@ -2895,8 +2931,8 @@ class ConfigWindow(ctk.CTk):
             text_color=self.TEXT, font=ctk.CTkFont(size=12),
         )
         self._ov_gen_text.pack(fill="x", padx=12, pady=(0, 8))
-        # Pré-preenche com a primeira frase de teste / pre-fills with first test phrase
-        self._ov_gen_text.insert("1.0", _test_phrases[0])
+        # Pré-preenche com frase PT-BR / pre-fills with PT-BR phrase
+        self._ov_gen_text.insert("1.0", _OV_LANG_PHRASES["🇧🇷 Português"][1])
 
         _gen_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
         _gen_row.pack(fill="x", padx=12, pady=(0, 10))
