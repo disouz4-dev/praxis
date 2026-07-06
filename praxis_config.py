@@ -2229,77 +2229,64 @@ class ConfigWindow(ctk.CTk):
     CLONE_PAGES = [
         # Página 1 / Page 1
         (
-            "Bom dia! Hoje começo a gravar minha voz para o sistema Praxis. Vou falar de "
-            "forma natural e tranquila, como se estivesse conversando com um amigo. A ideia "
-            "é simples: quanto mais eu falar, melhor o sistema vai aprender como eu soo de "
-            "verdade. Então vou variar o ritmo — às vezes mais rápido, às vezes mais pausado. "
-            "Às vezes levantando a voz, outras vezes falando mais baixo.\n\n"
-            "Meu nome é Diego. Trabalho com tecnologia há muitos anos, e sempre acreditei que "
-            "as ferramentas certas podem transformar completamente a forma como as pessoas se "
-            "comunicam. Quando comecei a explorar inteligência artificial, percebi que "
-            "estávamos numa virada histórica. Não é exagero dizer isso.\n\n"
-            "A comunicação é a base de tudo. Ela constrói relacionamentos, fecha negócios, "
-            "resolve conflitos e cria pontes entre culturas. Mas o idioma sempre foi uma "
-            "barreira invisível que separa pessoas que poderiam se entender muito bem se "
-            "falassem a mesma língua. O Praxis existe para quebrar essa fronteira.\n\n"
-            "Respira fundo. Continua lendo com calma. Isso aqui não é uma corrida — é uma "
-            "conversa. E toda boa conversa começa com atenção e presença."
+            "Olá! Vamos começar a gravação. Fale de forma natural, como se estivesse "
+            "conversando com alguém. Não precisa ser perfeito — o importante é manter um "
+            "ritmo constante e uma voz clara. Às vezes mais rápido, às vezes mais pausado. "
+            "Às vezes com mais ênfase, outras vezes de forma mais suave.\n\n"
+            "A comunicação humana é muito mais do que palavras. Carregamos no tom da voz "
+            "emoções, intenções e personalidade. Quando falamos com alguém, transmitimos "
+            "muito além do conteúdo — transmitimos presença.\n\n"
+            "O idioma conecta pessoas. Ele constrói amizades, abre portas profissionais e "
+            "permite que ideias cruzem fronteiras. Mas a barreira linguística ainda separa "
+            "bilhões de pessoas que poderiam se entender se falassem a mesma língua.\n\n"
+            "Respire fundo. Continue lendo com calma. Toda boa conversa começa com "
+            "atenção e presença. Agora vamos para o próximo trecho."
         ),
         # Página 2 / Page 2
         (
-            "Vou falar agora sobre tecnologia. Nos últimos anos, os avanços em inteligência "
-            "artificial foram impressionantes. Modelos de linguagem, síntese de voz, visão "
-            "computacional, tradução automática — tudo evoluiu numa velocidade que a maioria "
-            "das pessoas não acompanhou.\n\n"
-            "Mas existe uma diferença fundamental entre tecnologia que impressiona e tecnologia "
-            "que serve. O que me interessa é a segunda. Uma ferramenta só tem valor real quando "
-            "resolve um problema verdadeiro na vida de alguém.\n\n"
-            "O reconhecimento de voz já existe há décadas. Mas por muito tempo era impreciso, "
-            "lento, e frustrava mais do que ajudava. Hoje, com modelos modernos, a transcrição "
-            "em tempo real ficou tão boa que você mal percebe o processamento acontecendo.\n\n"
-            "A síntese de voz seguiu o mesmo caminho. Lembro quando vozes sintetizadas soavam "
-            "mecânicas, robotizadas, sem emoção. Hoje um bom modelo consegue capturar timbre, "
-            "entonação, até a respiração de uma pessoa.\n\n"
-            "Deixa eu variar um pouco. Um, dois, três, quatro, cinco. Dez, vinte, cinquenta, "
-            "cem, mil. Dois mil e vinte e seis. Terça-feira, doze de agosto. Oito horas da "
-            "manhã. Trinta e dois graus. Cento e vinte quilômetros por hora."
+            "Nos últimos anos, a inteligência artificial avançou de forma impressionante. "
+            "Modelos de linguagem, síntese de voz, visão computacional, tradução automática — "
+            "tudo evoluiu numa velocidade surpreendente.\n\n"
+            "Uma ferramenta só tem valor real quando resolve um problema verdadeiro. "
+            "O reconhecimento de voz existe há décadas, mas por muito tempo era impreciso. "
+            "Hoje, a transcrição em tempo real funciona tão bem que mal percebemos o "
+            "processamento acontecendo.\n\n"
+            "A síntese de voz passou pelo mesmo caminho. Vozes sintetizadas costumavam soar "
+            "mecânicas e sem emoção. Hoje um bom modelo captura timbre, entonação e "
+            "naturalidade com qualidade impressionante.\n\n"
+            "Vamos variar um pouco. Um, dois, três, quatro, cinco. Dez, vinte, cinquenta, "
+            "cem, mil. Terça-feira, doze de agosto. Oito horas da manhã. Trinta graus. "
+            "Cento e vinte quilômetros por hora. Seiscentos reais."
         ),
         # Página 3 / Page 3
         (
-            "Deixa eu contar algumas histórias. Certa vez, viajei para o Japão. Não falava "
-            "nenhuma palavra de japonês. Entrar num restaurante pequeno, sem cardápio em inglês, "
-            "foi uma experiência memorável. Usamos gestos, sorrisos e muita paciência dos dois "
-            "lados. Saí de lá com a barriga cheia e uma história boa para contar.\n\n"
-            "Em outra ocasião, participei de uma reunião de negócios com clientes que só falavam "
-            "espanhol. Eu me virava com o que tinha, mas sabia que estava perdendo nuances "
-            "importantes. Palavras que explicariam melhor minha proposta. Detalhes que fariam "
-            "diferença no contrato. O problema não era competência — era o idioma.\n\n"
-            "Pensa comigo: o que você deixou de aprender porque estava em outro idioma? Quantas "
-            "conversas nunca aconteceram porque ninguém queria enfrentar o desconforto de não "
-            "se entender? Quantos negócios não foram fechados, quantas amizades não floresceram, "
-            "quantos conhecimentos ficaram presos atrás de uma barreira linguística?\n\n"
-            "Isso me motivou a acreditar no Praxis desde o primeiro dia. A ideia de que a minha "
-            "voz, com o meu sotaque, com o meu jeito de falar, chegasse em qualquer idioma sem "
-            "perder a essência — isso é algo que vale a pena construir."
+            "Imagine viajar para um país sem falar o idioma local. Entrar num restaurante, "
+            "pedir comida apenas com gestos e sorrisos — é uma experiência rica, mas "
+            "também frustrante. Muitas informações importantes se perdem na barreira do idioma.\n\n"
+            "Em situações profissionais, a diferença é ainda maior. Reuniões, negociações, "
+            "apresentações — cada palavra importa. Perder nuances pode significar perder "
+            "oportunidades.\n\n"
+            "Pense em tudo que ficou do outro lado de uma barreira linguística. Conhecimentos "
+            "que não foram acessados, conexões que não aconteceram, negócios que não avançaram. "
+            "A tecnologia pode mudar isso.\n\n"
+            "A ideia é simples: qualquer pessoa pode falar em qualquer idioma mantendo "
+            "sua própria voz, seu sotaque, seu jeito único de se expressar. "
+            "Isso transforma a comunicação global de forma profunda."
         ),
         # Página 4 / Page 4
         (
-            "Estou chegando ao fim desta gravação, mas vou aproveitar para variar a entonação. "
-            "Às vezes uma pergunta: você já imaginou falar cinco idiomas com a mesma fluência "
-            "que fala o seu? Às vezes uma afirmação firme: isso é possível. Não hoje, não "
-            "amanhã — mas estamos construindo o caminho.\n\n"
-            "A voz humana é algo extraordinário. Ela carrega informação muito além das palavras. "
-            "O tom revela emoção. O ritmo revela confiança. A respiração revela tensão ou calma. "
-            "Quando você ouve alguém falar, não está só decodificando palavras — está lendo uma "
-            "pessoa inteira.\n\n"
-            "Por isso a clonagem de voz é tão desafiadora. Não basta replicar os fonemas "
-            "corretos. Precisa capturar o jeito. A cadência. O que torna aquela voz "
-            "reconhecível entre mil outras.\n\n"
-            "E é exatamente isso que essa gravação vai fazer. Ela vai alimentar um modelo que "
-            "aprende os padrões únicos da minha voz. Quando o Praxis sintetizar fala em inglês, "
-            "espanhol, francês ou italiano, quem vai estar falando ainda vou ser eu.\n\n"
-            "Obrigado por gravar até aqui. Faz diferença. Cada segundo de áudio ajuda o modelo "
-            "a ser mais fiel, mais preciso, mais meu."
+            "Chegamos à última parte. Vamos variar a entonação. "
+            "Uma pergunta: você já imaginou falar cinco idiomas com a mesma naturalidade "
+            "que fala a sua língua nativa? Uma afirmação firme: isso é possível.\n\n"
+            "A voz humana carrega muito além das palavras. O tom revela emoção. "
+            "O ritmo revela confiança. A respiração revela tensão ou calma. "
+            "Quando ouvimos alguém falar, não estamos apenas decodificando palavras — "
+            "estamos reconhecendo uma pessoa.\n\n"
+            "Capturar isso é o grande desafio da clonagem de voz. Não basta replicar "
+            "fonemas corretos. É preciso capturar cadência, ritmo e personalidade. "
+            "O que torna uma voz única entre todas as outras.\n\n"
+            "Obrigado por gravar. Cada segundo de áudio ajuda o modelo a ser mais "
+            "fiel e preciso. Quanto mais você falar de forma natural, melhor o resultado."
         ),
     ]
 
@@ -2788,9 +2775,9 @@ class ConfigWindow(ctk.CTk):
         ctk.CTkLabel(
             _ov_rec_card,
             text=(
-                "Bom dia! Meu nome é Diego e estou testando o sistema de clonagem de voz do Praxis. "
-                "A tecnologia é incrível — ela aprende a minha voz com poucos segundos de áudio e "
-                "consegue reproduzir qualquer texto com a minha entonação natural."
+                "Olá! Estou gravando uma amostra de voz para o sistema de clonagem. "
+                "A tecnologia aprende com poucos segundos de áudio e reproduz qualquer texto "
+                "mantendo o timbre e a entonação natural da voz gravada."
             ),
             font=ctk.CTkFont(size=12), text_color=self.TEXT,
             wraplength=380, justify="left", anchor="nw",
@@ -2879,9 +2866,9 @@ class ConfigWindow(ctk.CTk):
 
         # Frases de teste rápido / quick-test phrases
         _test_phrases = [
-            "Olá! Meu nome é Diego e este é um teste de voz.",
+            "Olá! Este é um teste de síntese de voz.",
             "A inteligência artificial está transformando o mundo.",
-            "Praxis — um sistema de tradução de voz em tempo real.",
+            "Praxis — tradução de voz em tempo real.",
             "Hoje está um dia incrível para testar novas tecnologias.",
         ]
         _quick_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
