@@ -2476,6 +2476,13 @@ class ConfigWindow(ctk.CTk):
             command=self._toggle_monitor,
         ).pack(side="right", padx=(0, 6))
 
+        # Inicializa estado ANTES de criar o canvas — <Configure> pode disparar no pack()
+        # Init state BEFORE creating canvas — <Configure> may fire during pack()
+        self._clone_meter_W    = 0
+        self._clone_meter_H    = 0
+        self._clone_meter_peak = 0.0
+        self._clone_meter_ids: dict = {}
+
         # Canvas com gradiente verde→amarelo→vermelho (igual ao VU meter do Config)
         # Canvas with green→yellow→red gradient (same as Config VU meter)
         self._clone_meter_canvas = tk.Canvas(
@@ -2484,10 +2491,6 @@ class ConfigWindow(ctk.CTk):
         )
         self._clone_meter_canvas.pack(fill="x", padx=10, pady=(2, 4))
         self._clone_meter_canvas.bind("<Configure>", self._clone_meter_configure)
-        self._clone_meter_W = 0
-        self._clone_meter_H = 0
-        self._clone_meter_peak = 0.0
-        self._clone_meter_ids: dict = {}
 
         # marcas de referência: -40  -20  -12  -6  0 dB
         marks_row = ctk.CTkFrame(meter_frame, fg_color="transparent")
