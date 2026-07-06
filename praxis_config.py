@@ -2328,7 +2328,20 @@ class ConfigWindow(ctk.CTk):
         self._train_status = ctk.CTkLabel(
             scroll, text="",
             font=ctk.CTkFont(size=11), text_color=self.MUTED)
-        self._train_status.pack(anchor="w", padx=16, pady=(0, 6))
+        self._train_status.pack(anchor="w", padx=16, pady=(0, 2))
+
+        # Log box do treino RVC — exibe saída linha a linha das 3 fases
+        # RVC training log box — shows real-time output from all 3 phases
+        self._train_log = ctk.CTkTextbox(
+            scroll, height=160,
+            fg_color=self.INPUT, border_color=self.IBORDER, border_width=1,
+            corner_radius=8,
+            font=ctk.CTkFont(family="monospace", size=10),
+            text_color=self.MUTED,
+            state="disabled",
+            wrap="none",
+        )
+        self._train_log.pack(fill="x", padx=16, pady=(0, 8))
 
         # Atualiza label de duração se já existe arquivo wav salvo
         # Update duration label if wav file already exists
@@ -2579,14 +2592,18 @@ class ConfigWindow(ctk.CTk):
 
     def _train_rvc_worker(self, model_name: str, wav_path: str) -> None:
         """Pipeline completo de treino RVC: pré-processamento → extração → treino.
-        Full RVC training pipeline: preprocessing → feature extraction → training."""
-        import subprocess, sys, os
+        Full RVC training pipeline: preprocessing → feature extraction → training.
+        Usa Popen para leitura em tempo real e atualiza log + barra de progresso.
+        Uses Popen for real-time reading and updates log + progress bar."""
+        import subprocess, os, re, shutil, glob
 
-        APPLIO_DIR = "/home/lab2/Documentos/praxis/applio/src"
-        PYTHON     = "/home/lab2/Documentos/praxis/applio/venv/bin/python"
-        LOGS_DIR   = os.path.join(APPLIO_DIR, "logs")
+        APPLIO_DIR  = "/home/lab2/Documentos/praxis/applio/src"
+        PYTHON      = "/home/lab2/Documentos/praxis/applio/venv/bin/python"
+        LOGS_DIR    = os.path.join(APPLIO_DIR, "logs")
         DATASET_DIR = os.path.join(APPLIO_DIR, "assets", "datasets", model_name)
+        TOTAL_EPOCHS = 300
 
+        # ── Helpers de UI (chamados via after para thread safety) ─────────
         def _status(msg, color=None):
             kw = {"text": msg}
             if color:
@@ -2596,130 +2613,150 @@ class ConfigWindow(ctk.CTk):
         def _prog(v):
             self.after(0, self._train_prog.set, v)
 
+        def _log(line: str):
+            # Filtra linhas de tqdm com \r e linhas completamente vazias
+            # Filter tqdm carriage-return lines and blank lines
+            clean = line.strip()
+            if not clean or clean.startswith("\r"):
+                return
+            # Remove sequências de escape ANSI / remove ANSI escape sequences
+            clean = re.sub(r"\x1b\[[0-9;]*m", "", clean)
+            def _append():
+                self._train_log.configure(state="normal")
+                self._train_log.insert("end", clean + "\n")
+                self._train_log.see("end")
+                self._train_log.configure(state="disabled")
+            self.after(0, _append)
+
+        def _run_phase(cmd: list, phase_start: float, phase_end: float,
+                       epoch_range: int | None = None) -> bool:
+            """Executa um subcomando com Popen, lê stdout+stderr em tempo real.
+            Runs a subprocess with Popen, reads stdout+stderr in real time.
+            epoch_range: total de épocas para calcular progresso da fase de treino."""
+            proc = subprocess.Popen(
+                cmd, cwd=APPLIO_DIR,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                text=True, bufsize=1,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"},
+            )
+            _prog(phase_start)
+            for raw in proc.stdout:
+                _log(raw)
+                if epoch_range:
+                    # Linha de época: "DIego | epoch=N | step=S | ..."
+                    # Epoch line: "model | epoch=N | step=S | ..."
+                    m = re.search(r"epoch=(\d+)", raw)
+                    if m:
+                        epoch = int(m.group(1))
+                        frac = phase_start + (phase_end - phase_start) * (epoch / epoch_range)
+                        _prog(min(frac, phase_end))
+            proc.wait()
+            return proc.returncode == 0
+
         def _done(ok: bool, msg: str):
             self._training = False
             color = "#22C55E" if ok else "#DC2626"
             _status(msg, color)
             _prog(1.0 if ok else 0.0)
             label = "🎙 Treinar Voz" if ok else "🎙 Tentar de novo"
-            self.after(0, self._train_btn.configure, {
-                "state": "normal", "text": label})
+            self.after(0, self._train_btn.configure, {"state": "normal", "text": label})
 
         try:
+            # Limpa o log e prepara a UI / clear log and prepare UI
+            def _clear_log():
+                self._train_log.configure(state="normal")
+                self._train_log.delete("1.0", "end")
+                self._train_log.configure(state="disabled")
+            self.after(0, _clear_log)
+
             # ── Fase 1/3: Pré-processamento ───────────────────────────────
             # Phase 1/3: Preprocessing — slice audio into chunks
             _status("📂  Fase 1/3 — Pré-processando áudio…", "#F59E0B")
-            _prog(0.05)
+            _log("=== Fase 1/3: Pré-processamento ===")
             os.makedirs(DATASET_DIR, exist_ok=True)
-            import shutil, wave as _wave, numpy as _np
-
-            # Copia wav para a pasta de dataset do Applio / copy wav to Applio dataset folder
             dst = os.path.join(DATASET_DIR, f"{model_name}.wav")
             shutil.copy2(wav_path, dst)
 
-            preprocess_cmd = [
+            ok = _run_phase([
                 PYTHON,
                 os.path.join(APPLIO_DIR, "rvc", "train", "preprocess", "preprocess.py"),
-                os.path.join(LOGS_DIR, model_name),  # log/model output dir
-                DATASET_DIR,                          # dataset path
-                "40000",                              # sample rate
-                "4",                                  # cpu cores
-                "Automatic",                          # cut_preprocess: Skip|Simple|Automatic
-                "False",                              # process_effects
-                "False",                              # noise_reduction
-                "0.7",                                # clean_strength
-                "3.0",                                # chunk_len seconds
-                "0.3",                                # overlap_len seconds
-                "none",                               # normalization_mode
-            ]
-            result = subprocess.run(
-                preprocess_cmd, cwd=APPLIO_DIR,
-                capture_output=True, text=True)
-            if result.returncode != 0:
-                _done(False, f"❌ Pré-processamento falhou:\n{result.stderr[-200:]}")
+                os.path.join(LOGS_DIR, model_name),
+                DATASET_DIR,
+                "40000", "4", "Automatic", "False", "False",
+                "0.7", "3.0", "0.3", "none",
+            ], phase_start=0.02, phase_end=0.10)
+            if not ok:
+                _done(False, "❌ Pré-processamento falhou — veja o log.")
                 return
-            _status("✅  Fase 1/3 concluída — Extraindo features…", "#F59E0B")
-            _prog(0.33)
+
+            _status("✅  Fase 1/3 concluída", "#F59E0B")
+            _log("=== Fase 1/3 concluída ===")
+            _prog(0.10)
 
             # ── Fase 2/3: Extração de features ────────────────────────────
             # Phase 2/3: Feature extraction — HuBERT embeddings + F0 (RMVPE)
             _status("🔬  Fase 2/3 — Extraindo features (HuBERT + RMVPE)…", "#F59E0B")
-            extract_cmd = [
+            _log("=== Fase 2/3: Extração de features ===")
+            ok = _run_phase([
                 PYTHON,
                 os.path.join(APPLIO_DIR, "rvc", "train", "extract", "extract.py"),
-                os.path.join(LOGS_DIR, model_name),  # model path
-                "rmvpe",                              # f0 method
-                "4",                                  # cpu cores
-                "0",                                  # gpu index
-                "40000",                              # sample rate
-                "contentvec",                         # embedder model
-                "None",                               # embedder_model_custom
-                "2",                                  # include_mutes
-            ]
-            result = subprocess.run(
-                extract_cmd, cwd=APPLIO_DIR,
-                capture_output=True, text=True)
-            if result.returncode != 0:
-                _done(False, f"❌ Extração falhou:\n{result.stderr[-200:]}")
+                os.path.join(LOGS_DIR, model_name),
+                "rmvpe", "4", "0", "40000", "contentvec", "None", "2",
+            ], phase_start=0.10, phase_end=0.33)
+            if not ok:
+                _done(False, "❌ Extração falhou — veja o log.")
                 return
-            _status("✅  Fase 2/3 concluída — Iniciando treino…", "#F59E0B")
-            _prog(0.60)
+
+            _status("✅  Fase 2/3 concluída", "#F59E0B")
+            _log("=== Fase 2/3 concluída ===")
+            _prog(0.33)
 
             # ── Fase 3/3: Treino ──────────────────────────────────────────
             # Phase 3/3: Model training — generator + discriminator
-            _status("🧠  Fase 3/3 — Treinando modelo (pode levar 10-30 min)…", "#8B5CF6")
+            _status("🧠  Fase 3/3 — Treinando (pode levar 1-2h com GPU)…", "#8B5CF6")
+            _log(f"=== Fase 3/3: Treino ({TOTAL_EPOCHS} épocas) ===")
 
-            # Seleciona modelo pré-treinado / select pretrained model
-            from rvc.lib.tools.pretrained_selector import pretrained_selector
-            pg, pd = pretrained_selector("HiFi-GAN", 40000)
+            # Seleciona pesos pré-treinados / select pretrained weights
+            sys_path_backup = __import__("sys").path[:]
+            __import__("sys").path.insert(0, APPLIO_DIR)
+            try:
+                from rvc.lib.tools.pretrained_selector import pretrained_selector
+                pg, pd = pretrained_selector("HiFi-GAN", 40000)
+            finally:
+                __import__("sys").path[:] = sys_path_backup
 
-            train_cmd = [
+            ok = _run_phase([
                 PYTHON,
                 os.path.join(APPLIO_DIR, "rvc", "train", "train.py"),
-                model_name,   # model name
-                "10",         # save_every_epoch
-                "300",        # total_epoch
-                pg,           # G pretrained
-                pd,           # D pretrained
-                "0",          # gpu index
-                "4",          # batch_size
-                "40000",      # sample_rate
-                "True",       # save_only_latest
-                "True",       # save_every_weights
-                "False",      # cache_data_in_gpu
-                "True",       # overtraining_detector
-                "50",         # overtraining_threshold
-                "False",      # cleanup
-                "HiFi-GAN",   # vocoder
-                "False",      # checkpointing
-            ]
-            result = subprocess.run(
-                train_cmd, cwd=APPLIO_DIR,
-                capture_output=True, text=True)
-            if result.returncode != 0:
-                _done(False, f"❌ Treino falhou:\n{result.stderr[-300:]}")
+                model_name, "10", str(TOTAL_EPOCHS),
+                pg, pd,
+                "0", "4", "40000",
+                "True", "True", "False",
+                "True", "50", "False",
+                "HiFi-GAN", "False",
+            ], phase_start=0.33, phase_end=0.95,
+               epoch_range=TOTAL_EPOCHS)
+            if not ok:
+                _done(False, "❌ Treino falhou — veja o log.")
                 return
 
-            # ── Copia modelo treinado para pasta do Praxis ────────────────
+            # ── Copia modelo para a pasta do Praxis ───────────────────────
             # Copy trained model to Praxis voices folder
             _status("📦  Copiando modelo para o Praxis…", "#F59E0B")
-            _prog(0.95)
-            import glob
-            pth_files = glob.glob(
-                os.path.join(LOGS_DIR, model_name, f"{model_name}*.pth"))
+            _log("=== Copiando modelo final ===")
+            _prog(0.97)
+
+            pth_files = glob.glob(os.path.join(LOGS_DIR, model_name, f"{model_name}*.pth"))
             if not pth_files:
-                # Tenta pasta de weights / try weights folder
                 pth_files = glob.glob(
                     os.path.join(APPLIO_DIR, "assets", "weights", f"{model_name}*.pth"))
 
             if pth_files:
-                # Ordena por data de modificação, pega o mais recente / sort by mtime, take newest
                 pth_files.sort(key=os.path.getmtime)
                 src_pth = pth_files[-1]
                 dst_pth = str(self.CLONES_DIR / f"{model_name}.pth")
                 shutil.copy2(src_pth, dst_pth)
 
-                # Atualiza JSON para tipo "rvc" / update JSON to type "rvc"
                 json_p = self.CLONES_DIR / f"{model_name}.json"
                 if json_p.exists():
                     meta = json.loads(json_p.read_text())
@@ -2727,13 +2764,15 @@ class ConfigWindow(ctk.CTk):
                     meta["pth"]  = f"{model_name}.pth"
                     json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
 
-                _done(True, f"✅  Modelo treinado! {model_name}.pth pronto para uso.")
+                _done(True, f"✅  Pronto! {model_name}.pth salvo.")
+                _log(f"Modelo salvo: {dst_pth}")
                 self.after(0, self._refresh_clone_list)
             else:
-                _done(False, "❌  Modelo treinado mas arquivo .pth não encontrado.")
+                _done(False, "❌ Arquivo .pth não encontrado após treino.")
 
         except Exception as e:
             _done(False, f"❌  Erro inesperado: {e}")
+            _log(f"Erro: {e}")
 
     def _record_worker(self) -> None:
         """Thread de captura: lê blocos de áudio do microfone e acumula em _rec_frames.
