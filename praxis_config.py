@@ -2860,14 +2860,41 @@ class ConfigWindow(ctk.CTk):
 
         ctk.CTkLabel(_ov_gen, text="Texto para gerar",
                      font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(8, 4))
+                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(8, 2))
+
+        # Frases de teste rápido / quick-test phrases
+        _test_phrases = [
+            "Olá! Meu nome é Diego e este é um teste de voz.",
+            "A inteligência artificial está transformando o mundo.",
+            "Praxis — um sistema de tradução de voz em tempo real.",
+            "Hoje está um dia incrível para testar novas tecnologias.",
+        ]
+        _quick_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
+        _quick_row.pack(fill="x", padx=12, pady=(0, 4))
+
+        def _set_test(phrase: str) -> None:
+            self._ov_gen_text.delete("1.0", "end")
+            self._ov_gen_text.insert("1.0", phrase)
+
+        for _phrase in _test_phrases:
+            _short = _phrase[:30] + "…"
+            ctk.CTkButton(
+                _quick_row, text=_short, height=22,
+                fg_color=self.SEG_BG, hover_color=self.IBORDER,
+                text_color=self.MUTED, border_width=1,
+                border_color=self.IBORDER, corner_radius=6,
+                font=ctk.CTkFont(size=10),
+                command=lambda p=_phrase: _set_test(p),
+            ).pack(side="left", padx=(0, 4), pady=(0, 4))
 
         self._ov_gen_text = ctk.CTkTextbox(
-            _ov_gen, height=80, wrap="word",
+            _ov_gen, height=72, wrap="word",
             fg_color=self.SEG_BG, border_color=self.IBORDER, border_width=1,
             text_color=self.TEXT, font=ctk.CTkFont(size=12),
         )
         self._ov_gen_text.pack(fill="x", padx=12, pady=(0, 8))
+        # Pré-preenche com a primeira frase de teste / pre-fills with first test phrase
+        self._ov_gen_text.insert("1.0", _test_phrases[0])
 
         _gen_row = ctk.CTkFrame(_ov_gen, fg_color="transparent")
         _gen_row.pack(fill="x", padx=12, pady=(0, 10))
@@ -3633,12 +3660,15 @@ class ConfigWindow(ctk.CTk):
                 wf.setframerate(SR)
                 wf.writeframes(pcm16.tobytes())
 
+            # Tipo depende do modo de clonagem selecionado / type depends on selected clone mode
+            _mode = getattr(self, "_clone_mode_var", None)
+            _voice_type = "omnivoice" if (_mode and "OmniVoice" in _mode.get()) else "xtts"
             meta = {
                 "name":       name,
                 "wav":        wav_p.name,
                 "ref_text":   self.CLONE_TEXT,
                 "duration_s": round(dur, 1),
-                "type":       "xtts",
+                "type":       _voice_type,
                 "lang":       self.cfg.get("src", "pt"),
             }
             json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))

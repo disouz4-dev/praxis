@@ -413,6 +413,21 @@ def pipeline_worker(
         _emit({"e": "transcript", "dir": direction, "text": text})
         _emit({"e": "translation", "dir": direction, "text": translated})
 
+        # Alimenta o OmniVoice com o áudio fonte atual como referência (se ativo)
+        # Feed OmniVoice with current source audio as reference (if active)
+        global _ov_src_audio_path, _ov_src_text
+        with _piper_lock:
+            _is_ov = isinstance(_piper_out_ref[0] if direction == "out" else piper,
+                                 OmniVoiceEngine)
+        if _is_ov:
+            import soundfile as _sf, tempfile as _tf
+            _tmp_ref = _tf.mktemp(suffix=".wav")
+            _sf.write(_tmp_ref,
+                       segment.astype(np.float32) / 32768.0,
+                       16000, subtype="PCM_16")
+            _ov_src_audio_path = _tmp_ref
+            _ov_src_text = text
+
         # Streaming TTS: sintetiza próxima frase enquanto atual está tocando
         # Lê piper via ref mutável para suportar hot-swap sem reiniciar Whisper
         sentences = _split_sentences(translated)
@@ -717,6 +732,69 @@ class XttsVoice:
         yield _Chunk(pcm)
 
 
+class OmniVoiceEngine:
+    """Wrapper zero-shot usando k2-fsa/OmniVoice — sem treino, só áudio de referência.
+    Zero-shot wrapper using k2-fsa/OmniVoice — no training, just a reference audio clip.
+
+    Interface compatível com PiperVoice / PiperVoice-compatible interface.
+    Usa globals _ov_src_audio_path e _ov_src_text definidos pelo pipeline antes da síntese.
+    Uses globals _ov_src_audio_path and _ov_src_text set by the pipeline before synthesis.
+    """
+
+    def __init__(self, wav_path: str):
+        self._wav_path = wav_path          # referência fixa (clone gravado) / fixed reference (recorded clone)
+        self._model    = None              # carregado na primeira síntese / loaded on first synthesis
+        self.config    = type("cfg", (), {"sample_rate": 24000})()
+
+    def _load_model(self):
+        """Carrega OmniVoice uma vez e mantém em cache. Loads OmniVoice once and caches."""
+        if self._model is not None:
+            return
+        from omnivoice import OmniVoice
+        import torch
+        device = "cuda" if _has_cuda() else "cpu"
+        dtype  = torch.float16 if device == "cuda" else torch.float32
+        self._model = OmniVoice.from_pretrained(
+            "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
+
+    def synthesize(self, text: str):
+        """Gera áudio com OmniVoice usando áudio de referência e transcrição globais.
+        Generates audio with OmniVoice using global reference audio and transcription."""
+        import numpy as np
+        import soundfile as sf, tempfile, os
+
+        self._load_model()
+
+        # Referência: usa áudio fonte capturado pelo pipeline se disponível, senão usa clone fixo
+        # Reference: uses source audio captured by pipeline if available, else uses fixed clone
+        ref_audio = _ov_src_audio_path or self._wav_path
+        ref_text  = _ov_src_text.strip() or "Olá, estou usando o sistema Praxis."
+
+        try:
+            audio = self._model.generate(
+                text=text,
+                ref_audio=ref_audio,
+                ref_text=ref_text,
+            )
+            pcm_f32 = audio[0]  # float32, sr=24000
+            pcm_i16 = (np.clip(pcm_f32, -1.0, 1.0) * 32767).astype(np.int16)
+        except Exception:
+            import traceback; traceback.print_exc()
+            pcm_i16 = np.zeros(100, dtype=np.int16)
+
+        class _Chunk:
+            def __init__(self, data):
+                self.audio_int16_bytes = data.tobytes()
+
+        yield _Chunk(pcm_i16)
+
+
+# Globals do pipeline: áudio fonte atual + transcrição para referência do OmniVoice
+# Pipeline globals: current source audio + transcription for OmniVoice reference
+_ov_src_audio_path: str = ""   # caminho para WAV do áudio fonte / path to source audio WAV
+_ov_src_text:       str = ""   # transcrição do áudio fonte / source audio transcription
+
+
 def _has_cuda() -> bool:
     try:
         import torch
@@ -747,6 +825,10 @@ def load_piper(path: str):
                     return RvcVoice(pth_path)
                 # Fallback para XTTS se .pth não existe ainda
                 # Fallback to XTTS if .pth doesn't exist yet
+            if voice_type == "omnivoice":
+                # OmniVoice zero-shot — usa o WAV do clone como referência fixa
+                # OmniVoice zero-shot — uses the clone WAV as fixed reference
+                return OmniVoiceEngine(path)
             if voice_type in ("chatterbox", "xtts", "rvc"):
                 lang = meta.get("lang", "pt")
                 return XttsVoice(path, lang)
