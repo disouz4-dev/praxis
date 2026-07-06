@@ -3215,9 +3215,6 @@ class ConfigWindow(ctk.CTk):
                 border_color=self.IBORDER, corner_radius=6,
                 font=ctk.CTkFont(size=11),
             )
-            _tbtn.configure(
-                command=lambda p=wav_path, rt=meta.get("ref_text", ""), b=_tbtn:
-                    self._test_clone(p, rt, b))
             _tbtn.pack(side="left", padx=(0, 4))
             ctk.CTkButton(
                 btn_frame, text="Usar", width=60, height=26,
@@ -3234,6 +3231,28 @@ class ConfigWindow(ctk.CTk):
                 font=ctk.CTkFont(size=11),
                 command=lambda jp=jp: self._delete_clone(jp),
             ).pack(side="left")
+
+            # Progress bar + status label dentro do card para feedback visual do teste
+            # Per-card progress bar + status for visual test feedback
+            _card_prog_row = ctk.CTkFrame(row, fg_color="transparent")
+            _card_prog_row.grid(row=1, column=0, columnspan=2, sticky="ew",
+                                padx=10, pady=(0, 6))
+            _card_prog_row.grid_columnconfigure(1, weight=1)
+            _card_status = ctk.CTkLabel(_card_prog_row, text="",
+                                        font=ctk.CTkFont(size=10),
+                                        text_color=self.MUTED, anchor="w", width=160)
+            _card_status.grid(row=0, column=0, sticky="w")
+            _card_prog = ctk.CTkProgressBar(_card_prog_row, height=4,
+                                            progress_color=self.ACCENT,
+                                            corner_radius=2)
+            _card_prog.set(0)
+            _card_prog.grid(row=0, column=1, sticky="ew", padx=(8, 0))
+            _card_prog.grid_remove()   # oculta até o teste iniciar / hidden until test starts
+
+            _tbtn.configure(
+                command=lambda p=wav_path, rt=meta.get("ref_text", ""), b=_tbtn,
+                              pg=_card_prog, st=_card_status:
+                    self._test_clone(p, rt, b, pg, st))
 
     _REC_MAX_S    = 300   # máximo por sessão de gravação / max seconds per recording session
     _REC_MIN_TRAIN = 180  # mínimo para habilitar treino / minimum seconds to enable training
@@ -3747,7 +3766,10 @@ class ConfigWindow(ctk.CTk):
             self.after(0, self._rec_btn.configure, {"state": "normal"})
             self._start_meter()   # reativa VU meter após gravar/salvar
 
-    def _test_clone(self, wav_path: str, ref_text: str, test_btn: ctk.CTkButton | None = None) -> None:
+    def _test_clone(self, wav_path: str, ref_text: str,
+                    test_btn: ctk.CTkButton | None = None,
+                    test_prog: ctk.CTkProgressBar | None = None,
+                    test_status: ctk.CTkLabel | None = None) -> None:
         """Testa clone via OmniVoice (zero-shot) ou XTTS v2 dependendo da disponibilidade.
         Tests clone via OmniVoice (zero-shot) or XTTS v2 depending on availability."""
         if self._testing:
@@ -3780,20 +3802,27 @@ class ConfigWindow(ctk.CTk):
         _anim_stop = threading.Event()
         _phase_range = [0.05, 0.50]
 
+        def _set_prog(v: float) -> None:
+            if test_prog:
+                self.after(0, test_prog.set, v)
+
         def _animate():
             import time
+            if test_prog:
+                self.after(0, test_prog.grid)   # exibe progress bar no card / show progress bar in card
             while not _anim_stop.is_set():
                 lo, hi = _phase_range
-                cur = self._rec_prog.get()
+                cur = test_prog.get() if test_prog else 0
                 nxt = cur + 0.012 if cur < hi - 0.04 else lo
-                self.after(0, self._rec_prog.set, nxt)
+                _set_prog(nxt)
                 time.sleep(0.18)
 
         def _update(msg, color=None, phase=None):
-            kw = {"text": msg}
-            if color:
-                kw["text_color"] = color
-            self.after(0, self._rec_status.configure, kw)
+            if test_status:
+                kw: dict = {"text": msg}
+                if color:
+                    kw["text_color"] = color
+                self.after(0, test_status.configure, kw)
             if phase:
                 _phase_range[0], _phase_range[1] = phase
 
@@ -3802,8 +3831,8 @@ class ConfigWindow(ctk.CTk):
             self._testing = False
             if test_btn:
                 try:
-                    self.after(0, test_btn.configure,
-                               {"state": "normal", "text": "▶ Testar"})
+                    self.after(0, lambda: test_btn.configure(
+                        state="normal", text="▶ Testar"))
                 except Exception:
                     pass
 
@@ -3847,16 +3876,17 @@ class ConfigWindow(ctk.CTk):
                 sf.write(tmp, audio[0], 24000)
 
                 _anim_stop.set()
-                self.after(0, self._rec_prog.set, 0.94)
+                _set_prog(0.94)
                 _update("Reproduzindo…")
                 subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
-                self.after(0, self._rec_prog.set, 1.0)
-                self.after(0, self._rec_prog.configure, {"progress_color": "#22C55E"})
+                _set_prog(1.0)
+                if test_prog:
+                    self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
                 _update("✅ Concluído.", "#22C55E")
 
             except Exception as e:
                 import traceback; traceback.print_exc()
-                self.after(0, self._rec_prog.set, 0)
+                _set_prog(0)
                 _update(f"❌ {e}", "#DC2626")
             finally:
                 _done()
@@ -3918,22 +3948,24 @@ class ConfigWindow(ctk.CTk):
                 torchaudio.save(tmp, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 
                 _anim_stop.set()
-                self.after(0, self._rec_prog.set, 0.94)
+                _set_prog(0.94)
                 _update("3/3  Reproduzindo…")
                 subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
-                self.after(0, self._rec_prog.set, 1.0)
-                self.after(0, self._rec_prog.configure, {"progress_color": "#22C55E"})
+                _set_prog(1.0)
+                if test_prog:
+                    self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
                 _update("✅ Concluído.", "#22C55E")
 
             except Exception as e:
                 import traceback; traceback.print_exc()
-                self.after(0, self._rec_prog.set, 0)
+                _set_prog(0)
                 _update(f"❌ {e}", "#DC2626")
             finally:
                 _done()
 
-        self._rec_prog.configure(progress_color="#60A5FA")
-        self._rec_prog.set(0.05)
+        if test_prog:
+            self.after(0, lambda: test_prog.configure(progress_color="#60A5FA"))
+        _set_prog(0.05)
         threading.Thread(target=_worker_ov if _use_ov else _worker_xtts, daemon=True).start()
 
     def _use_clone(self, wav_path: str, name: str) -> None:
