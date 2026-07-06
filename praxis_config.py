@@ -207,8 +207,10 @@ def _voice_lang_code(path: str) -> str:
 
 
 def _voices_for_lang(voices: list[tuple[str, str]], lang_code: str) -> list[tuple[str, str]]:
-    """Filtra vozes disponíveis pelo código de idioma."""
-    return [(p, lbl) for p, lbl in voices if _voice_lang_code(p) == lang_code]
+    """Filtra vozes Piper por idioma; clones (🎙) aparecem em todos os idiomas.
+    Filters Piper voices by language; clones (🎙) always appear regardless of language."""
+    return [(p, lbl) for p, lbl in voices
+            if lbl.startswith("🎙 ") or _voice_lang_code(p) == lang_code]
 
 
 def _best_catalog_voice(lang_code: str) -> dict | None:
@@ -303,6 +305,19 @@ def get_voices() -> list[tuple[str, str]]:
         else:
             label = key
         result.append((str(p), label))
+
+    # Adiciona clones gravados (VOICES_DIR/clones/*.json) / add recorded clones
+    clones_dir = VOICES_DIR / "clones"
+    if clones_dir.exists():
+        for jp in sorted(clones_dir.glob("*.json")):
+            try:
+                cm = json.loads(jp.read_text())
+                wav = clones_dir / cm.get("wav", jp.stem + ".wav")
+                if wav.exists():
+                    result.append((str(wav), f"🎙 {cm.get('name', jp.stem)}"))
+            except Exception:
+                pass
+
     return result
 
 
@@ -3068,6 +3083,23 @@ class ConfigWindow(ctk.CTk):
             daemon=True,
         ).start()
 
+    @staticmethod
+    def _trim_ref_wav(wav_path: str, max_s: float = 8.0) -> str:
+        """Trima WAV de referência para max_s segundos (OmniVoice pede ≤10s).
+        Trims reference WAV to max_s seconds (OmniVoice expects ≤10s)."""
+        import wave as _wave
+        with _wave.open(wav_path, "rb") as wf:
+            sr, nch, sw = wf.getframerate(), wf.getnchannels(), wf.getsampwidth()
+            dur = wf.getnframes() / sr
+            if dur <= max_s:
+                return wav_path  # já curto o suficiente / already short enough
+            raw = wf.readframes(int(sr * max_s))
+        out = "/tmp/ov_ref_trim.wav"
+        with _wave.open(out, "wb") as wf:
+            wf.setnchannels(nch); wf.setsampwidth(sw); wf.setframerate(sr)
+            wf.writeframes(raw)
+        return out
+
     def _ov_generate_worker(self, ref_path: str, ref_text: str, gen_text: str) -> None:
         """Worker: roda OmniVoice e salva resultado em /tmp/ov_result.wav.
         Worker: runs OmniVoice and saves result to /tmp/ov_result.wav."""
@@ -3086,6 +3118,10 @@ class ConfigWindow(ctk.CTk):
                 _st(f"Baixando modelo ({device})… pode demorar na 1ª vez")
                 self._ov_model = OmniVoice.from_pretrained(
                     "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
+
+            # Trima referência longa — OmniVoice degrada com >20s
+            # Trim long reference — OmniVoice degrades above 20s and OOMs
+            ref_path = self._trim_ref_wav(ref_path)
 
             _st("Gerando voz…")
             audio = self._ov_model.generate(
@@ -3689,7 +3725,8 @@ class ConfigWindow(ctk.CTk):
             self._start_meter()   # reativa VU meter após gravar/salvar
 
     def _test_clone(self, wav_path: str, ref_text: str, test_btn: ctk.CTkButton | None = None) -> None:
-        """Sintetiza frase de teste com XTTS v2 no idioma selecionado."""
+        """Testa clone via OmniVoice (zero-shot) ou XTTS v2 dependendo da disponibilidade.
+        Tests clone via OmniVoice (zero-shot) or XTTS v2 depending on availability."""
         if self._testing:
             return
         self._testing = True
@@ -3703,6 +3740,19 @@ class ConfigWindow(ctk.CTk):
                 test_btn.configure(state="disabled", text="…")
             except Exception:
                 pass
+
+        # Decide backend: OmniVoice se tipo omnivoice OU se XTTS não tiver arquivos baixados
+        # Decide backend: OmniVoice if clone type is omnivoice OR if XTTS model files are absent
+        _XTTS_DIR = Path.home() / ".local/share/tts/tts_models--multilingual--multi-dataset--xtts_v2"
+        _json_p = Path(wav_path).with_suffix(".json")
+        _clone_type = "xtts"
+        if _json_p.exists():
+            try:
+                _clone_type = json.loads(_json_p.read_text()).get("type", "xtts")
+            except Exception:
+                pass
+        _xtts_ready = any(_XTTS_DIR.glob("*.pth")) if _XTTS_DIR.exists() else False
+        _use_ov = (_clone_type == "omnivoice") or (not _xtts_ready)
 
         _anim_stop = threading.Event()
         _phase_range = [0.05, 0.50]
@@ -3734,33 +3784,81 @@ class ConfigWindow(ctk.CTk):
                 except Exception:
                     pass
 
-        def _worker():
+        def _worker_ov():
+            # Backend OmniVoice: zero-shot, usa WAV de referência diretamente
+            # OmniVoice backend: zero-shot, uses the reference WAV directly
             anim = threading.Thread(target=_animate, daemon=True)
             anim.start()
             try:
-                import torch, torchaudio, transformers.pytorch_utils as _pu
+                from omnivoice import OmniVoice
+                import torch, soundfile as sf
+
+                if not hasattr(self, "_ov_model") or self._ov_model is None:
+                    device = "cuda" if torch.cuda.is_available() else "cpu"
+                    dtype  = torch.float16 if device == "cuda" else torch.float32
+                    _update(f"Carregando OmniVoice ({device})… 1ª vez demora",
+                            phase=(0.05, 0.45))
+                    self._ov_model = OmniVoice.from_pretrained(
+                        "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
+                else:
+                    _update("Modelo em memória…", phase=(0.05, 0.15))
+
+                # Trima referência longa para evitar OOM / trim long reference to avoid OOM
+                trimmed = self._trim_ref_wav(wav_path)
+                _update("Gerando voz de teste…", phase=(0.45, 0.88))
+                audio = self._ov_model.generate(
+                    text=phrase,
+                    ref_audio=trimmed,
+                    ref_text=ref_text or phrase,
+                )
+                tmp = "/tmp/praxis_clone_test.wav"
+                sf.write(tmp, audio[0], 24000)
+
+                _anim_stop.set()
+                self.after(0, self._rec_prog.set, 0.94)
+                _update("Reproduzindo…")
+                subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
+                self.after(0, self._rec_prog.set, 1.0)
+                self.after(0, self._rec_prog.configure, {"progress_color": "#22C55E"})
+                _update("✅ Concluído.", "#22C55E")
+
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                self.after(0, self._rec_prog.set, 0)
+                _update(f"❌ {e}", "#DC2626")
+            finally:
+                _done()
+
+        def _worker_xtts():
+            # Backend XTTS v2: requer modelo baixado em ~/.local/share/tts/
+            # XTTS v2 backend: requires model downloaded to ~/.local/share/tts/
+            anim = threading.Thread(target=_animate, daemon=True)
+            anim.start()
+            try:
+                import torch, torchaudio
+                # Patch ANTES do import TTS para corrigir incompatibilidade de transformers
+                # Patch BEFORE importing TTS to fix transformers incompatibility
+                import transformers.pytorch_utils as _pu
                 if not hasattr(_pu, "isin_mps_friendly"):
                     _pu.isin_mps_friendly = torch.isin
                 from TTS.tts.configs.xtts_config import XttsConfig
                 from TTS.tts.models.xtts import Xtts
 
                 device = "cuda" if torch.cuda.is_available() else "cpu"
-                MODEL_DIR = "/home/lab2/.local/share/tts/tts_models--multilingual--multi-dataset--xtts_v2"
 
                 if self._xtts_model is None:
                     _update(f"1/3  Carregando XTTS v2 ({device}) — ~15s…",
                             phase=(0.05, 0.48))
                     cfg = XttsConfig()
-                    cfg.load_json(f"{MODEL_DIR}/config.json")
+                    cfg.load_json(str(_XTTS_DIR / "config.json"))
                     m = Xtts.init_from_config(cfg)
-                    m.load_checkpoint(cfg, checkpoint_dir=MODEL_DIR, use_deepspeed=False)
+                    m.load_checkpoint(cfg, checkpoint_dir=str(_XTTS_DIR), use_deepspeed=False)
                     if device == "cuda":
                         m.cuda()
                     self._xtts_model = m
                 else:
                     _update(f"1/3  Modelo em memória ({device})…", phase=(0.05, 0.12))
 
-                # Latents em cache por arquivo de referência
                 if wav_path not in self._xtts_latents:
                     _update("2/3  Extraindo embedding de voz…", phase=(0.48, 0.62))
                     gpt_lat, spk_emb = self._xtts_model.get_conditioning_latents(
@@ -3784,7 +3882,6 @@ class ConfigWindow(ctk.CTk):
                     repetition_penalty=5.0,
                     enable_text_splitting=True,
                 )
-
                 tmp = "/tmp/praxis_clone_test.wav"
                 torchaudio.save(tmp, torch.tensor(out["wav"]).unsqueeze(0), 24000)
 
@@ -3792,7 +3889,6 @@ class ConfigWindow(ctk.CTk):
                 self.after(0, self._rec_prog.set, 0.94)
                 _update("3/3  Reproduzindo…")
                 subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
-
                 self.after(0, self._rec_prog.set, 1.0)
                 self.after(0, self._rec_prog.configure, {"progress_color": "#22C55E"})
                 _update("✅ Concluído.", "#22C55E")
@@ -3801,13 +3897,12 @@ class ConfigWindow(ctk.CTk):
                 import traceback; traceback.print_exc()
                 self.after(0, self._rec_prog.set, 0)
                 _update(f"❌ {e}", "#DC2626")
-
             finally:
                 _done()
 
         self._rec_prog.configure(progress_color="#60A5FA")
         self._rec_prog.set(0.05)
-        threading.Thread(target=_worker, daemon=True).start()
+        threading.Thread(target=_worker_ov if _use_ov else _worker_xtts, daemon=True).start()
 
     def _use_clone(self, wav_path: str, name: str) -> None:
         """Define a voz clonada como voz de saída e vai para aba Config."""
