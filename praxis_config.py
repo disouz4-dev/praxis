@@ -3180,9 +3180,11 @@ class ConfigWindow(ctk.CTk):
 
         def _save_and_transcribe():
             import numpy as np, soundfile as sf
-            pcm = np.concatenate(frames, axis=0).flatten().astype(np.float32)
+            # O stream usa dtype=int16 → normalizar para [-1, 1] antes de sf.write
+            # Stream uses dtype=int16 → normalize to [-1, 1] before sf.write (PCM_16 expects float in [-1,1])
+            pcm = np.concatenate(frames, axis=0).flatten().astype(np.float32) / 32768.0
             out = "/tmp/ov_ref.wav"
-            sr  = getattr(self, "_audio_sr", 48000)
+            sr  = getattr(self, "_audio_sr", 44100)
             sf.write(out, pcm, sr, subtype="PCM_16")
             self.after(0, lambda: self._ov_ref_path.set(out))
             self.after(0, lambda: self._ov_rec_status.configure(
@@ -3195,15 +3197,13 @@ class ConfigWindow(ctk.CTk):
         threading.Thread(target=_save_and_transcribe, daemon=True).start()
 
     def _ov_play_ref(self) -> None:
-        """Reproduz o WAV de referência gravado. Plays the recorded reference WAV."""
+        """Reproduz o WAV de referência gravado via aplay (evita conflito com o meter stream).
+        Plays the recorded reference WAV via aplay (avoids conflict with the meter stream)."""
         path = self._ov_ref_path.get()
         if not path or not __import__("os").path.exists(path):
             return
         def _play():
-            import sounddevice as sd, soundfile as sf
-            data, sr = sf.read(path, dtype="float32")
-            sd.play(data, sr)
-            sd.wait()
+            subprocess.run(["aplay", path], stderr=subprocess.DEVNULL, timeout=60)
         threading.Thread(target=_play, daemon=True).start()
 
     def _ov_transcribe(self) -> None:
@@ -3631,9 +3631,7 @@ class ConfigWindow(ctk.CTk):
         out_name  = self._label_to_name(out_label.get(), self._outputs) if out_label else ""
         pa_out    = out_name.split(":")[0] if out_name else ""
 
-        # SR: 48000 para Focusrite/USB, 44100 caso contrário
-        # SR: 48000 for Focusrite/USB, 44100 otherwise
-        SR = 48000 if (pa_in and "usb" in pa_in.lower()) else 44100
+        SR = 44100  # taxa de amostragem fixa / fixed sample rate
 
         def _run():
             try:
@@ -3990,7 +3988,7 @@ class ConfigWindow(ctk.CTk):
                 return
 
             import numpy as np, wave
-            SR = getattr(self, "_audio_sr", 48000)  # SR real do dispositivo / actual device SR
+            SR = getattr(self, "_audio_sr", 44100)  # SR real do dispositivo / actual device SR
 
             _status("Concatenando áudio da sessão…")
             _prog(0.3, "#F59E0B")
