@@ -2854,6 +2854,19 @@ class ConfigWindow(ctk.CTk):
         )
         self._ov_transcribe_btn.pack(side="right")
 
+        # Botão para ouvir a gravação de referência / Play button for reference recording
+        _ov_play_ref_row = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
+        _ov_play_ref_row.pack(fill="x", padx=12, pady=(0, 4))
+        self._ov_play_ref_btn = ctk.CTkButton(
+            _ov_play_ref_row, text="▶ Ouvir referência", width=140, height=26,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.MUTED, border_width=1,
+            border_color=self.IBORDER, corner_radius=6,
+            font=ctk.CTkFont(size=11), state="disabled",
+            command=self._ov_play_ref,
+        )
+        self._ov_play_ref_btn.pack(side="left")
+
         # Campo de nome + botão salvar referência como clone OmniVoice
         # Name field + save button for OmniVoice clone reference
         _ov_name_row = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
@@ -3063,10 +3076,24 @@ class ConfigWindow(ctk.CTk):
             self.after(0, lambda: self._ov_ref_path.set(out))
             self.after(0, lambda: self._ov_rec_status.configure(
                 text="Gravado — transcrevendo…", text_color=self.MUTED))
+            # Habilita botão de play após gravar / enable play button after recording
+            self.after(0, lambda: self._ov_play_ref_btn.configure(state="normal"))
             # Transcrever automaticamente / auto-transcribe
             self.after(0, self._ov_transcribe)
 
         threading.Thread(target=_save_and_transcribe, daemon=True).start()
+
+    def _ov_play_ref(self) -> None:
+        """Reproduz o WAV de referência gravado. Plays the recorded reference WAV."""
+        path = self._ov_ref_path.get()
+        if not path or not __import__("os").path.exists(path):
+            return
+        def _play():
+            import sounddevice as sd, soundfile as sf
+            data, sr = sf.read(path, dtype="float32")
+            sd.play(data, sr)
+            sd.wait()
+        threading.Thread(target=_play, daemon=True).start()
 
     def _ov_transcribe(self) -> None:
         """Transcreve o WAV de referência com Whisper. Transcribes ref WAV with Whisper."""
@@ -3157,10 +3184,6 @@ class ConfigWindow(ctk.CTk):
             self._ov_status_lbl.configure(
                 text="❌ Selecione um áudio de referência", text_color="#EF4444")
             return
-        if not ref_text:
-            self._ov_status_lbl.configure(
-                text="❌ Preencha a transcrição do áudio", text_color="#EF4444")
-            return
         if not gen_text:
             self._ov_status_lbl.configure(
                 text="❌ Digite o texto a gerar", text_color="#EF4444")
@@ -3176,9 +3199,11 @@ class ConfigWindow(ctk.CTk):
         ).start()
 
     @staticmethod
-    def _trim_ref_wav(wav_path: str, max_s: float = 8.0) -> str:
-        """Trima WAV de referência para max_s segundos (OmniVoice pede ≤10s).
-        Trims reference WAV to max_s seconds (OmniVoice expects ≤10s)."""
+    def _trim_ref_wav(wav_path: str, max_s: float = 15.0) -> str:
+        """Apara WAV de referência para max_s segundos para evitar OOM em gravações longas.
+        Trims reference WAV to max_s seconds to prevent OOM on long recordings.
+        OmniVoice lida com a transcrição internamente (ref_text=None).
+        OmniVoice handles transcription internally (ref_text=None)."""
         import wave as _wave
         with _wave.open(wav_path, "rb") as wf:
             sr, nch, sw = wf.getframerate(), wf.getnchannels(), wf.getsampwidth()
@@ -3194,7 +3219,11 @@ class ConfigWindow(ctk.CTk):
 
     def _ov_generate_worker(self, ref_path: str, ref_text: str, gen_text: str) -> None:
         """Worker: roda OmniVoice e salva resultado em /tmp/ov_result.wav.
-        Worker: runs OmniVoice and saves result to /tmp/ov_result.wav."""
+        Worker: runs OmniVoice and saves result to /tmp/ov_result.wav.
+        Usa create_voice_clone_prompt(ref_text=None) para auto-transcrição —
+        evita ruído por mismatch entre ref_text e ref_audio.
+        Uses create_voice_clone_prompt(ref_text=None) for auto-transcription —
+        prevents noise from ref_text/ref_audio mismatch."""
         def _st(msg, color=None):
             self.after(0, lambda: self._ov_status_lbl.configure(
                 text=msg, **({"text_color": color} if color else {})))
@@ -3211,15 +3240,22 @@ class ConfigWindow(ctk.CTk):
                 self._ov_model = OmniVoice.from_pretrained(
                     "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
 
-            # Trima referência longa — OmniVoice degrada com >20s
-            # Trim long reference — OmniVoice degrades above 20s and OOMs
+            # Apara para ≤15s para evitar OOM em gravações longas
+            # Trim to ≤15s to prevent OOM on long recordings
             ref_path = self._trim_ref_wav(ref_path)
+
+            # Usa create_voice_clone_prompt(ref_text=None) → OmniVoice auto-transcreve
+            # e apara silêncios internamente, eliminando ruído por mismatch de texto.
+            # Use create_voice_clone_prompt(ref_text=None) → OmniVoice auto-transcribes
+            # and trims silence internally, eliminating noise from text mismatch.
+            _st("Extraindo voz de referência…")
+            prompt = self._ov_model.create_voice_clone_prompt(
+                ref_audio=ref_path, ref_text=None)
 
             _st("Gerando voz…")
             audio = self._ov_model.generate(
                 text=gen_text,
-                ref_audio=ref_path,
-                ref_text=ref_text,
+                voice_clone_prompt=prompt,
             )
 
             out_path = "/tmp/ov_result.wav"
@@ -3922,8 +3958,10 @@ class ConfigWindow(ctk.CTk):
                     pass
 
         def _worker_ov():
-            # Backend OmniVoice: zero-shot, usa WAV de referência diretamente
-            # OmniVoice backend: zero-shot, uses the reference WAV directly
+            # Backend OmniVoice: usa create_voice_clone_prompt(ref_text=None) para
+            # auto-transcrição interna — elimina ruído por mismatch de texto/áudio.
+            # OmniVoice backend: uses create_voice_clone_prompt(ref_text=None) for
+            # internal auto-transcription — eliminates noise from text/audio mismatch.
             anim = threading.Thread(target=_animate, daemon=True)
             anim.start()
             try:
@@ -3940,22 +3978,22 @@ class ConfigWindow(ctk.CTk):
                 else:
                     _update("OmniVoice em memória…", phase=(0.05, 0.15))
 
-                # Trima referência longa (OmniVoice pede ≤10s) / trim long ref (OmniVoice needs ≤10s)
+                # Apara para ≤15s para evitar OOM em arquivos longos (ex: DIego.wav 273s)
+                # Trim to ≤15s to prevent OOM on long files (e.g. DIego.wav 273s)
                 trimmed = self._trim_ref_wav(wav_path)
 
-                # ref_text deve bater com os primeiros ~8s do áudio
-                # ref_text must match the first ~8s of audio content
-                _ref = (ref_text or phrase).strip()
-                # Aproxima o texto às primeiras 2 frases (≈8s de fala) / approximate first 2 sentences
-                import re as _re
-                _sentences = _re.split(r'(?<=[.!?])\s+', _ref)
-                _short_ref = " ".join(_sentences[:2]) if len(_sentences) > 1 else _ref[:120]
+                # create_voice_clone_prompt com ref_text=None → OmniVoice auto-transcreve
+                # e remove silêncios internamente, garantindo alinhamento texto/áudio correto.
+                # create_voice_clone_prompt with ref_text=None → OmniVoice auto-transcribes
+                # and removes silence internally, ensuring correct text/audio alignment.
+                _update("Extraindo voz de referência…", phase=(0.15, 0.45))
+                prompt = self._ov_model.create_voice_clone_prompt(
+                    ref_audio=trimmed, ref_text=None)
 
                 _update("Gerando voz de teste…", phase=(0.45, 0.88))
                 audio = self._ov_model.generate(
                     text=phrase,
-                    ref_audio=trimmed,
-                    ref_text=_short_ref,
+                    voice_clone_prompt=prompt,
                 )
                 tmp = "/tmp/praxis_clone_test.wav"
                 sf.write(tmp, audio[0], 24000)
