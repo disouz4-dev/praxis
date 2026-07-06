@@ -572,6 +572,13 @@ class ConfigWindow(ctk.CTk):
 
         self.withdraw()  # oculta a janela principal durante o carregamento / hide main window during load
 
+        # Força PipeWire a 44100 Hz em todo o sistema ao iniciar
+        # Force PipeWire to 44100 Hz system-wide on startup
+        subprocess.run(
+            ["pw-metadata", "-n", "settings", "0", "clock.force-rate", "44100"],
+            capture_output=True, timeout=3
+        )
+
         # Splash de carregamento aparece ANTES de _build() para dar feedback imediato
         # Loading splash appears BEFORE _build() to give immediate visual feedback
         splash, _sp_prog, _sp_lbl = self._create_loading_splash()
@@ -694,6 +701,12 @@ class ConfigWindow(ctk.CTk):
                 pass
         if hasattr(self, "_stop_meter"):
             self._stop_meter()
+        # Restaura PipeWire para rate automático ao fechar
+        # Restore PipeWire to automatic rate on close
+        subprocess.run(
+            ["pw-metadata", "-n", "settings", "0", "clock.force-rate", "0"],
+            capture_output=True, timeout=3
+        )
         self.destroy()
 
     # ── Ícone e splash ────────────────────────────────────────────────────────
