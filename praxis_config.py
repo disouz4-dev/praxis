@@ -2426,22 +2426,55 @@ class ConfigWindow(ctk.CTk):
                      font=ctk.CTkFont(size=11), text_color=self.MUTED).grid(
             row=0, column=0, sticky="w", padx=(0, 8))
 
-        import sounddevice as _sd
-        _devs = _sd.query_devices()
-        _in_devs = [f"[{i}] {d['name']}"
-                    for i, d in enumerate(_devs) if d["max_input_channels"] > 0]
-        _out_devs = [f"[{i}] {d['name']}"
-                     for i, d in enumerate(_devs) if d["max_output_channels"] > 0]
-        # Tenta pré-selecionar o Scarlett / pre-select Scarlett if present
-        _default_in = next((s for s in _in_devs
-                            if "scarlett" in s.lower() or "usb" in s.lower()), _in_devs[0])
-        _default_out = next((s for s in _out_devs
-                             if "scarlett" in s.lower() or "pipewire" in s.lower()), _out_devs[0])
+        # Listar via pactl (igual à seção Config) — enxerga Scarlett e outros dispositivos PipeWire
+        # List via pactl (same as Config section) — sees Scarlett and other PipeWire devices
+        def _clone_pa_devs(pa_type: str, exclude: list) -> list:
+            """Retorna [(name, desc, sr)] via pactl. Returns [(name, desc, sr)] via pactl."""
+            import re as _re
+            try:
+                raw = subprocess.check_output(
+                    ["pactl", "list", pa_type], text=True, stderr=subprocess.DEVNULL,
+                    env={**__import__("os").environ, "LANG": "C", "LC_ALL": "C"},
+                )
+            except Exception:
+                return []
+            result, name, desc, sr = [], "", "", 48000
+            for line in raw.splitlines():
+                s = line.strip()
+                if s.startswith("Name:"):
+                    name = s.split(":", 1)[1].strip(); desc = ""; sr = 48000
+                elif s.startswith("Description:"):
+                    desc = s.split(":", 1)[1].strip()
+                elif s.startswith("Sample Specification:"):
+                    m = _re.search(r"(\d+)Hz", s)
+                    if m:
+                        sr = int(m.group(1))
+                elif s.startswith("Channel Map:"):
+                    if name and desc and not any(ex in name for ex in exclude):
+                        result.append((name, desc, sr))
+                    name = desc = ""; sr = 48000
+            return result
 
-        self._dev_in_var  = ctk.StringVar(value=_default_in)
-        self._dev_out_var = ctk.StringVar(value=_default_out)
+        _in_raw  = _clone_pa_devs("sources", exclude=[".monitor", "Praxis", "Atos2"])
+        _out_raw = _clone_pa_devs("sinks",   exclude=["Praxis", "Atos2"])
+
+        # Mapas: descrição → (pa_name, sr) / maps: description → (pa_name, sr)
+        self._dev_in_map  = {d: (n, s) for n, d, s in _in_raw}  or {"(sem entrada)": ("", 48000)}
+        self._dev_out_map = {d: (n, s) for n, d, s in _out_raw} or {"(sem saída)":  ("", 48000)}
+
+        _in_labels  = list(self._dev_in_map.keys())
+        _out_labels = list(self._dev_out_map.keys())
+
+        # Pré-selecionar Focusrite/Scarlett se disponível / pre-select Focusrite/Scarlett if present
+        _default_in_lbl  = next((l for l in _in_labels
+            if "scarlett" in l.lower() or "focusrite" in l.lower()), _in_labels[0])
+        _default_out_lbl = next((l for l in _out_labels
+            if "scarlett" in l.lower() or "focusrite" in l.lower()), _out_labels[0])
+
+        self._dev_in_var  = ctk.StringVar(value=_default_in_lbl)
+        self._dev_out_var = ctk.StringVar(value=_default_out_lbl)
         ctk.CTkOptionMenu(
-            dev_row, values=_in_devs, variable=self._dev_in_var,
+            dev_row, values=_in_labels, variable=self._dev_in_var,
             width=260, height=26,
             fg_color=self.SEG_BG, button_color=self.IBORDER,
             button_hover_color=self.ACCENT, text_color=self.TEXT,
@@ -2454,7 +2487,7 @@ class ConfigWindow(ctk.CTk):
                      font=ctk.CTkFont(size=11), text_color=self.MUTED).grid(
             row=1, column=0, sticky="w", padx=(0, 8), pady=(4, 0))
         ctk.CTkOptionMenu(
-            dev_row, values=_out_devs, variable=self._dev_out_var,
+            dev_row, values=_out_labels, variable=self._dev_out_var,
             width=260, height=26,
             fg_color=self.SEG_BG, button_color=self.IBORDER,
             button_hover_color=self.ACCENT, text_color=self.TEXT,
@@ -2874,18 +2907,28 @@ class ConfigWindow(ctk.CTk):
     def _start_meter(self) -> None:
         """Stream full-duplex compartilhado: VU meter + monitor + gravação.
         Shared full-duplex stream: VU meter + monitor + recording.
-        Usa dispositivo e SR selecionados / uses user-selected device and SR."""
-        dev_in  = self._parse_dev_idx(self._dev_in_var)
-        dev_out = self._parse_dev_idx(self._dev_out_var)
+        Usa dispositivos pactl e define padrão no PipeWire antes de abrir o stream.
+        Uses pactl devices and sets PipeWire default before opening stream."""
+        in_lbl  = self._dev_in_var.get()
+        out_lbl = self._dev_out_var.get()
+        # Obter nome PulseAudio e SR do mapa / get PulseAudio name and SR from map
+        pa_in,  SR_in  = getattr(self, "_dev_in_map",  {}).get(in_lbl,  ("", 48000))
+        pa_out, _      = getattr(self, "_dev_out_map", {}).get(out_lbl, ("", 48000))
+        SR = SR_in
 
         def _run():
             try:
                 import sounddevice as sd, numpy as np
 
-                # SR nativo do dispositivo — sem conversão no PipeWire
-                # Native device SR — no conversion in PipeWire
-                dev_info = sd.query_devices(dev_in)
-                SR = int(dev_info["default_samplerate"])
+                # Definir dispositivos padrão no PipeWire para que 'default' aponte para a seleção
+                # Set PipeWire defaults so 'default' routes to the selected devices
+                if pa_in:
+                    subprocess.run(["pactl", "set-default-source", pa_in],
+                                   capture_output=True, timeout=3)
+                if pa_out:
+                    subprocess.run(["pactl", "set-default-sink", pa_out],
+                                   capture_output=True, timeout=3)
+
                 self._audio_sr = SR
 
                 def _cb(indata, outdata, frames, time_info, status):
@@ -2909,8 +2952,10 @@ class ConfigWindow(ctk.CTk):
                     if getattr(self, "_rec_active", False):
                         self._rec_frames.append(indata.copy())
 
+                # Abre para dispositivo 'default' que agora aponta para a seleção pactl
+                # Opens to 'default' device which now routes to the pactl selection
                 with sd.Stream(
-                    device=(dev_in, dev_out),
+                    device=None,
                     samplerate=SR, channels=1, dtype="int16",
                     blocksize=128, latency="low", callback=_cb,
                 ) as stream:
