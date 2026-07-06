@@ -850,6 +850,81 @@ class ConfigWindow(ctk.CTk):
             self._config_frame_outer.pack_forget()
             self._clone_frame_outer.pack(fill="both", expand=True)
 
+    # ── Helpers do dashboard de treino ───────────────────────────────────────
+
+    def _set_train_phase(self, phase: int, done: bool = False) -> None:
+        """Atualiza os pills de fase (0=pré-proc, 1=extração, 2=treino).
+        Updates phase pills (0=preproc, 1=extract, 2=train)."""
+        names = ["Pré-proc", "Extração", "Treino"]
+        for i, lbl in enumerate(self._dash_phases):
+            if i < phase:
+                lbl.configure(text=f"✓  {names[i]}", text_color="#22C55E")
+            elif i == phase:
+                icon, color = ("✓", "#22C55E") if done else ("●", "#F59E0B")
+                lbl.configure(text=f"{icon}  {names[i]}", text_color=color)
+            else:
+                lbl.configure(text=f"○  {names[i]}", text_color=self.MUTED)
+
+    @staticmethod
+    def _parse_train_line(line: str, total: int = 300) -> dict | None:
+        """Extrai métricas estruturadas de uma linha do train.py.
+        Extracts structured metrics from a train.py stdout line.
+        Retorna None se a linha não for uma linha de época / Returns None if not an epoch line."""
+        import re
+        if "epoch=" not in line:
+            return None
+        data: dict = {"total": total}
+        for key, pat in [
+            ("epoch",      r"epoch=(\d+)"),
+            ("loss_gen",   r"smoothed_loss_gen=([\d.]+)"),
+            ("loss_disc",  r"smoothed_loss_disc=([\d.]+)"),
+            ("best_loss",  r"lowest_value=([\d.]+)"),
+            ("best_epoch", r"lowest_value=[\d.]+\s*\(epoch\s+(\d+)"),
+        ]:
+            m = re.search(pat, line)
+            if m:
+                data[key] = float(m.group(1))
+        # training_speed=0:00:21 → segundos / → seconds
+        m = re.search(r"training_speed=(?:(\d+):)?(\d+):(\d+)", line)
+        if m:
+            h, mn, s = (int(x or 0) for x in m.groups())
+            data["speed_s"] = h * 3600 + mn * 60 + s
+        return data if "epoch" in data else None
+
+    def _update_train_dashboard(self, data: dict) -> None:
+        """Atualiza widgets do dashboard com métricas parseadas da linha de treino.
+        Updates dashboard widgets with metrics parsed from a training line."""
+        epoch = data.get("epoch")
+        total = int(data.get("total", 300))
+
+        if epoch is not None:
+            epoch = int(epoch)
+            self._dash_epoch_lbl.configure(text=f"{epoch} / {total}")
+            pct = int(epoch / total * 100)
+            self._dash_pct_lbl.configure(text=f"{pct}%")
+            # Faixa de treino: 0.33 → 0.99 / Training range: 0.33 → 0.99
+            self._train_prog.set(min(0.33 + 0.66 * epoch / total, 0.99))
+
+        if "loss_gen" in data:
+            self._dash_loss_gen.configure(text=f"{data['loss_gen']:.2f}")
+        if "loss_disc" in data:
+            self._dash_loss_disc.configure(text=f"{data['loss_disc']:.2f}")
+
+        if "speed_s" in data and epoch is not None:
+            spd = int(data["speed_s"])
+            rem = (total - epoch) * spd
+            self._dash_speed.configure(text=f"~{spd}s")
+            if rem >= 3600:
+                h, m = divmod(rem, 3600)
+                self._dash_eta.configure(text=f"{h}h{m//60:02d}m")
+            else:
+                self._dash_eta.configure(text=f"{rem // 60}min")
+
+        if "best_loss" in data and "best_epoch" in data:
+            self._train_status.configure(
+                text=f"✦ Melhor: época {int(data['best_epoch'])} · loss {data['best_loss']:.3f}",
+                text_color=self.MUTED)
+
     def _detect_existing_training(self) -> None:
         """Escaneia /proc buscando train.py em execução; se achar, faz tail do log.
         Scans /proc for a running train.py; if found, tails its log into the UI."""
@@ -885,13 +960,11 @@ class ConfigWindow(ctk.CTk):
         if not os.path.exists(log_path):
             return
 
-        # Treino detectado — atualiza UI e abre aba Clonar / training detected — update UI and open Clone tab
+        # Treino detectado — atualiza UI e muda para aba Clonar
+        # Training detected — update UI and switch to Clone tab
         self._training = True
         self._train_btn.configure(state="disabled", text="Treinando…")
-        self._train_status.configure(
-            text=f"🧠  Treino em andamento: {model_name} (PID {train_pid})",
-            text_color="#8B5CF6")
-        # Muda para aba clonar para o usuário ver o log / switch to clone tab so user sees the log
+        self._set_train_phase(2)  # Já está na fase de treino / already in training phase
         self._tab_seg.set("🎙  Clonar minha voz")
         self._on_tab_change("🎙  Clonar minha voz")
 
@@ -904,91 +977,53 @@ class ConfigWindow(ctk.CTk):
         t.start()
 
     def _tail_log_worker(self, log_path: str, pid: int, total_epochs: int) -> None:
-        """Thread que faz tail do arquivo de log de treino existente e atualiza a UI.
-        Thread that tails an existing training log file and updates the UI."""
-        import os, re, time
+        """Thread que faz tail do arquivo de log existente e alimenta o dashboard visual.
+        Thread that tails an existing log file and feeds the visual training dashboard."""
+        import os, time
 
-        PHASE_START = 0.33  # Treino começa em 33% da barra / training starts at 33% of bar
+        # Fase de treino já em andamento ao detectar processo externo
+        # Training phase already in progress when external process detected
+        self.after(0, self._set_train_phase, 2)
 
-        def _log(line: str):
-            clean = line.strip()
-            if not clean or clean.startswith("\r"):
-                return
-            clean = re.sub(r"\x1b\[[0-9;]*m", "", clean)
-            # Filtra linhas de tqdm puras (só barras de progresso) / filter pure tqdm progress lines
-            if re.match(r"^\s*\d+%\|", clean):
-                return
-            def _append():
-                self._train_log.configure(state="normal")
-                self._train_log.insert("end", clean + "\n")
-                self._train_log.see("end")
-                self._train_log.configure(state="disabled")
-            self.after(0, _append)
-
-        def _prog(v):
-            self.after(0, self._train_prog.set, v)
-
-        def _status(msg, color=None):
-            kw = {"text": msg}
-            if color:
-                kw["text_color"] = color
-            self.after(0, self._train_status.configure, kw)
-
-        # Limpa e carrega últimas ~80 linhas do log histórico / clear and load last ~80 historical lines
-        def _load_history():
+        # Carrega última linha de época do histórico para popular o dashboard imediatamente
+        # Load last epoch line from history to populate dashboard immediately
+        def _load_from_history():
             try:
                 with open(log_path, "r", errors="replace") as f:
                     lines = f.readlines()
-                self._train_log.configure(state="normal")
-                self._train_log.delete("1.0", "end")
-                # Filtra e mostra histórico / filter and show history
-                for ln in lines[-80:]:
-                    clean = ln.strip()
-                    if not clean or clean.startswith("\r"):
-                        continue
-                    clean = re.sub(r"\x1b\[[0-9;]*m", "", clean)
-                    if re.match(r"^\s*\d+%\|", clean):
-                        continue
-                    self._train_log.insert("end", clean + "\n")
-                self._train_log.see("end")
-                self._train_log.configure(state="disabled")
+                for ln in reversed(lines):
+                    parsed = self._parse_train_line(ln, total=total_epochs)
+                    if parsed:
+                        self._update_train_dashboard(parsed)
+                        break
             except Exception:
                 pass
-        self.after(0, _load_history)
+        self.after(0, _load_from_history)
 
-        # Tail: lê novas linhas enquanto o processo viver / tail: read new lines while process lives
+        # Tail em tempo real / real-time tail
         with open(log_path, "r", errors="replace") as f:
-            f.seek(0, 2)  # Vai para o fim do arquivo / go to end of file
+            f.seek(0, 2)
             while True:
-                # Verifica se o processo ainda existe / check if process still alive
                 try:
                     os.kill(pid, 0)
                 except ProcessLookupError:
                     break
-
                 line = f.readline()
                 if not line:
                     time.sleep(0.5)
                     continue
-
-                _log(line)
-
-                # Atualiza progresso se linha de época / update progress if epoch line
-                m = re.search(r"epoch=(\d+)", line)
-                if m:
-                    epoch = int(m.group(1))
-                    frac = PHASE_START + (1.0 - PHASE_START) * (epoch / total_epochs)
-                    _prog(min(frac, 0.99))
-                    name = os.path.basename(log_path).removeprefix("rvc_train_").removesuffix(".log")
-                    _status(f"🧠  Época {epoch}/{total_epochs} — {name}", "#8B5CF6")
+                parsed = self._parse_train_line(line, total=total_epochs)
+                if parsed:
+                    self.after(0, self._update_train_dashboard, parsed)
 
         # Processo terminou / process ended
-        _status("✅  Treino concluído!", "#22C55E")
-        _prog(1.0)
         self._training = False
-        def _re_enable():
-            self._train_btn.configure(state="normal", text="🎙 Treinar Voz")
-        self.after(0, _re_enable)
+        self.after(0, self._set_train_phase, 2, True)
+        self.after(0, self._train_prog.set, 1.0)
+        self.after(0, self._train_status.configure,
+                   {"text": "✅ Treino concluído!", "text_color": "#22C55E"})
+        self.after(0, self._train_btn.configure,
+                   {"state": "normal", "text": "🎙 Treinar Voz"})
 
     def _idiomas(self, r: int) -> int:
         """Seção de seleção de idiomas (fala → traduz para). Returns next grid row.
@@ -2462,30 +2497,79 @@ class ConfigWindow(ctk.CTk):
         )
         self._train_btn.pack(side="right")
 
-        # Barra + status do treino RVC (ocultos até começar)
-        # RVC training progress bar + status (hidden until training starts)
-        self._train_prog = ctk.CTkProgressBar(scroll, height=8,
-                                              fg_color=self.SEG_BG,
-                                              progress_color="#8B5CF6")
-        self._train_prog.set(0)
-        self._train_prog.pack(fill="x", padx=16, pady=(0, 2))
-        self._train_status = ctk.CTkLabel(
-            scroll, text="",
-            font=ctk.CTkFont(size=11), text_color=self.MUTED)
-        self._train_status.pack(anchor="w", padx=16, pady=(0, 2))
+        # ── Dashboard visual de treino RVC ─────────────────────────────────
+        # Visual training dashboard — phases, epoch counter, metric cards, ETA
+        _dash = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+                             border_color=self.IBORDER, border_width=1,
+                             corner_radius=10)
+        _dash.pack(fill="x", padx=16, pady=(0, 8))
 
-        # Log box do treino RVC — exibe saída linha a linha das 3 fases
-        # RVC training log box — shows real-time output from all 3 phases
-        self._train_log = ctk.CTkTextbox(
-            scroll, height=160,
-            fg_color=self.INPUT, border_color=self.IBORDER, border_width=1,
-            corner_radius=8,
-            font=ctk.CTkFont(family="monospace", size=10),
-            text_color=self.MUTED,
-            state="disabled",
-            wrap="none",
-        )
-        self._train_log.pack(fill="x", padx=16, pady=(0, 8))
+        # Pills de fase / Phase indicator pills
+        phase_row = ctk.CTkFrame(_dash, fg_color="transparent")
+        phase_row.pack(fill="x", padx=12, pady=(10, 4))
+        self._dash_phases = []
+        for _ph_label in ["Pré-proc", "Extração", "Treino"]:
+            _pill = ctk.CTkFrame(phase_row, fg_color=self.SEG_BG, corner_radius=20)
+            _pill.pack(side="left", padx=(0, 6))
+            _ph_lbl = ctk.CTkLabel(_pill, text=f"○  {_ph_label}",
+                                   font=ctk.CTkFont(size=10), text_color=self.MUTED)
+            _ph_lbl.pack(padx=10, pady=4)
+            self._dash_phases.append(_ph_lbl)
+
+        ctk.CTkFrame(_dash, height=1, fg_color=self.BORDER).pack(
+            fill="x", padx=12, pady=(4, 0))
+
+        # Contador de épocas / Epoch counter row
+        _ep_row = ctk.CTkFrame(_dash, fg_color="transparent")
+        _ep_row.pack(fill="x", padx=14, pady=(8, 2))
+        ctk.CTkLabel(_ep_row, text="Época",
+                     font=ctk.CTkFont(size=10), text_color=self.MUTED).pack(side="left")
+        self._dash_epoch_lbl = ctk.CTkLabel(
+            _ep_row, text="—",
+            font=ctk.CTkFont(size=20, weight="bold"), text_color=self.TEXT)
+        self._dash_epoch_lbl.pack(side="left", padx=(8, 0))
+        self._dash_pct_lbl = ctk.CTkLabel(
+            _ep_row, text="",
+            font=ctk.CTkFont(size=12), text_color=self.MUTED)
+        self._dash_pct_lbl.pack(side="right")
+
+        # Barra de progresso do treino / Training progress bar
+        self._train_prog = ctk.CTkProgressBar(
+            _dash, height=10, corner_radius=5,
+            fg_color=self.SEG_BG, progress_color="#8B5CF6")
+        self._train_prog.set(0)
+        self._train_prog.pack(fill="x", padx=14, pady=(0, 8))
+
+        ctk.CTkFrame(_dash, height=1, fg_color=self.BORDER).pack(
+            fill="x", padx=12)
+
+        # Cards de métricas (Loss Gen / Loss Disc / Velocidade / ETA)
+        # Metric cards
+        _metrics_row = ctk.CTkFrame(_dash, fg_color="transparent")
+        _metrics_row.pack(fill="x", padx=10, pady=(8, 4))
+        _metrics_row.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
+        def _metric_card(col: int, title: str) -> ctk.CTkLabel:
+            card = ctk.CTkFrame(_metrics_row, fg_color=self.SEG_BG, corner_radius=8)
+            card.grid(row=0, column=col, sticky="ew", padx=4)
+            ctk.CTkLabel(card, text=title,
+                         font=ctk.CTkFont(size=9), text_color=self.MUTED).pack(pady=(6, 0))
+            val = ctk.CTkLabel(card, text="—",
+                               font=ctk.CTkFont(size=14, weight="bold"),
+                               text_color=self.TEXT)
+            val.pack(pady=(0, 6))
+            return val
+
+        self._dash_loss_gen  = _metric_card(0, "Loss Gen")
+        self._dash_loss_disc = _metric_card(1, "Loss Disc")
+        self._dash_speed     = _metric_card(2, "Vel./época")
+        self._dash_eta       = _metric_card(3, "ETA")
+
+        # Linha de melhor época + status / Best epoch + status line
+        self._train_status = ctk.CTkLabel(
+            _dash, text="",
+            font=ctk.CTkFont(size=10), text_color=self.MUTED)
+        self._train_status.pack(anchor="w", padx=14, pady=(0, 10))
 
         # Atualiza label de duração se já existe arquivo wav salvo
         # Update duration label if wav file already exists
@@ -2747,36 +2831,26 @@ class ConfigWindow(ctk.CTk):
         DATASET_DIR = os.path.join(APPLIO_DIR, "assets", "datasets", model_name)
         TOTAL_EPOCHS = 300
 
-        # ── Helpers de UI (chamados via after para thread safety) ─────────
-        def _status(msg, color=None):
-            kw = {"text": msg}
+        # ── Helpers de UI thread-safe ─────────────────────────────────────
+        def _status(msg: str, color: str | None = None) -> None:
+            kw: dict = {"text": msg}
             if color:
                 kw["text_color"] = color
             self.after(0, self._train_status.configure, kw)
 
-        def _prog(v):
+        def _prog(v: float) -> None:
             self.after(0, self._train_prog.set, v)
 
-        def _log(line: str):
-            # Filtra linhas de tqdm com \r e linhas completamente vazias
-            # Filter tqdm carriage-return lines and blank lines
-            clean = line.strip()
-            if not clean or clean.startswith("\r"):
-                return
-            # Remove sequências de escape ANSI / remove ANSI escape sequences
-            clean = re.sub(r"\x1b\[[0-9;]*m", "", clean)
-            def _append():
-                self._train_log.configure(state="normal")
-                self._train_log.insert("end", clean + "\n")
-                self._train_log.see("end")
-                self._train_log.configure(state="disabled")
-            self.after(0, _append)
+        def _phase(idx: int, done: bool = False) -> None:
+            self.after(0, self._set_train_phase, idx, done)
+
+        def _dash(data: dict) -> None:
+            self.after(0, self._update_train_dashboard, data)
 
         def _run_phase(cmd: list, phase_start: float, phase_end: float,
                        epoch_range: int | None = None) -> bool:
-            """Executa um subcomando com Popen, lê stdout+stderr em tempo real.
-            Runs a subprocess with Popen, reads stdout+stderr in real time.
-            epoch_range: total de épocas para calcular progresso da fase de treino."""
+            """Executa subcomando via Popen e alimenta o dashboard em tempo real.
+            Runs subprocess via Popen and feeds the dashboard in real time."""
             proc = subprocess.Popen(
                 cmd, cwd=APPLIO_DIR,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -2785,41 +2859,30 @@ class ConfigWindow(ctk.CTk):
             )
             _prog(phase_start)
             for raw in proc.stdout:
-                _log(raw)
                 if epoch_range:
-                    # Linha de época: "DIego | epoch=N | step=S | ..."
-                    # Epoch line: "model | epoch=N | step=S | ..."
-                    m = re.search(r"epoch=(\d+)", raw)
-                    if m:
-                        epoch = int(m.group(1))
-                        frac = phase_start + (phase_end - phase_start) * (epoch / epoch_range)
-                        _prog(min(frac, phase_end))
+                    parsed = self._parse_train_line(raw, total=epoch_range)
+                    if parsed:
+                        _dash(parsed)
             proc.wait()
             return proc.returncode == 0
 
-        def _done(ok: bool, msg: str):
+        def _done(ok: bool, msg: str) -> None:
             self._training = False
-            color = "#22C55E" if ok else "#DC2626"
-            _status(msg, color)
+            _status(msg, "#22C55E" if ok else "#DC2626")
             _prog(1.0 if ok else 0.0)
             label = "🎙 Treinar Voz" if ok else "🎙 Tentar de novo"
             self.after(0, self._train_btn.configure, {"state": "normal", "text": label})
 
         try:
-            # Limpa o log e prepara a UI / clear log and prepare UI
-            def _clear_log():
-                self._train_log.configure(state="normal")
-                self._train_log.delete("1.0", "end")
-                self._train_log.configure(state="disabled")
-            self.after(0, _clear_log)
+            # Reseta dashboard / reset dashboard to initial state
+            self.after(0, self._set_train_phase, 0)
 
             # ── Fase 1/3: Pré-processamento ───────────────────────────────
             # Phase 1/3: Preprocessing — slice audio into chunks
-            _status("📂  Fase 1/3 — Pré-processando áudio…", "#F59E0B")
-            _log("=== Fase 1/3: Pré-processamento ===")
+            _status("Fase 1/3 — Pré-processando áudio…", "#F59E0B")
+            _phase(0)
             os.makedirs(DATASET_DIR, exist_ok=True)
-            dst = os.path.join(DATASET_DIR, f"{model_name}.wav")
-            shutil.copy2(wav_path, dst)
+            shutil.copy2(wav_path, os.path.join(DATASET_DIR, f"{model_name}.wav"))
 
             ok = _run_phase([
                 PYTHON,
@@ -2830,17 +2893,15 @@ class ConfigWindow(ctk.CTk):
                 "0.7", "3.0", "0.3", "none",
             ], phase_start=0.02, phase_end=0.10)
             if not ok:
-                _done(False, "❌ Pré-processamento falhou — veja o log.")
+                _done(False, "❌ Pré-processamento falhou")
                 return
-
-            _status("✅  Fase 1/3 concluída", "#F59E0B")
-            _log("=== Fase 1/3 concluída ===")
+            _phase(0, done=True)
             _prog(0.10)
 
             # ── Fase 2/3: Extração de features ────────────────────────────
             # Phase 2/3: Feature extraction — HuBERT embeddings + F0 (RMVPE)
-            _status("🔬  Fase 2/3 — Extraindo features (HuBERT + RMVPE)…", "#F59E0B")
-            _log("=== Fase 2/3: Extração de features ===")
+            _status("Fase 2/3 — Extraindo features…", "#F59E0B")
+            _phase(1)
             ok = _run_phase([
                 PYTHON,
                 os.path.join(APPLIO_DIR, "rvc", "train", "extract", "extract.py"),
@@ -2848,19 +2909,16 @@ class ConfigWindow(ctk.CTk):
                 "rmvpe", "4", "0", "40000", "contentvec", "None", "2",
             ], phase_start=0.10, phase_end=0.33)
             if not ok:
-                _done(False, "❌ Extração falhou — veja o log.")
+                _done(False, "❌ Extração falhou")
                 return
-
-            _status("✅  Fase 2/3 concluída", "#F59E0B")
-            _log("=== Fase 2/3 concluída ===")
+            _phase(1, done=True)
             _prog(0.33)
 
             # ── Fase 3/3: Treino ──────────────────────────────────────────
-            # Phase 3/3: Model training — generator + discriminator
-            _status("🧠  Fase 3/3 — Treinando (pode levar 1-2h com GPU)…", "#8B5CF6")
-            _log(f"=== Fase 3/3: Treino ({TOTAL_EPOCHS} épocas) ===")
+            # Phase 3/3: Model training — HiFi-GAN generator + discriminator
+            _status("Fase 3/3 — Treinando…", "#8B5CF6")
+            _phase(2)
 
-            # Seleciona pesos pré-treinados / select pretrained weights
             sys_path_backup = __import__("sys").path[:]
             __import__("sys").path.insert(0, APPLIO_DIR)
             try:
@@ -2873,21 +2931,19 @@ class ConfigWindow(ctk.CTk):
                 PYTHON,
                 os.path.join(APPLIO_DIR, "rvc", "train", "train.py"),
                 model_name, "10", str(TOTAL_EPOCHS),
-                pg, pd,
-                "0", "4", "40000",
+                pg, pd, "0", "4", "40000",
                 "True", "True", "False",
                 "True", "50", "False",
                 "HiFi-GAN", "False",
-            ], phase_start=0.33, phase_end=0.95,
-               epoch_range=TOTAL_EPOCHS)
+            ], phase_start=0.33, phase_end=0.95, epoch_range=TOTAL_EPOCHS)
             if not ok:
-                _done(False, "❌ Treino falhou — veja o log.")
+                _done(False, "❌ Treino falhou")
                 return
+            _phase(2, done=True)
 
             # ── Copia modelo para a pasta do Praxis ───────────────────────
             # Copy trained model to Praxis voices folder
-            _status("📦  Copiando modelo para o Praxis…", "#F59E0B")
-            _log("=== Copiando modelo final ===")
+            _status("Copiando modelo…", "#F59E0B")
             _prog(0.97)
 
             pth_files = glob.glob(os.path.join(LOGS_DIR, model_name, f"{model_name}*.pth"))
@@ -2897,9 +2953,7 @@ class ConfigWindow(ctk.CTk):
 
             if pth_files:
                 pth_files.sort(key=os.path.getmtime)
-                src_pth = pth_files[-1]
-                dst_pth = str(self.CLONES_DIR / f"{model_name}.pth")
-                shutil.copy2(src_pth, dst_pth)
+                shutil.copy2(pth_files[-1], str(self.CLONES_DIR / f"{model_name}.pth"))
 
                 json_p = self.CLONES_DIR / f"{model_name}.json"
                 if json_p.exists():
@@ -2908,15 +2962,13 @@ class ConfigWindow(ctk.CTk):
                     meta["pth"]  = f"{model_name}.pth"
                     json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
 
-                _done(True, f"✅  Pronto! {model_name}.pth salvo.")
-                _log(f"Modelo salvo: {dst_pth}")
+                _done(True, f"✅ Modelo {model_name} pronto!")
                 self.after(0, self._refresh_clone_list)
             else:
-                _done(False, "❌ Arquivo .pth não encontrado após treino.")
+                _done(False, "❌ .pth não encontrado após treino")
 
         except Exception as e:
-            _done(False, f"❌  Erro inesperado: {e}")
-            _log(f"Erro: {e}")
+            _done(False, f"❌ Erro: {e}")
 
     def _record_worker(self) -> None:
         """Thread de captura: lê blocos de áudio do microfone e acumula em _rec_frames.
