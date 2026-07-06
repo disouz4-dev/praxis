@@ -3323,11 +3323,25 @@ class ConfigWindow(ctk.CTk):
         ).start()
 
     @staticmethod
+    @staticmethod
+    def _transcribe_wav(wav_path: str) -> str:
+        """Transcreve WAV com faster-whisper local. Evita TorchCodec do OmniVoice.
+        Transcribes WAV with local faster-whisper. Avoids OmniVoice's TorchCodec."""
+        try:
+            from faster_whisper import WhisperModel
+            import torch as _t
+            _dev   = "cuda" if _t.cuda.is_available() else "cpu"
+            _ctype = "int8_float16" if _dev == "cuda" else "int8"
+            _wm    = WhisperModel("base", device=_dev, compute_type=_ctype)
+            segs, _ = _wm.transcribe(wav_path, task="transcribe")
+            return " ".join(s.text.strip() for s in segs).strip()
+        except Exception:
+            return ""
+
+    @staticmethod
     def _trim_ref_wav(wav_path: str, max_s: float = 15.0) -> str:
         """Apara WAV de referência para max_s segundos para evitar OOM em gravações longas.
-        Trims reference WAV to max_s seconds to prevent OOM on long recordings.
-        OmniVoice lida com a transcrição internamente (ref_text=None).
-        OmniVoice handles transcription internally (ref_text=None)."""
+        Trims reference WAV to max_s seconds to prevent OOM on long recordings."""
         import wave as _wave
         with _wave.open(wav_path, "rb") as wf:
             sr, nch, sw = wf.getframerate(), wf.getnchannels(), wf.getsampwidth()
@@ -3368,13 +3382,16 @@ class ConfigWindow(ctk.CTk):
             # Trim to ≤15s to prevent OOM on long recordings
             ref_path = self._trim_ref_wav(ref_path)
 
-            # Usa create_voice_clone_prompt(ref_text=None) → OmniVoice auto-transcreve
-            # e apara silêncios internamente, eliminando ruído por mismatch de texto.
-            # Use create_voice_clone_prompt(ref_text=None) → OmniVoice auto-transcribes
-            # and trims silence internally, eliminating noise from text mismatch.
+            # Usa ref_text da UI (preenchido pelo Whisper na gravação) ou transcreve agora.
+            # Nunca passa ref_text=None → evita TorchCodec quebrado do OmniVoice interno.
+            # Use ref_text from UI (filled by Whisper on recording) or transcribe now.
+            # Never pass ref_text=None → avoids OmniVoice's broken internal TorchCodec.
+            if not ref_text:
+                _st("Transcrevendo referência (Whisper)…")
+                ref_text = self._transcribe_wav(ref_path)
             _st("Extraindo voz de referência…")
             prompt = self._ov_model.create_voice_clone_prompt(
-                ref_audio=ref_path, ref_text=None)
+                ref_audio=ref_path, ref_text=ref_text or "referência")
 
             _st("Gerando voz…")
             audio = self._ov_model.generate(
@@ -4173,13 +4190,17 @@ class ConfigWindow(ctk.CTk):
                 # Trim to ≤15s to prevent OOM on long files (e.g. DIego.wav 273s)
                 trimmed = self._trim_ref_wav(wav_path)
 
-                # create_voice_clone_prompt com ref_text=None → OmniVoice auto-transcreve
-                # e remove silêncios internamente, garantindo alinhamento texto/áudio correto.
-                # create_voice_clone_prompt with ref_text=None → OmniVoice auto-transcribes
-                # and removes silence internally, ensuring correct text/audio alignment.
-                _update("Extraindo voz de referência…", phase=(0.15, 0.45))
+                # Usa ref_text do JSON do clone (ou transcreve agora com Whisper local).
+                # Nunca ref_text=None → evita TorchCodec quebrado do OmniVoice interno.
+                # Use ref_text from clone JSON (or transcribe now with local Whisper).
+                # Never ref_text=None → avoids OmniVoice's broken internal TorchCodec.
+                _rt = ref_text or ""
+                if not _rt:
+                    _update("Transcrevendo referência (Whisper)…", phase=(0.15, 0.30))
+                    _rt = self._transcribe_wav(trimmed)
+                _update("Extraindo voz de referência…", phase=(0.30, 0.45))
                 prompt = self._ov_model.create_voice_clone_prompt(
-                    ref_audio=trimmed, ref_text=None)
+                    ref_audio=trimmed, ref_text=_rt or "referência")
 
                 _update("Gerando voz de teste…", phase=(0.45, 0.88))
                 audio = self._ov_model.generate(
