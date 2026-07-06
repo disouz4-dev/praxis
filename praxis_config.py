@@ -2514,24 +2514,57 @@ class ConfigWindow(ctk.CTk):
             command=_on_denoise_slide,
         ).pack(fill="x", padx=12, pady=(0, 6))
 
-        # Linha Compressor / Compressor row
-        cmp_row = ctk.CTkFrame(fx_card, fg_color="transparent")
-        cmp_row.pack(fill="x", padx=12, pady=(2, 8))
-        ctk.CTkLabel(cmp_row, text="Compressor",
+        # ── Compressor — parâmetros individuais / individual parameters ────
+        cmp_header = ctk.CTkFrame(fx_card, fg_color="transparent")
+        cmp_header.pack(fill="x", padx=12, pady=(2, 4))
+        ctk.CTkLabel(cmp_header, text="Compressor",
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.TEXT).pack(side="left")
-        self._compressor_var = ctk.StringVar(value="Desligado")
-        ctk.CTkOptionMenu(
-            cmp_row,
-            values=["Desligado", "Leve", "Médio", "Forte"],
-            variable=self._compressor_var,
-            width=120, height=28,
-            fg_color=self.SEG_BG, button_color=self.IBORDER,
-            button_hover_color=self.ACCENT, text_color=self.TEXT,
-            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
-            dropdown_hover_color=self.SEG_BG,
-            font=ctk.CTkFont(size=12),
+        # Switch para ligar/desligar sem perder os valores / toggle without losing values
+        self._cmp_on_var = ctk.BooleanVar(value=False)
+        ctk.CTkSwitch(
+            cmp_header, text="", width=40,
+            variable=self._cmp_on_var, onvalue=True, offvalue=False,
+            progress_color=self.ACCENT,
         ).pack(side="right")
+
+        # Grid de 4 parâmetros: Threshold / Ratio / Attack / Release
+        # 4-parameter grid: Threshold / Ratio / Attack / Release
+        cmp_grid = ctk.CTkFrame(fx_card, fg_color="transparent")
+        cmp_grid.pack(fill="x", padx=12, pady=(0, 8))
+        cmp_grid.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
+        def _cmp_param(col: int, label: str, unit: str,
+                       from_: float, to: float, init: float,
+                       fmt: str = ".0f") -> ctk.DoubleVar:
+            """Cria célula de parâmetro com label, valor numérico e slider.
+            Creates a parameter cell with label, numeric value and slider."""
+            cell = ctk.CTkFrame(cmp_grid, fg_color=self.SEG_BG, corner_radius=8)
+            cell.grid(row=0, column=col, sticky="ew", padx=4, pady=4)
+            ctk.CTkLabel(cell, text=label,
+                         font=ctk.CTkFont(size=9), text_color=self.MUTED).pack(pady=(6, 0))
+            var = ctk.DoubleVar(value=init)
+            val_lbl = ctk.CTkLabel(cell, text=f"{init:{fmt}}{unit}",
+                                   font=ctk.CTkFont(size=13, weight="bold"),
+                                   text_color=self.TEXT)
+            val_lbl.pack()
+
+            def _on_slide(v):
+                val_lbl.configure(text=f"{float(v):{fmt}}{unit}")
+
+            ctk.CTkSlider(
+                cell, from_=from_, to=to, variable=var,
+                orientation="horizontal", height=12,
+                fg_color=self.BORDER, progress_color=self.ACCENT,
+                button_color=self.ACCENT, button_hover_color=self.HOVER,
+                command=_on_slide,
+            ).pack(fill="x", padx=8, pady=(2, 8))
+            return var
+
+        self._cmp_threshold = _cmp_param(0, "Threshold", " dB", -40, 0,  -18)
+        self._cmp_ratio     = _cmp_param(1, "Ratio",     ":1",   1, 20,   4, ".1f")
+        self._cmp_attack    = _cmp_param(2, "Attack",    " ms",  1, 100,  5)
+        self._cmp_release   = _cmp_param(3, "Release",   " ms", 10, 500, 80)
 
         # ── Duração acumulada + botão Treinar ──────────────────────────────
         # Accumulated duration + Train button
@@ -2804,7 +2837,7 @@ class ConfigWindow(ctk.CTk):
                         self._rec_frames.append(indata.copy())
 
                 with sd.Stream(samplerate=SR, channels=1, dtype="int16",
-                               blocksize=SR // 20, callback=_cb) as stream:
+                               blocksize=256, latency="low", callback=_cb) as stream:
                     self._meter_stream = stream
                     while self._meter_stream is not None:
                         import time; time.sleep(0.05)
@@ -3047,17 +3080,14 @@ class ConfigWindow(ctk.CTk):
                 pass   # Falha silenciosa — áudio original preservado / silent fail
 
         # ── Compressor ─────────────────────────────────────────────────────
-        preset = self._compressor_var.get()
-        presets = {
-            "Leve":  (-20, 2.0, 10.0, 100.0),  # threshold, ratio, attack_ms, release_ms
-            "Médio": (-15, 4.0,  5.0,  80.0),
-            "Forte": (-10, 8.0,  2.0,  50.0),
-        }
-        if preset in presets:
+        if getattr(self, "_cmp_on_var", None) and self._cmp_on_var.get():
             try:
-                status_fn(f"Compressor {preset}…")
+                th    = self._cmp_threshold.get()
+                ratio = self._cmp_ratio.get()
+                atk   = self._cmp_attack.get()
+                rel   = self._cmp_release.get()
+                status_fn(f"Compressor ({th:.0f}dB  {ratio:.1f}:1  {atk:.0f}/{rel:.0f}ms)…")
                 from pedalboard import Pedalboard, Compressor as PBComp
-                th, ratio, atk, rel = presets[preset]
                 board = Pedalboard([PBComp(threshold_db=th, ratio=ratio,
                                            attack_ms=atk, release_ms=rel)])
                 norm = pcm.reshape(1, -1).astype(np.float32) / 32768.0
