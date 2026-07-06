@@ -2854,6 +2854,28 @@ class ConfigWindow(ctk.CTk):
         )
         self._ov_transcribe_btn.pack(side="right")
 
+        # Campo de nome + botão salvar referência como clone OmniVoice
+        # Name field + save button for OmniVoice clone reference
+        _ov_name_row = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
+        _ov_name_row.pack(fill="x", padx=12, pady=(0, 10))
+        ctk.CTkLabel(_ov_name_row, text="Nome do clone:",
+                     font=ctk.CTkFont(size=11), text_color=self.MUTED).pack(
+            side="left", padx=(0, 8))
+        self._ov_clone_name = ctk.CTkEntry(
+            _ov_name_row,
+            placeholder_text="ex: Voz Apresentadora…",
+            fg_color=self.SEG_BG, border_color=self.IBORDER,
+            text_color=self.TEXT, font=ctk.CTkFont(size=11),
+        )
+        self._ov_clone_name.pack(side="left", fill="x", expand=True, padx=(0, 8))
+        ctk.CTkButton(
+            _ov_name_row, text="💾 Salvar clone", width=120, height=28,
+            fg_color="#7C3AED", hover_color="#6D28D9",
+            text_color="#FFFFFF", corner_radius=6,
+            font=ctk.CTkFont(size=11, weight="bold"),
+            command=self._ov_save_ref,
+        ).pack(side="right")
+
         # ── Card de geração / Generation card ──────────────────────────────
         _ov_gen = ctk.CTkFrame(_ov, fg_color=self.INPUT,
                                border_color=self.IBORDER, border_width=1,
@@ -3076,6 +3098,53 @@ class ConfigWindow(ctk.CTk):
                 self.after(0, lambda: self._ov_transcribe_btn.configure(state="normal"))
 
         threading.Thread(target=_worker, daemon=True).start()
+
+    def _ov_save_ref(self) -> None:
+        """Salva WAV de referência + JSON de metadados na pasta de clones OmniVoice.
+        Saves reference WAV + metadata JSON to the clones folder as an OmniVoice clone."""
+        import re as _re, shutil, wave as _wave
+
+        name = self._ov_clone_name.get().strip()
+        if not name:
+            self._ov_rec_status.configure(
+                text="❌ Digite um nome para o clone", text_color="#EF4444")
+            return
+
+        ref_path = self._ov_ref_path.get()
+        if not ref_path or not Path(ref_path).exists():
+            self._ov_rec_status.configure(
+                text="❌ Grave uma referência antes de salvar", text_color="#EF4444")
+            return
+
+        ref_text = self._ov_ref_text.get().strip()
+        safe = _re.sub(r"[^\w\-]", "_", name)
+
+        wav_p  = self.CLONES_DIR / f"{safe}.wav"
+        json_p = self.CLONES_DIR / f"{safe}.json"
+
+        try:
+            shutil.copy2(ref_path, wav_p)
+            with _wave.open(str(wav_p), "rb") as wf:
+                dur = round(wf.getnframes() / wf.getframerate(), 1)
+
+            meta = {
+                "name":       name,
+                "wav":        f"{safe}.wav",
+                "ref_text":   ref_text,
+                "duration_s": dur,
+                "type":       "omnivoice",
+                "lang":       "pt",
+            }
+            json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+
+            self._ov_rec_status.configure(
+                text=f"✅ Clone «{name}» salvo", text_color="#22C55E")
+            self._ov_clone_name.delete(0, "end")
+            self.after(200, self._refresh_clone_list)
+
+        except Exception as e:
+            self._ov_rec_status.configure(
+                text=f"❌ Erro ao salvar: {e}", text_color="#EF4444")
 
     def _ov_generate(self) -> None:
         """Dispara geração OmniVoice em thread separada.
