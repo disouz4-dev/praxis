@@ -570,15 +570,62 @@ class ConfigWindow(ctk.CTk):
         y = oy + max(0, (sh - win_h) // 2)
         self.geometry(f"560x{win_h}+{x}+{y}")
 
-        self.withdraw()  # oculta enquanto splash está aberta
+        self.withdraw()  # oculta a janela principal durante o carregamento / hide main window during load
 
+        # Splash de carregamento aparece ANTES de _build() para dar feedback imediato
+        # Loading splash appears BEFORE _build() to give immediate visual feedback
+        splash, _sp_prog, _sp_lbl = self._create_loading_splash()
+        self.update()  # força a splash a renderizar antes do build pesado / force splash to render
+
+        # Thread daemon que anima a barra de progresso enquanto _build() bloqueia o main thread
+        # Daemon thread animates the progress bar while _build() blocks the main thread
+        import time as _time
+        _sp_stop = threading.Event()
+        _sp_phase: list[float] = [0.05, 0.82]  # [valor_atual, limite_fase]
+
+        def _sp_anim() -> None:
+            while not _sp_stop.is_set():
+                _time.sleep(0.12)
+                v, hi = _sp_phase
+                nxt = min(hi, v + 0.008)
+                _sp_phase[0] = nxt
+                try:
+                    splash.after(0, _sp_prog.set, nxt)
+                except Exception:
+                    break
+
+        _sp_thread = threading.Thread(target=_sp_anim, daemon=True)
+        _sp_thread.start()
+
+        _sp_lbl.configure(text="Construindo interface…")
+        self.update()
         self._build()
-        self._refresh_devices(startup=True)
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
+        _sp_phase[1] = 0.96   # nova fase: dispositivos de áudio / new phase: audio devices
+        _sp_lbl.configure(text="Conectando áudio…")
+        self.update()
+        self._refresh_devices(startup=True)
+
+        # Finaliza animação / finish animation
+        _sp_stop.set()
+        _sp_prog.set(1.0)
+        _sp_lbl.configure(text="Pronto!")
+        self.update()
+
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
         self._set_window_icon()
-        self._show_splash()
-        self.after(1800, self.deiconify)  # exibe janela principal enquanto splash ainda está visível
+
+        # Fecha splash e exibe janela principal após breve pausa
+        # Close splash and show main window after brief pause
+        def _open_main() -> None:
+            try:
+                splash.destroy()
+            except Exception:
+                pass
+            self._show_splash()
+            self.after(1800, self.deiconify)
+
+        self.after(350, _open_main)
 
     def _toggle_theme(self) -> None:
         """Alterna entre light/dark mode: salva preferência e reconstrói a UI."""
@@ -650,6 +697,61 @@ class ConfigWindow(ctk.CTk):
         self.destroy()
 
     # ── Ícone e splash ────────────────────────────────────────────────────────
+
+    def _create_loading_splash(self) -> "tuple[tk.Toplevel, ctk.CTkProgressBar, ctk.CTkLabel]":
+        """Cria e exibe a splash de carregamento com logo + barra de progresso.
+        Creates and shows the loading splash with logo + progress bar."""
+        from PIL import Image, ImageTk  # lazy import / importação tardia
+
+        WIDTH, LOGO_H = 420, 280
+        BAR_H = 6
+
+        ox, oy, sw, sh = _get_primary_monitor()
+        if sw == 0:
+            sw = self.winfo_screenwidth()
+            sh = self.winfo_screenheight()
+            ox = oy = 0
+
+        total_h = LOGO_H + 64  # logo + padding + label + barra
+        x = ox + (sw - WIDTH) // 2
+        y = oy + max(0, (sh - total_h) // 2)
+
+        sp = tk.Toplevel(self)
+        sp.overrideredirect(True)
+        sp.configure(bg="#0D1117")
+        sp.geometry(f"{WIDTH}x{total_h}+{x}+{y}")
+        sp.lift()
+        sp.attributes("-topmost", True)
+
+        # Logo / imagem de topo
+        splash_path = ASSETS_DIR / "praxis.png"
+        if splash_path.exists():
+            img = Image.open(splash_path).resize((WIDTH, LOGO_H), Image.LANCZOS)
+            self._loading_photo = ImageTk.PhotoImage(img)
+            tk.Label(sp, image=self._loading_photo, bg="#0D1117", bd=0).pack()
+        else:
+            tk.Label(sp, text="Praxis", font=("Segoe UI", 28, "bold"),
+                     fg="white", bg="#0D1117").pack(pady=(LOGO_H // 2 - 20, 0))
+
+        # Label de status / status label
+        status_lbl = ctk.CTkLabel(
+            sp, text="Iniciando…",
+            font=ctk.CTkFont(size=12), text_color="#A1A1AA",
+            fg_color="#0D1117"
+        )
+        status_lbl.pack(pady=(8, 4))
+
+        # Barra de progresso / progress bar
+        prog = ctk.CTkProgressBar(
+            sp, width=WIDTH - 48, height=BAR_H,
+            progress_color="#7C3AED", fg_color="#27272A",
+            corner_radius=3
+        )
+        prog.set(0.05)
+        prog.pack(padx=24, pady=(0, 16))
+
+        sp.update_idletasks()
+        return sp, prog, status_lbl
 
     def _set_window_icon(self) -> None:
         """Define o ícone da janela/barra de tarefas a partir de praxis.png."""
