@@ -2328,10 +2328,11 @@ class ConfigWindow(ctk.CTk):
             text_color=self.TEXT,
         ).pack(fill="x", padx=16, pady=(12, 4))
 
-        # Frames por modo — só um fica visível / only one visible at a time
+        # Frames por modo — criados mas ainda não empacotados / created but not yet packed
+        # (pack acontece após o VU meter para garantir a ordem correta de layout)
+        # (pack happens after the VU meter to ensure correct layout order)
         self._rvc_section = ctk.CTkFrame(scroll, fg_color="transparent")
-        self._rvc_section.pack(fill="x")
-        self._ov_section = ctk.CTkFrame(scroll, fg_color="transparent")
+        self._ov_section  = ctk.CTkFrame(scroll, fg_color="transparent")
 
         # Alias local para construção da seção RVC / local alias for RVC section build
         _s = self._rvc_section
@@ -2442,8 +2443,9 @@ class ConfigWindow(ctk.CTk):
         # Dispositivo herdado da aba Config — sem seletor próprio na aba de clonagem
         # Device inherited from Config tab — no separate selector in clone tab
 
-        # ── VU Meter ────────────────────────────────────────────────────────
-        meter_frame = ctk.CTkFrame(_s, fg_color=self.INPUT,
+        # ── VU Meter compartilhado (visível em ambos os modos) ─────────────
+        # Shared VU meter — visible in both RVC and OmniVoice modes
+        meter_frame = ctk.CTkFrame(scroll, fg_color=self.INPUT,
                                    border_color=self.IBORDER, border_width=1,
                                    corner_radius=8)
         meter_frame.pack(fill="x", padx=16, pady=(8, 4))
@@ -2493,6 +2495,10 @@ class ConfigWindow(ctk.CTk):
         # Delay de 300ms para o mainloop estar pronto antes de abrir o stream
         # 300ms delay so mainloop is ready before opening the audio stream
         self.after(300, self._start_meter)
+
+        # Empacota as seções APÓS o VU meter para que apareçam abaixo dele
+        # Pack sections AFTER the VU meter so they appear below it in layout
+        self._rvc_section.pack(fill="x")
 
         # ── Botão + barra de progresso da gravação ─────────────────────────
         rec_row = ctk.CTkFrame(_s, fg_color="transparent")
@@ -2730,6 +2736,10 @@ class ConfigWindow(ctk.CTk):
         # ── Seção OmniVoice (zero-shot) ─────────────────────────────────────
         # OmniVoice section — shown only when mode="ov"
         _ov = self._ov_section
+        self._ov_rec_frames: list = []
+        self._ov_rec_active = False
+        self._ov_ref_path   = ctk.StringVar(value="")
+        _OV_REF_MAX_S = 15   # max seconds for reference recording / máx seg para referência
 
         # Card de explicação / Explanation card
         _ov_info = ctk.CTkFrame(_ov, fg_color=self.SEG_BG,
@@ -2742,52 +2752,56 @@ class ConfigWindow(ctk.CTk):
         ctk.CTkLabel(
             _ov_info,
             text=(
-                "Sem treino. Usa o áudio de referência da última sessão (ou selecione um WAV)\n"
-                "e gera a voz com o texto que você digitar. Qualidade depende do áudio de referência."
+                "Grave ~10s da sua voz lendo o texto abaixo, depois clique em Gerar.\n"
+                "O Whisper transcreve automaticamente — sem treino necessário."
             ),
             font=ctk.CTkFont(size=11), text_color=self.MUTED,
             justify="left", anchor="w",
         ).pack(anchor="w", padx=12, pady=(0, 10))
 
-        # Card de referência / Reference card
-        _ov_ref = ctk.CTkFrame(_ov, fg_color=self.INPUT,
-                               border_color=self.IBORDER, border_width=1,
-                               corner_radius=8)
-        _ov_ref.pack(fill="x", padx=16, pady=(0, 6))
+        # ── Card de gravação de referência ─────────────────────────────────
+        # Reference recording card — record ~10s of natural speech
+        _ov_rec_card = ctk.CTkFrame(_ov, fg_color=self.INPUT,
+                                    border_color=self.IBORDER, border_width=1,
+                                    corner_radius=8)
+        _ov_rec_card.pack(fill="x", padx=16, pady=(0, 6))
 
-        _ref_top = ctk.CTkFrame(_ov_ref, fg_color="transparent")
-        _ref_top.pack(fill="x", padx=12, pady=(8, 4))
-        ctk.CTkLabel(_ref_top, text="Áudio de referência",
+        # Texto de exemplo para leitura / sample text to read aloud
+        ctk.CTkLabel(_ov_rec_card, text="Leia este trecho em voz alta:",
                      font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.TEXT).pack(side="left")
+                     text_color=self.MUTED).pack(anchor="w", padx=12, pady=(10, 2))
+        ctk.CTkLabel(
+            _ov_rec_card,
+            text=(
+                "Bom dia! Meu nome é Diego e estou testando o sistema de clonagem de voz do Praxis. "
+                "A tecnologia é incrível — ela aprende a minha voz com poucos segundos de áudio e "
+                "consegue reproduzir qualquer texto com a minha entonação natural."
+            ),
+            font=ctk.CTkFont(size=12), text_color=self.TEXT,
+            wraplength=380, justify="left", anchor="nw",
+        ).pack(fill="x", padx=12, pady=(0, 8))
 
-        # Caminho do WAV de referência / Reference WAV path
-        self._ov_ref_path = ctk.StringVar(value="")
-        _ov_path_lbl = ctk.CTkLabel(
-            _ov_ref, textvariable=self._ov_ref_path,
-            font=ctk.CTkFont(size=10), text_color=self.MUTED,
-            anchor="w", wraplength=340)
-        _ov_path_lbl.pack(fill="x", padx=12, pady=(0, 4))
+        # Controles de gravação / Recording controls
+        _ov_ctl = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
+        _ov_ctl.pack(fill="x", padx=12, pady=(0, 4))
 
-        # Botões: usar último WAV do perfil ou escolher arquivo
-        # Buttons: use latest profile WAV or browse file
-        _ref_btns = ctk.CTkFrame(_ov_ref, fg_color="transparent")
-        _ref_btns.pack(fill="x", padx=12, pady=(0, 8))
+        self._ov_rec_btn = ctk.CTkButton(
+            _ov_ctl, text="● Gravar referência", width=150, height=32,
+            fg_color="#DC2626", hover_color="#B91C1C",
+            text_color="#FFFFFF", corner_radius=8,
+            font=ctk.CTkFont(size=12, weight="bold"),
+            command=self._ov_toggle_recording,
+        )
+        self._ov_rec_btn.pack(side="left", padx=(0, 10))
 
-        def _ov_use_latest() -> None:
-            """Pega o WAV mais recente de CLONES_DIR. Use latest WAV from CLONES_DIR."""
-            wavs = sorted(self.CLONES_DIR.glob("*.wav"), key=lambda p: p.stat().st_mtime)
-            if wavs:
-                self._ov_ref_path.set(str(wavs[-1]))
-                _ov_path_lbl.configure(text_color=self.TEXT)
-            else:
-                self._ov_ref_path.set("")
-                _ov_path_lbl.configure(text_color="#EF4444")
-                _ov_path_lbl.configure(textvariable=None,
-                                        text="Nenhum WAV encontrado — grave primeiro no modo RVC")
+        self._ov_rec_status = ctk.CTkLabel(
+            _ov_ctl, text="Pronto — grave ~10s",
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._ov_rec_status.pack(side="left")
 
+        # Botão procurar arquivo alternativo / browse alternative file
         def _ov_browse() -> None:
-            """Abre diálogo de arquivo para selecionar WAV. Open file dialog to pick WAV."""
+            """Abre diálogo para selecionar WAV alternativo. Open file dialog for alternative WAV."""
             import tkinter.filedialog as fd
             path = fd.askopenfilename(
                 title="Selecionar áudio de referência",
@@ -2795,72 +2809,50 @@ class ConfigWindow(ctk.CTk):
             )
             if path:
                 self._ov_ref_path.set(path)
-                _ov_path_lbl.configure(text_color=self.TEXT)
+                self._ov_rec_status.configure(
+                    text=f"Arquivo: {__import__('os').path.basename(path)}",
+                    text_color=self.TEXT)
+                self._ov_transcribe()
 
         ctk.CTkButton(
-            _ref_btns, text="Usar último gravado", width=140, height=26,
+            _ov_ctl, text="…", width=32, height=32,
             fg_color=self.SEG_BG, hover_color=self.IBORDER,
             text_color=self.MUTED, border_width=1,
-            border_color=self.IBORDER, corner_radius=6,
-            font=ctk.CTkFont(size=11),
-            command=_ov_use_latest,
-        ).pack(side="left", padx=(0, 6))
-        ctk.CTkButton(
-            _ref_btns, text="Procurar arquivo…", width=130, height=26,
-            fg_color=self.SEG_BG, hover_color=self.IBORDER,
-            text_color=self.MUTED, border_width=1,
-            border_color=self.IBORDER, corner_radius=6,
-            font=ctk.CTkFont(size=11),
+            border_color=self.IBORDER, corner_radius=8,
+            font=ctk.CTkFont(size=14),
             command=_ov_browse,
-        ).pack(side="left")
+        ).pack(side="right")
 
-        # Transcrição do áudio de referência (ref_text obrigatório no OmniVoice)
-        # Reference transcription (ref_text is required by OmniVoice)
-        ctk.CTkLabel(_ov_ref, text="O que foi dito nesse áudio (transcrição):",
+        self._ov_rec_prog = ctk.CTkProgressBar(_ov_rec_card, height=5,
+                                                fg_color=self.SEG_BG,
+                                                progress_color="#DC2626")
+        self._ov_rec_prog.set(0)
+        self._ov_rec_prog.pack(fill="x", padx=12, pady=(4, 10))
+
+        # Transcrição (preenchida automaticamente após gravação / auto-filled after recording)
+        _ref_txt_row = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
+        _ref_txt_row.pack(fill="x", padx=12, pady=(0, 10))
+        ctk.CTkLabel(_ref_txt_row, text="Transcrição:",
                      font=ctk.CTkFont(size=11), text_color=self.MUTED).pack(
-            anchor="w", padx=12, pady=(4, 2))
-
-        _ref_txt_row = ctk.CTkFrame(_ov_ref, fg_color="transparent")
-        _ref_txt_row.pack(fill="x", padx=12, pady=(0, 8))
+            side="left", padx=(0, 8))
         self._ov_ref_text = ctk.CTkEntry(
-            _ref_txt_row, placeholder_text="Ex: Bom dia, meu nome é Diego…",
+            _ref_txt_row,
+            placeholder_text="Preenchido automaticamente após gravar…",
             fg_color=self.SEG_BG, border_color=self.IBORDER,
             text_color=self.TEXT, font=ctk.CTkFont(size=11),
         )
         self._ov_ref_text.pack(side="left", fill="x", expand=True, padx=(0, 6))
-
-        def _ov_transcribe() -> None:
-            """Transcreve o WAV de referência com Whisper. Transcribe ref WAV with Whisper."""
-            path = self._ov_ref_path.get()
-            if not path:
-                return
-            self._ov_transcribe_btn.configure(state="disabled", text="…")
-            def _worker():
-                try:
-                    import whisper as _w
-                    _model = _w.load_model("base")
-                    result = _model.transcribe(path, task="transcribe")
-                    text = result.get("text", "").strip()
-                    self.after(0, lambda: self._ov_ref_text.delete(0, "end"))
-                    self.after(0, lambda: self._ov_ref_text.insert(0, text))
-                except Exception:
-                    import traceback; traceback.print_exc()
-                finally:
-                    self.after(0, lambda: self._ov_transcribe_btn.configure(
-                        state="normal", text="Transcrever"))
-            threading.Thread(target=_worker, daemon=True).start()
-
         self._ov_transcribe_btn = ctk.CTkButton(
-            _ref_txt_row, text="Transcrever", width=100, height=28,
+            _ref_txt_row, text="🔄", width=32, height=28,
             fg_color=self.SEG_BG, hover_color=self.IBORDER,
             text_color=self.MUTED, border_width=1,
             border_color=self.IBORDER, corner_radius=6,
-            font=ctk.CTkFont(size=11),
-            command=_ov_transcribe,
+            font=ctk.CTkFont(size=14),
+            command=self._ov_transcribe,
         )
         self._ov_transcribe_btn.pack(side="right")
 
-        # Card de geração / Generation card
+        # ── Card de geração / Generation card ──────────────────────────────
         _ov_gen = ctk.CTkFrame(_ov, fg_color=self.INPUT,
                                border_color=self.IBORDER, border_width=1,
                                corner_radius=8)
@@ -2904,9 +2896,6 @@ class ConfigWindow(ctk.CTk):
         )
         self._ov_gen_btn.pack(side="right")
 
-        # Pré-popula o caminho com o último WAV gravado / pre-fill with latest recorded WAV
-        _ov_use_latest()
-
         # Ativa o modo padrão (RVC) / activate default mode (RVC)
         self._switch_clone_mode("🎙 RVC — Treino")
 
@@ -2919,6 +2908,105 @@ class ConfigWindow(ctk.CTk):
         else:
             self._ov_section.pack_forget()
             self._rvc_section.pack(fill="x")
+
+    # ── OmniVoice: gravação de referência ────────────────────────────────────
+
+    _OV_REF_MAX_S = 15   # duração máxima da gravação de referência / max reference recording seconds
+
+    def _ov_toggle_recording(self) -> None:
+        """Alterna gravação de referência OmniVoice. Toggles OmniVoice reference recording."""
+        if getattr(self, "_ov_rec_active", False):
+            self._ov_stop_recording()
+        else:
+            self._ov_start_recording()
+
+    def _ov_start_recording(self) -> None:
+        """Inicia gravação de referência OmniVoice via stream compartilhado.
+        Starts OmniVoice reference recording using the shared audio stream."""
+        if not self._meter_stream:
+            self._ov_rec_status.configure(
+                text="❌ Sem microfone — verifique o dispositivo na Config",
+                text_color="#EF4444")
+            return
+        self._ov_rec_frames = []
+        self._ov_rec_active = True
+        self._ov_rec_btn.configure(text="■ Parar", fg_color="#7C3AED",
+                                    hover_color="#6D28D9")
+        self._ov_rec_status.configure(text="● Gravando — leia o texto acima",
+                                       text_color="#DC2626")
+        self._ov_rec_prog.set(0)
+        self._ov_rec_timer = 0
+        self._ov_rec_tick()
+
+    def _ov_rec_tick(self) -> None:
+        """Tick a cada segundo durante a gravação de referência OmniVoice.
+        Fires every second during OmniVoice reference recording."""
+        if not getattr(self, "_ov_rec_active", False):
+            return
+        self._ov_rec_timer += 1
+        self._ov_rec_prog.set(self._ov_rec_timer / self._OV_REF_MAX_S)
+        self._ov_rec_status.configure(
+            text=f"● Gravando — {self._ov_rec_timer}s / {self._OV_REF_MAX_S}s",
+            text_color="#DC2626")
+        if self._ov_rec_timer >= self._OV_REF_MAX_S:
+            self._ov_stop_recording()
+            return
+        self.after(1000, self._ov_rec_tick)
+
+    def _ov_stop_recording(self) -> None:
+        """Para gravação de referência, salva WAV e transcreve com Whisper.
+        Stops reference recording, saves WAV, and transcribes with Whisper."""
+        self._ov_rec_active = False
+        self._ov_rec_btn.configure(text="● Gravar referência",
+                                    fg_color="#DC2626", hover_color="#B91C1C")
+        frames = list(self._ov_rec_frames)
+        if not frames:
+            self._ov_rec_status.configure(text="Sem áudio capturado",
+                                           text_color="#EF4444")
+            return
+
+        self._ov_rec_status.configure(text="Salvando…", text_color=self.MUTED)
+
+        def _save_and_transcribe():
+            import numpy as np, soundfile as sf
+            pcm = np.concatenate(frames, axis=0).flatten().astype(np.float32)
+            out = "/tmp/ov_ref.wav"
+            sr  = getattr(self, "_audio_sr", 48000)
+            sf.write(out, pcm, sr, subtype="PCM_16")
+            self.after(0, lambda: self._ov_ref_path.set(out))
+            self.after(0, lambda: self._ov_rec_status.configure(
+                text="Gravado — transcrevendo…", text_color=self.MUTED))
+            # Transcrever automaticamente / auto-transcribe
+            self.after(0, self._ov_transcribe)
+
+        threading.Thread(target=_save_and_transcribe, daemon=True).start()
+
+    def _ov_transcribe(self) -> None:
+        """Transcreve o WAV de referência com Whisper. Transcribes ref WAV with Whisper."""
+        path = self._ov_ref_path.get()
+        if not path:
+            return
+        self._ov_transcribe_btn.configure(state="disabled")
+        self._ov_rec_status.configure(text="Transcrevendo…", text_color=self.MUTED)
+
+        def _worker():
+            try:
+                import whisper as _w
+                _m = _w.load_model("base")
+                result = _m.transcribe(path, task="transcribe")
+                text = result.get("text", "").strip()
+                self.after(0, lambda: self._ov_ref_text.delete(0, "end"))
+                self.after(0, lambda: self._ov_ref_text.insert(0, text))
+                self.after(0, lambda: self._ov_rec_status.configure(
+                    text="Pronto — revise a transcrição e gere", text_color="#22C55E"))
+            except Exception:
+                import traceback; traceback.print_exc()
+                self.after(0, lambda: self._ov_rec_status.configure(
+                    text="Erro na transcrição — edite manualmente", text_color="#F59E0B"))
+            finally:
+                self.after(0, lambda: self._ov_transcribe_btn.configure(state="normal"))
+
+        threading.Thread(target=_worker, daemon=True).start()
 
     def _ov_generate(self) -> None:
         """Dispara geração OmniVoice em thread separada.
@@ -3167,9 +3255,13 @@ class ConfigWindow(ctk.CTk):
                     else:
                         outdata.fill(0)
 
-                    # Gravação / recording
+                    # Gravação RVC / RVC recording
                     if getattr(self, "_rec_active", False):
                         self._rec_frames.append(indata.copy())
+
+                    # Gravação de referência OmniVoice / OmniVoice reference recording
+                    if getattr(self, "_ov_rec_active", False):
+                        self._ov_rec_frames.append(indata.copy())
 
                 # Abre para dispositivo 'default' que agora aponta para a seleção pactl
                 # Opens to 'default' device which now routes to the pactl selection
