@@ -3267,8 +3267,15 @@ class ConfigWindow(ctk.CTk):
                 voice_clone_prompt=prompt,
             )
 
+            # Normaliza e salva como PCM_16 para evitar distorção / volume estourado
+            # Normalize and save as PCM_16 to avoid distortion / clipped volume
+            import numpy as _np
+            _audio = _np.array(audio[0], dtype=_np.float32)
+            _peak = float(_np.max(_np.abs(_audio)))
+            if _peak > 1e-6:
+                _audio = _audio / max(_peak, 1.0)
             out_path = "/tmp/ov_result.wav"
-            sf.write(out_path, audio[0], 24000)
+            sf.write(out_path, _audio, 24000, subtype="PCM_16")
             self._ov_result_path = out_path
             _st("✓ Pronto — clique em Ouvir", "#22C55E")
             self.after(0, lambda: self._ov_play_btn.configure(state="normal"))
@@ -4069,10 +4076,18 @@ class ConfigWindow(ctk.CTk):
                 _anim_stop.set()
                 _set_prog(0.94)
                 _update("Reproduzindo…")
-                # sounddevice.play() evita o bug do aplay com WAV float32
-                # sounddevice.play() avoids aplay misinterpreting float32 WAV as PCM16
-                import sounddevice as _sd
-                _sd.play(audio[0], 24000, blocking=True)
+                # Normaliza para ±1.0 e salva como PCM_16 — aplay lê header WAV
+                # e toca no formato correto sem distorção nem volume estourado.
+                # Normalize to ±1.0 and save as PCM_16 — aplay reads the WAV header
+                # and plays at the correct level without distortion or clipping.
+                import numpy as _np
+                _audio = _np.array(audio[0], dtype=_np.float32)
+                _peak = float(_np.max(_np.abs(_audio)))
+                if _peak > 1e-6:
+                    _audio = _audio / max(_peak, 1.0)  # escala se pico > 1; mantém se ≤ 1
+                tmp = "/tmp/praxis_clone_test.wav"
+                sf.write(tmp, _audio, 24000, subtype="PCM_16")
+                subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
                 _set_prog(1.0)
                 if test_prog:
                     self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
