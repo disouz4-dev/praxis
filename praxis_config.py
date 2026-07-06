@@ -810,6 +810,10 @@ class ConfigWindow(ctk.CTk):
         # ── Aba Clonar minha voz ──────────────────────────────────────────────
         self._build_clone_tab(self._clone_frame_outer)
 
+        # Detecta treino em andamento 500ms após a UI estar pronta
+        # Detect in-progress training 500ms after UI is ready
+        self.after(500, self._detect_existing_training)
+
         footer = ctk.CTkFrame(self._left, fg_color="transparent")
         footer.pack(fill="x", padx=24, pady=(4, 20))
         ctk.CTkButton(
@@ -845,6 +849,146 @@ class ConfigWindow(ctk.CTk):
         else:
             self._config_frame_outer.pack_forget()
             self._clone_frame_outer.pack(fill="both", expand=True)
+
+    def _detect_existing_training(self) -> None:
+        """Escaneia /proc buscando train.py em execução; se achar, faz tail do log.
+        Scans /proc for a running train.py; if found, tails its log into the UI."""
+        import glob, os, re
+
+        train_pid   = None
+        model_name  = None
+        total_epochs = 300
+
+        # Percorre todos os cmdline de processos Python / scan all Python process cmdlines
+        for cmdline_path in glob.glob("/proc/[0-9]*/cmdline"):
+            try:
+                raw = open(cmdline_path, "rb").read().replace(b"\x00", b" ").decode(errors="replace")
+                if "train.py" not in raw:
+                    continue
+                # Primeiro argumento após train.py é o nome do modelo / first arg after train.py is model name
+                m = re.search(r"train\.py\s+(\S+)", raw)
+                if m:
+                    model_name   = m.group(1)
+                    train_pid    = int(cmdline_path.split("/")[2])
+                    # Tenta extrair total_epoch da linha de comando / try to extract total_epoch from cmdline
+                    ep_m = re.search(r"train\.py\s+\S+\s+\d+\s+(\d+)", raw)
+                    if ep_m:
+                        total_epochs = int(ep_m.group(1))
+                    break
+            except Exception:
+                continue
+
+        if not train_pid or not model_name:
+            return  # Nenhum treino em andamento / no training in progress
+
+        log_path = f"/tmp/rvc_train_{model_name}.log"
+        if not os.path.exists(log_path):
+            return
+
+        # Treino detectado — atualiza UI e abre aba Clonar / training detected — update UI and open Clone tab
+        self._training = True
+        self._train_btn.configure(state="disabled", text="Treinando…")
+        self._train_status.configure(
+            text=f"🧠  Treino em andamento: {model_name} (PID {train_pid})",
+            text_color="#8B5CF6")
+        # Muda para aba clonar para o usuário ver o log / switch to clone tab so user sees the log
+        self._tab_seg.set("🎙  Clonar minha voz")
+        self._on_tab_change("🎙  Clonar minha voz")
+
+        import threading
+        t = threading.Thread(
+            target=self._tail_log_worker,
+            args=(log_path, train_pid, total_epochs),
+            daemon=True,
+        )
+        t.start()
+
+    def _tail_log_worker(self, log_path: str, pid: int, total_epochs: int) -> None:
+        """Thread que faz tail do arquivo de log de treino existente e atualiza a UI.
+        Thread that tails an existing training log file and updates the UI."""
+        import os, re, time
+
+        PHASE_START = 0.33  # Treino começa em 33% da barra / training starts at 33% of bar
+
+        def _log(line: str):
+            clean = line.strip()
+            if not clean or clean.startswith("\r"):
+                return
+            clean = re.sub(r"\x1b\[[0-9;]*m", "", clean)
+            # Filtra linhas de tqdm puras (só barras de progresso) / filter pure tqdm progress lines
+            if re.match(r"^\s*\d+%\|", clean):
+                return
+            def _append():
+                self._train_log.configure(state="normal")
+                self._train_log.insert("end", clean + "\n")
+                self._train_log.see("end")
+                self._train_log.configure(state="disabled")
+            self.after(0, _append)
+
+        def _prog(v):
+            self.after(0, self._train_prog.set, v)
+
+        def _status(msg, color=None):
+            kw = {"text": msg}
+            if color:
+                kw["text_color"] = color
+            self.after(0, self._train_status.configure, kw)
+
+        # Limpa e carrega últimas ~80 linhas do log histórico / clear and load last ~80 historical lines
+        def _load_history():
+            try:
+                with open(log_path, "r", errors="replace") as f:
+                    lines = f.readlines()
+                self._train_log.configure(state="normal")
+                self._train_log.delete("1.0", "end")
+                # Filtra e mostra histórico / filter and show history
+                for ln in lines[-80:]:
+                    clean = ln.strip()
+                    if not clean or clean.startswith("\r"):
+                        continue
+                    clean = re.sub(r"\x1b\[[0-9;]*m", "", clean)
+                    if re.match(r"^\s*\d+%\|", clean):
+                        continue
+                    self._train_log.insert("end", clean + "\n")
+                self._train_log.see("end")
+                self._train_log.configure(state="disabled")
+            except Exception:
+                pass
+        self.after(0, _load_history)
+
+        # Tail: lê novas linhas enquanto o processo viver / tail: read new lines while process lives
+        with open(log_path, "r", errors="replace") as f:
+            f.seek(0, 2)  # Vai para o fim do arquivo / go to end of file
+            while True:
+                # Verifica se o processo ainda existe / check if process still alive
+                try:
+                    os.kill(pid, 0)
+                except ProcessLookupError:
+                    break
+
+                line = f.readline()
+                if not line:
+                    time.sleep(0.5)
+                    continue
+
+                _log(line)
+
+                # Atualiza progresso se linha de época / update progress if epoch line
+                m = re.search(r"epoch=(\d+)", line)
+                if m:
+                    epoch = int(m.group(1))
+                    frac = PHASE_START + (1.0 - PHASE_START) * (epoch / total_epochs)
+                    _prog(min(frac, 0.99))
+                    name = os.path.basename(log_path).removeprefix("rvc_train_").removesuffix(".log")
+                    _status(f"🧠  Época {epoch}/{total_epochs} — {name}", "#8B5CF6")
+
+        # Processo terminou / process ended
+        _status("✅  Treino concluído!", "#22C55E")
+        _prog(1.0)
+        self._training = False
+        def _re_enable():
+            self._train_btn.configure(state="normal", text="🎙 Treinar Voz")
+        self.after(0, _re_enable)
 
     def _idiomas(self, r: int) -> int:
         """Seção de seleção de idiomas (fala → traduz para). Returns next grid row.
