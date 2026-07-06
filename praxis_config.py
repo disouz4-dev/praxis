@@ -2417,11 +2417,57 @@ class ConfigWindow(ctk.CTk):
         )
         _next_btn.pack(side="right")
 
+        # ── Seletor de dispositivo de áudio ────────────────────────────────
+        # Audio device selector — auto-populated with available input devices
+        dev_row = ctk.CTkFrame(scroll, fg_color="transparent")
+        dev_row.pack(fill="x", padx=16, pady=(10, 2))
+        dev_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(dev_row, text="Microfone:",
+                     font=ctk.CTkFont(size=11), text_color=self.MUTED).grid(
+            row=0, column=0, sticky="w", padx=(0, 8))
+
+        import sounddevice as _sd
+        _devs = _sd.query_devices()
+        _in_devs = [f"[{i}] {d['name']}"
+                    for i, d in enumerate(_devs) if d["max_input_channels"] > 0]
+        _out_devs = [f"[{i}] {d['name']}"
+                     for i, d in enumerate(_devs) if d["max_output_channels"] > 0]
+        # Tenta pré-selecionar o Scarlett / pre-select Scarlett if present
+        _default_in = next((s for s in _in_devs
+                            if "scarlett" in s.lower() or "usb" in s.lower()), _in_devs[0])
+        _default_out = next((s for s in _out_devs
+                             if "scarlett" in s.lower() or "pipewire" in s.lower()), _out_devs[0])
+
+        self._dev_in_var  = ctk.StringVar(value=_default_in)
+        self._dev_out_var = ctk.StringVar(value=_default_out)
+        ctk.CTkOptionMenu(
+            dev_row, values=_in_devs, variable=self._dev_in_var,
+            width=260, height=26,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
+            button_hover_color=self.ACCENT, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=11),
+            command=lambda _: self._restart_audio_stream(),
+        ).grid(row=0, column=1, sticky="ew")
+
+        ctk.CTkLabel(dev_row, text="Saída:",
+                     font=ctk.CTkFont(size=11), text_color=self.MUTED).grid(
+            row=1, column=0, sticky="w", padx=(0, 8), pady=(4, 0))
+        ctk.CTkOptionMenu(
+            dev_row, values=_out_devs, variable=self._dev_out_var,
+            width=260, height=26,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
+            button_hover_color=self.ACCENT, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=11),
+            command=lambda _: self._restart_audio_stream(),
+        ).grid(row=1, column=1, sticky="ew", pady=(4, 0))
+
         # ── VU Meter ────────────────────────────────────────────────────────
         meter_frame = ctk.CTkFrame(scroll, fg_color=self.INPUT,
                                    border_color=self.IBORDER, border_width=1,
                                    corner_radius=8)
-        meter_frame.pack(fill="x", padx=16, pady=(12, 4))
+        meter_frame.pack(fill="x", padx=16, pady=(8, 4))
 
         meter_top = ctk.CTkFrame(meter_frame, fg_color="transparent")
         meter_top.pack(fill="x", padx=10, pady=(8, 2))
@@ -2812,16 +2858,38 @@ class ConfigWindow(ctk.CTk):
         self._rec_prog.set(0.1)
         threading.Thread(target=self._save_clone_worker, daemon=True).start()
 
+    def _parse_dev_idx(self, var: "ctk.StringVar") -> int | None:
+        """Extrai índice numérico de '[N] Nome'. Extracts numeric index from '[N] Name'."""
+        import re
+        m = re.match(r"\[(\d+)\]", var.get())
+        return int(m.group(1)) if m else None
+
+    def _restart_audio_stream(self) -> None:
+        """Reinicia o stream com os dispositivos selecionados pelo usuário.
+        Restarts the stream with the user-selected devices."""
+        self._stop_meter()
+        import time; time.sleep(0.2)
+        self._start_meter()
+
     def _start_meter(self) -> None:
-        """Stream full-duplex compartilhado: VU meter + monitor (loopback) + gravação.
-        Shared full-duplex stream: VU meter + monitor (loopback) + recording."""
+        """Stream full-duplex compartilhado: VU meter + monitor + gravação.
+        Shared full-duplex stream: VU meter + monitor + recording.
+        Usa dispositivo e SR selecionados / uses user-selected device and SR."""
+        dev_in  = self._parse_dev_idx(self._dev_in_var)
+        dev_out = self._parse_dev_idx(self._dev_out_var)
+
         def _run():
             try:
                 import sounddevice as sd, numpy as np
-                SR = 22050
+
+                # SR nativo do dispositivo — sem conversão no PipeWire
+                # Native device SR — no conversion in PipeWire
+                dev_info = sd.query_devices(dev_in)
+                SR = int(dev_info["default_samplerate"])
+                self._audio_sr = SR
 
                 def _cb(indata, outdata, frames, time_info, status):
-                    # VU meter — computa nível / compute level
+                    # VU meter
                     rms = float(np.sqrt(np.mean(indata.astype(np.float32) ** 2)))
                     db = 20 * np.log10(rms / 32768.0) if rms > 0 else -60.0
                     db = max(-60.0, min(0.0, db))
@@ -2831,23 +2899,26 @@ class ConfigWindow(ctk.CTk):
                     self.after(0, self._meter_bar.configure, {"progress_color": color})
                     self.after(0, self._meter_db_lbl.configure, {"text": f"{db:.0f} dB"})
 
-                    # Monitor: loopback mic → caixas / loopback mic → speakers
+                    # Monitor / loopback
                     if getattr(self, "_monitor_on", False):
                         outdata[:] = indata
                     else:
                         outdata.fill(0)
 
-                    # Gravação: acumula frames enquanto ativo / recording: collect frames while active
+                    # Gravação / recording
                     if getattr(self, "_rec_active", False):
                         self._rec_frames.append(indata.copy())
 
-                with sd.Stream(samplerate=SR, channels=1, dtype="int16",
-                               blocksize=256, latency="low", callback=_cb) as stream:
+                with sd.Stream(
+                    device=(dev_in, dev_out),
+                    samplerate=SR, channels=1, dtype="int16",
+                    blocksize=128, latency="low", callback=_cb,
+                ) as stream:
                     self._meter_stream = stream
                     while self._meter_stream is not None:
                         import time; time.sleep(0.05)
             except Exception:
-                pass  # Sem dispositivo de áudio — meter fica silencioso / no audio device
+                import traceback; traceback.print_exc()
 
         threading.Thread(target=_run, daemon=True).start()
 
@@ -3153,7 +3224,7 @@ class ConfigWindow(ctk.CTk):
                 return
 
             import numpy as np, wave
-            SR = 22050
+            SR = getattr(self, "_audio_sr", 48000)  # SR real do dispositivo / actual device SR
 
             _status("Concatenando áudio da sessão…")
             _prog(0.3, "#F59E0B")
