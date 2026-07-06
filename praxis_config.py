@@ -3631,8 +3631,6 @@ class ConfigWindow(ctk.CTk):
         out_name  = self._label_to_name(out_label.get(), self._outputs) if out_label else ""
         pa_out    = out_name.split(":")[0] if out_name else ""
 
-        SR = 44100  # taxa de amostragem fixa / fixed sample rate
-
         def _run():
             try:
                 import sounddevice as sd, numpy as np
@@ -3645,6 +3643,27 @@ class ConfigWindow(ctk.CTk):
                 if pa_out:
                     subprocess.run(["pactl", "set-default-sink", pa_out],
                                    capture_output=True, timeout=3)
+
+                # Detecta SR nativo do dispositivo de entrada; fallback 44100
+                # Detect native SR of input device; fallback 44100
+                SR = 44100
+                try:
+                    devs = sd.query_devices()
+                    for i, d in enumerate(devs):
+                        if d["max_input_channels"] > 0 and pa_in and pa_in in d.get("name", ""):
+                            native = int(d["default_samplerate"])
+                            if native in (44100, 48000, 96000):
+                                SR = native
+                            break
+                    else:
+                        # Sem match por nome: usa SR do dispositivo de entrada padrão
+                        # No name match: use SR of default input device
+                        default_in = sd.query_devices(kind="input")
+                        native = int(default_in["default_samplerate"])
+                        if native in (44100, 48000, 96000):
+                            SR = native
+                except Exception:
+                    pass
 
                 self._audio_sr = SR
 
