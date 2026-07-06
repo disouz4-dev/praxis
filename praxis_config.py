@@ -2991,10 +2991,14 @@ class ConfigWindow(ctk.CTk):
 
         def _worker():
             try:
-                import whisper as _w
-                _m = _w.load_model("base")
-                result = _m.transcribe(path, task="transcribe")
-                text = result.get("text", "").strip()
+                # Usa faster_whisper (mesmo backend do Praxis) / uses faster_whisper (same as Praxis)
+                from faster_whisper import WhisperModel
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                ctype  = "int8_float16" if device == "cuda" else "int8"
+                _m = WhisperModel("base", device=device, compute_type=ctype)
+                segments, _ = _m.transcribe(path, task="transcribe")
+                text = " ".join(s.text.strip() for s in segments).strip()
                 self.after(0, lambda: self._ov_ref_text.delete(0, "end"))
                 self.after(0, lambda: self._ov_ref_text.insert(0, text))
                 self.after(0, lambda: self._ov_rec_status.configure(
