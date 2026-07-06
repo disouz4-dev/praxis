@@ -2432,6 +2432,15 @@ class ConfigWindow(ctk.CTk):
                                            font=ctk.CTkFont(size=11),
                                            text_color=self.MUTED)
         self._meter_db_lbl.pack(side="right")
+        # Botão monitor: roteia mic → caixa em tempo real / Monitor: routes mic → speakers live
+        self._monitor_var = ctk.BooleanVar(value=False)
+        ctk.CTkSwitch(
+            meter_top, text="Monitor", width=90,
+            variable=self._monitor_var, onvalue=True, offvalue=False,
+            font=ctk.CTkFont(size=10), text_color=self.MUTED,
+            progress_color=self.ACCENT,
+            command=lambda: setattr(self, "_monitor_on", self._monitor_var.get()),
+        ).pack(side="right", padx=(0, 10))
 
         self._meter_bar = ctk.CTkProgressBar(meter_frame, height=14,
                                               corner_radius=4,
@@ -2451,7 +2460,9 @@ class ConfigWindow(ctk.CTk):
         marks_row.configure(height=14)
         marks_row.pack_propagate(False)
 
-        self._start_meter()
+        # Delay de 300ms para o mainloop estar pronto antes de abrir o stream
+        # 300ms delay so mainloop is ready before opening the audio stream
+        self.after(300, self._start_meter)
 
         # ── Botão + barra de progresso da gravação ─────────────────────────
         rec_row = ctk.CTkFrame(scroll, fg_color="transparent")
@@ -2474,6 +2485,53 @@ class ConfigWindow(ctk.CTk):
                                              progress_color="#DC2626")
         self._rec_prog.set(0)
         self._rec_prog.pack(fill="x", padx=16, pady=(2, 4))
+
+        # ── Card de efeitos de áudio: Denoise + Compressor ─────────────────
+        # Audio FX card: applied after recording before saving
+        fx_card = ctk.CTkFrame(scroll, fg_color=self.INPUT,
+                               border_color=self.IBORDER, border_width=1,
+                               corner_radius=8)
+        fx_card.pack(fill="x", padx=16, pady=(6, 4))
+
+        # Linha Denoise / Denoise row
+        dn_row = ctk.CTkFrame(fx_card, fg_color="transparent")
+        dn_row.pack(fill="x", padx=12, pady=(8, 2))
+        ctk.CTkLabel(dn_row, text="Denoise",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.TEXT).pack(side="left")
+        self._denoise_pct_lbl = ctk.CTkLabel(
+            dn_row, text="0%", width=36,
+            font=ctk.CTkFont(size=11), text_color=self.MUTED)
+        self._denoise_pct_lbl.pack(side="right")
+        self._denoise_var = ctk.DoubleVar(value=0.0)
+
+        def _on_denoise_slide(v):
+            self._denoise_pct_lbl.configure(text=f"{int(float(v)*100)}%")
+        ctk.CTkSlider(
+            fx_card, from_=0.0, to=1.0, variable=self._denoise_var,
+            fg_color=self.SEG_BG, progress_color=self.ACCENT,
+            button_color=self.ACCENT, button_hover_color=self.HOVER,
+            command=_on_denoise_slide,
+        ).pack(fill="x", padx=12, pady=(0, 6))
+
+        # Linha Compressor / Compressor row
+        cmp_row = ctk.CTkFrame(fx_card, fg_color="transparent")
+        cmp_row.pack(fill="x", padx=12, pady=(2, 8))
+        ctk.CTkLabel(cmp_row, text="Compressor",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.TEXT).pack(side="left")
+        self._compressor_var = ctk.StringVar(value="Desligado")
+        ctk.CTkOptionMenu(
+            cmp_row,
+            values=["Desligado", "Leve", "Médio", "Forte"],
+            variable=self._compressor_var,
+            width=120, height=28,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
+            button_hover_color=self.ACCENT, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG,
+            font=ctk.CTkFont(size=12),
+        ).pack(side="right")
 
         # ── Duração acumulada + botão Treinar ──────────────────────────────
         # Accumulated duration + Train button
@@ -2669,38 +2727,32 @@ class ConfigWindow(ctk.CTk):
 
     def _toggle_recording(self) -> None:
         """Alterna entre iniciar e parar a gravação. Toggle recording on/off."""
-        if self._rec_thread and self._rec_thread.is_alive():
+        if getattr(self, "_rec_active", False):
             self._stop_recording()
         else:
             self._start_recording()
 
     def _start_recording(self) -> None:
-        """Inicia a gravação de voz: pausa o VU meter, lança thread de captura.
-        Starts voice recording: pauses VU meter, launches capture thread."""
-        try:
-            import sounddevice as sd  # noqa: F401
-        except ImportError:
+        """Inicia gravação: ativa coleta de frames no stream full-duplex compartilhado.
+        Starts recording: activates frame collection in the shared full-duplex stream."""
+        if not self._meter_stream:
             self._rec_status.configure(
-                text="❌ Instale sounddevice:  pip install sounddevice")
+                text="❌ Sem microfone — verifique o dispositivo de áudio")
             return
-        # Pausa o VU meter para liberar o dispositivo de áudio
-        self._stop_meter()
         self._rec_frames = []
-        self._rec_stop_evt = threading.Event()
+        self._rec_active = True
         self._rec_btn.configure(text="■ Parar", fg_color="#7C3AED",
                                 hover_color="#6D28D9")
         self._rec_status.configure(text="● Gravando — fale agora", text_color="#DC2626")
         self._rec_prog.configure(progress_color="#DC2626")
         self._rec_prog.set(0)
-        self._rec_thread = threading.Thread(target=self._record_worker, daemon=True)
-        self._rec_thread.start()
         self._rec_timer = 0
         self._rec_tick()
 
     def _rec_tick(self) -> None:
         """Tick a cada segundo durante a gravação: atualiza barra de progresso e timer.
         Fires every second during recording: updates progress bar and timer."""
-        if self._rec_stop_evt and not self._rec_stop_evt.is_set():
+        if getattr(self, "_rec_active", False):
             self._rec_timer += 1
             pct = min(self._rec_timer / self._REC_MAX_S, 1.0)
             self._rec_prog.set(pct)
@@ -2714,8 +2766,7 @@ class ConfigWindow(ctk.CTk):
     def _stop_recording(self) -> None:
         """Para a gravação e inicia o worker de salvamento do áudio.
         Stops recording and starts the audio save worker."""
-        if self._rec_stop_evt:
-            self._rec_stop_evt.set()
+        self._rec_active = False
         self._rec_btn.configure(text="● Gravar", fg_color="#DC2626",
                                 hover_color="#B91C1C", state="disabled")
         self._rec_status.configure(text="Salvando áudio…", text_color=self.MUTED)
@@ -2724,39 +2775,41 @@ class ConfigWindow(ctk.CTk):
         threading.Thread(target=self._save_clone_worker, daemon=True).start()
 
     def _start_meter(self) -> None:
-        """Inicia stream de monitoramento de nível do microfone (VU meter)."""
+        """Stream full-duplex compartilhado: VU meter + monitor (loopback) + gravação.
+        Shared full-duplex stream: VU meter + monitor (loopback) + recording."""
         def _run():
             try:
                 import sounddevice as sd, numpy as np
                 SR = 22050
-                def _cb(indata, frames, time, status):
+
+                def _cb(indata, outdata, frames, time_info, status):
+                    # VU meter — computa nível / compute level
                     rms = float(np.sqrt(np.mean(indata.astype(np.float32) ** 2)))
-                    # Converte RMS (0..32767) para dB e normaliza para 0..1
-                    # Faixa: -60dB (silêncio) a 0dB (pico máximo)
-                    if rms > 0:
-                        db = 20 * np.log10(rms / 32768.0)
-                    else:
-                        db = -60.0
+                    db = 20 * np.log10(rms / 32768.0) if rms > 0 else -60.0
                     db = max(-60.0, min(0.0, db))
-                    level = (db + 60.0) / 60.0          # 0..1
-                    if db > -6:
-                        color = "#EF4444"               # vermelho — pico perigoso
-                    elif db > -18:
-                        color = "#F59E0B"               # amarelo — ok
-                    else:
-                        color = "#22C55E"               # verde — bom
-                    db_str = f"{db:.0f} dB"
+                    level = (db + 60.0) / 60.0
+                    color = "#EF4444" if db > -6 else "#F59E0B" if db > -18 else "#22C55E"
                     self.after(0, self._meter_bar.set, level)
                     self.after(0, self._meter_bar.configure, {"progress_color": color})
-                    self.after(0, self._meter_db_lbl.configure, {"text": db_str})
+                    self.after(0, self._meter_db_lbl.configure, {"text": f"{db:.0f} dB"})
 
-                with sd.InputStream(samplerate=SR, channels=1, dtype="int16",
-                                    blocksize=SR // 20, callback=_cb) as stream:
+                    # Monitor: loopback mic → caixas / loopback mic → speakers
+                    if getattr(self, "_monitor_on", False):
+                        outdata[:] = indata
+                    else:
+                        outdata.fill(0)
+
+                    # Gravação: acumula frames enquanto ativo / recording: collect frames while active
+                    if getattr(self, "_rec_active", False):
+                        self._rec_frames.append(indata.copy())
+
+                with sd.Stream(samplerate=SR, channels=1, dtype="int16",
+                               blocksize=SR // 20, callback=_cb) as stream:
                     self._meter_stream = stream
                     while self._meter_stream is not None:
                         import time; time.sleep(0.05)
             except Exception:
-                pass   # sem microfone — meter fica silencioso
+                pass  # Sem dispositivo de áudio — meter fica silencioso / no audio device
 
         threading.Thread(target=_run, daemon=True).start()
 
@@ -2970,27 +3023,49 @@ class ConfigWindow(ctk.CTk):
         except Exception as e:
             _done(False, f"❌ Erro: {e}")
 
-    def _record_worker(self) -> None:
-        """Thread de captura: lê blocos de áudio do microfone e acumula em _rec_frames.
-        Capture thread: reads audio blocks from mic and accumulates in _rec_frames."""
-        try:
-            import sounddevice as sd
-            import numpy as np
-            SR = 22050
-            with sd.InputStream(samplerate=SR, channels=1, dtype="int16") as stream:
-                while not self._rec_stop_evt.is_set():
-                    data, _ = stream.read(SR // 10)
-                    self._rec_frames.append(data.copy())
-        except Exception as e:
-            self.after(0, self._rec_status.configure,
-                       {"text": f"❌ Erro na gravação: {e}", "text_color": "#DC2626"})
-            self.after(0, self._rec_prog.set, 0)
-            self.after(0, self._rec_btn.configure,
-                       {"text": "● Gravar", "fg_color": "#DC2626",
-                        "hover_color": "#B91C1C", "state": "normal"})
-            if self._rec_stop_evt:
-                self._rec_stop_evt.set()
-            self._start_meter()
+    def _apply_audio_fx(self, pcm: "np.ndarray", sr: int,
+                        status_fn: "callable") -> "np.ndarray":
+        """Aplica denoise (DeepFilterNet) e compressor (pedalboard) ao áudio gravado.
+        Applies DeepFilterNet denoising and pedalboard compression to recorded audio."""
+        import numpy as np
+
+        # ── Denoise ────────────────────────────────────────────────────────
+        strength = self._denoise_var.get()   # 0.0 → 1.0
+        if strength > 0.01:
+            try:
+                status_fn(f"Reduzindo ruído ({int(strength * 100)}%)…")
+                from df import enhance, init_df
+                import torch
+                model, df_state, _ = init_df()
+                df_state.set_atten_lim_db(strength * 40.0)   # 0–40 dB de atenuação
+                norm = pcm / 32768.0
+                tensor = torch.from_numpy(
+                    norm.reshape(1, -1).astype(np.float32))
+                enhanced = enhance(model, df_state, tensor)
+                pcm = enhanced.squeeze(0).numpy() * 32768.0
+            except Exception:
+                pass   # Falha silenciosa — áudio original preservado / silent fail
+
+        # ── Compressor ─────────────────────────────────────────────────────
+        preset = self._compressor_var.get()
+        presets = {
+            "Leve":  (-20, 2.0, 10.0, 100.0),  # threshold, ratio, attack_ms, release_ms
+            "Médio": (-15, 4.0,  5.0,  80.0),
+            "Forte": (-10, 8.0,  2.0,  50.0),
+        }
+        if preset in presets:
+            try:
+                status_fn(f"Compressor {preset}…")
+                from pedalboard import Pedalboard, Compressor as PBComp
+                th, ratio, atk, rel = presets[preset]
+                board = Pedalboard([PBComp(threshold_db=th, ratio=ratio,
+                                           attack_ms=atk, release_ms=rel)])
+                norm = pcm.reshape(1, -1).astype(np.float32) / 32768.0
+                pcm = board(norm, sample_rate=float(sr)).reshape(-1) * 32768.0
+            except Exception:
+                pass
+
+        return pcm
 
     def _save_clone_worker(self) -> None:
         """Worker: converte frames gravados para WAV e concatena com sessões anteriores.
@@ -3020,6 +3095,11 @@ class ConfigWindow(ctk.CTk):
             _prog(0.3, "#F59E0B")
             # Concatena frames da sessão atual / concatenate frames from current session
             new_pcm = np.concatenate(self._rec_frames, axis=0).astype(np.float32)
+
+            # Aplica denoise + compressor conforme controles da UI
+            # Apply denoise + compressor according to UI controls
+            new_pcm = self._apply_audio_fx(new_pcm, SR, _status)
+            _prog(0.55, "#F59E0B")
 
             name   = self._clone_name_var.get().strip() or "minha_voz"
             safe   = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
