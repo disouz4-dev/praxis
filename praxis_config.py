@@ -2624,7 +2624,7 @@ class ConfigWindow(ctk.CTk):
                 DATASET_DIR,                          # dataset path
                 "40000",                              # sample rate
                 "4",                                  # cpu cores
-                "True",                               # cut_preprocess
+                "Automatic",                          # cut_preprocess: Skip|Simple|Automatic
                 "False",                              # process_effects
                 "False",                              # noise_reduction
                 "0.7",                                # clean_strength
