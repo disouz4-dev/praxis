@@ -2476,12 +2476,18 @@ class ConfigWindow(ctk.CTk):
             command=self._toggle_monitor,
         ).pack(side="right", padx=(0, 6))
 
-        self._meter_bar = ctk.CTkProgressBar(meter_frame, height=14,
-                                              corner_radius=4,
-                                              fg_color=self.SEG_BG,
-                                              progress_color="#22C55E")
-        self._meter_bar.set(0)
-        self._meter_bar.pack(fill="x", padx=10, pady=(2, 4))
+        # Canvas com gradiente verde→amarelo→vermelho (igual ao VU meter do Config)
+        # Canvas with green→yellow→red gradient (same as Config VU meter)
+        self._clone_meter_canvas = tk.Canvas(
+            meter_frame, height=14, bg=self.INPUT,
+            highlightthickness=0, bd=0,
+        )
+        self._clone_meter_canvas.pack(fill="x", padx=10, pady=(2, 4))
+        self._clone_meter_canvas.bind("<Configure>", self._clone_meter_configure)
+        self._clone_meter_W = 0
+        self._clone_meter_H = 0
+        self._clone_meter_peak = 0.0
+        self._clone_meter_ids: dict = {}
 
         # marcas de referência: -40  -20  -12  -6  0 dB
         marks_row = ctk.CTkFrame(meter_frame, fg_color="transparent")
@@ -3434,6 +3440,70 @@ class ConfigWindow(ctk.CTk):
         import time; time.sleep(0.2)
         self._start_meter()
 
+    def _clone_meter_configure(self, event: tk.Event) -> None:
+        """Desenha gradiente verde→amarelo→vermelho no canvas do VU meter da clonagem.
+        Draws green→yellow→red gradient on the Clone tab VU meter canvas."""
+        W, H = event.width, event.height
+        if W < 2:
+            return
+        self._clone_meter_W = W
+        self._clone_meter_H = H
+        c = self._clone_meter_canvas
+        c.delete("all")
+
+        GREEN  = (34,  197,  94)
+        YELLOW = (234, 179,   8)
+        RED    = (239,  68,  68)
+
+        for i in range(W):
+            frac = i / W
+            if frac < 0.65:
+                t  = frac / 0.65
+                r2 = int(GREEN[0]  + (YELLOW[0] - GREEN[0])  * t)
+                g2 = int(GREEN[1]  + (YELLOW[1] - GREEN[1])  * t)
+                b2 = int(GREEN[2]  + (YELLOW[2] - GREEN[2])  * t)
+            else:
+                t  = (frac - 0.65) / 0.35
+                r2 = int(YELLOW[0] + (RED[0] - YELLOW[0]) * t)
+                g2 = int(YELLOW[1] + (RED[1] - YELLOW[1]) * t)
+                b2 = int(YELLOW[2] + (RED[2] - YELLOW[2]) * t)
+            c.create_line(i, 0, i, H, fill=f"#{r2:02x}{g2:02x}{b2:02x}")
+
+        # Máscara cobre parte não preenchida / mask covers the unfilled region
+        self._clone_meter_ids["mask"] = c.create_rectangle(
+            0, 0, W, H, fill=self.INPUT, outline="")
+        # Linha de pico / peak line
+        self._clone_meter_ids["peak"] = c.create_line(
+            0, 0, 0, H, fill=self.INPUT, width=2)
+
+    def _clone_meter_update(self, level: float, db: float) -> None:
+        """Atualiza máscara e pico do VU meter da clonagem a partir do nível de áudio.
+        Updates Clone tab VU meter mask and peak from the current audio level."""
+        W = self._clone_meter_W
+        H = self._clone_meter_H
+        if W < 2 or not self._clone_meter_ids:
+            return
+        c  = self._clone_meter_canvas
+        mx = int(W * level)
+
+        # Move máscara para revelar o gradiente até o nível atual
+        # Move mask to reveal gradient up to current level
+        c.coords(self._clone_meter_ids["mask"], mx, 0, W, H)
+
+        # Pico: avança rápido, cai devagar (hold + decay)
+        # Peak: rises fast, falls slowly (hold + decay)
+        if level >= self._clone_meter_peak:
+            self._clone_meter_peak = level
+        else:
+            self._clone_meter_peak = max(0.0, self._clone_meter_peak - 0.008)
+        px = int(W * self._clone_meter_peak)
+        peak_color = "#EF4444" if db > -6 else "#F59E0B" if db > -18 else "#22C55E"
+        c.coords(self._clone_meter_ids["peak"], px, 0, px, H)
+        c.itemconfigure(self._clone_meter_ids["peak"], fill=peak_color)
+
+        # Atualiza label dB / update dB label
+        self._meter_db_lbl.configure(text=f"{db:.0f} dB")
+
     def _start_meter(self) -> None:
         """Stream full-duplex compartilhado: VU meter + monitor + gravação.
         Shared full-duplex stream: VU meter + monitor + recording.
@@ -3469,15 +3539,13 @@ class ConfigWindow(ctk.CTk):
                 self._audio_sr = SR
 
                 def _cb(indata, outdata, frames, time_info, status):
-                    # VU meter
+                    # VU meter com gradiente (canvas igual ao Config)
+                    # Gradient VU meter (canvas identical to Config tab)
                     rms = float(np.sqrt(np.mean(indata.astype(np.float32) ** 2)))
                     db = 20 * np.log10(rms / 32768.0) if rms > 0 else -60.0
                     db = max(-60.0, min(0.0, db))
                     level = (db + 60.0) / 60.0
-                    color = "#EF4444" if db > -6 else "#F59E0B" if db > -18 else "#22C55E"
-                    self.after(0, self._meter_bar.set, level)
-                    self.after(0, self._meter_bar.configure, {"progress_color": color})
-                    self.after(0, self._meter_db_lbl.configure, {"text": f"{db:.0f} dB"})
+                    self.after(0, self._clone_meter_update, level, db)
 
                     # Monitor / loopback
                     if getattr(self, "_monitor_on", False):
