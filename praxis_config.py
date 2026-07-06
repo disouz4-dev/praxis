@@ -4066,13 +4066,13 @@ class ConfigWindow(ctk.CTk):
                     text=phrase,
                     voice_clone_prompt=prompt,
                 )
-                tmp = "/tmp/praxis_clone_test.wav"
-                sf.write(tmp, audio[0], 24000)
-
                 _anim_stop.set()
                 _set_prog(0.94)
                 _update("Reproduzindo…")
-                subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
+                # sounddevice.play() evita o bug do aplay com WAV float32
+                # sounddevice.play() avoids aplay misinterpreting float32 WAV as PCM16
+                import sounddevice as _sd
+                _sd.play(audio[0], 24000, blocking=True)
                 _set_prog(1.0)
                 if test_prog:
                     self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
@@ -4138,13 +4138,13 @@ class ConfigWindow(ctk.CTk):
                     repetition_penalty=5.0,
                     enable_text_splitting=True,
                 )
-                tmp = "/tmp/praxis_clone_test.wav"
-                torchaudio.save(tmp, torch.tensor(out["wav"]).unsqueeze(0), 24000)
+                _wav_tensor = torch.tensor(out["wav"])
 
                 _anim_stop.set()
                 _set_prog(0.94)
                 _update("3/3  Reproduzindo…")
-                subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
+                import sounddevice as _sd
+                _sd.play(_wav_tensor.numpy(), 24000, blocking=True)
                 _set_prog(1.0)
                 if test_prog:
                     self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
