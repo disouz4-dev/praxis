@@ -177,6 +177,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Nenhuma voz {lang} instalada",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Baixar vozes",
+        "lbl_cloned_models": "Modelos clonados",
     },
     "en": {
         "tagline":        "One message. Every language.",
@@ -224,6 +225,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "No {lang} voice installed",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Download voices",
+        "lbl_cloned_models": "Cloned voices",
     },
     "es": {
         "tagline":        "Un mensaje. Todos los idiomas.",
@@ -271,6 +273,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Sin voz {lang} instalada",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Descargar voces",
+        "lbl_cloned_models": "Voces clonadas",
     },
     "fr": {
         "tagline":        "Un message. Toutes les langues.",
@@ -318,6 +321,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Aucune voix {lang} installée",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Télécharger voix",
+        "lbl_cloned_models": "Voix clonées",
     },
     "de": {
         "tagline":        "Eine Nachricht. Alle Sprachen.",
@@ -365,6 +369,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Keine {lang}-Stimme installiert",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Stimmen herunterladen",
+        "lbl_cloned_models": "Geklonte Stimmen",
     },
     "it": {
         "tagline":        "Un messaggio. Tutte le lingue.",
@@ -412,6 +417,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Nessuna voce {lang} installata",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Scarica voci",
+        "lbl_cloned_models": "Voci clonate",
     },
     "ru": {
         "tagline":        "Одно сообщение. Все языки.",
@@ -459,6 +465,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Нет голоса {lang}",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Загрузить голоса",
+        "lbl_cloned_models": "Клонированные голоса",
     },
     "zh": {
         "tagline":        "一条消息。所有语言。",
@@ -506,6 +513,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "未安装 {lang} 语音",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  下载语音",
+        "lbl_cloned_models": "克隆语音",
     },
     "nl": {
         "tagline":        "Één bericht. Elke taal.",
@@ -553,6 +561,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Geen {lang} stem geïnstalleerd",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Stemmen downloaden",
+        "lbl_cloned_models": "Gekloonde stemmen",
     },
     "pl": {
         "tagline":        "Jedna wiadomość. Każdy język.",
@@ -600,6 +609,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Brak głosu {lang}",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Pobierz głosy",
+        "lbl_cloned_models": "Sklonowane głosy",
     },
     "uk": {
         "tagline":        "Одне повідомлення. Всі мови.",
@@ -647,6 +657,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "Немає голосу {lang}",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Завантажити голоси",
+        "lbl_cloned_models": "Клоновані голоси",
     },
     "tr": {
         "tagline":        "Bir mesaj. Her dil.",
@@ -694,6 +705,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "{lang} sesi kurulu değil",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  Ses indir",
+        "lbl_cloned_models": "Klonlanmış sesler",
     },
     "ar": {
         "tagline":        "رسالة واحدة. كل اللغات.",
@@ -741,6 +753,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "لا يوجد صوت {lang} مثبّت",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  تحميل الأصوات",
+        "lbl_cloned_models": "الأصوات المستنسخة",
     },
     "hi": {
         "tagline":        "एक संदेश। हर भाषा।",
@@ -788,6 +801,7 @@ UI_STRINGS: dict[str, dict[str, str]] = {
         "lbl_their_voice_hint": "कोई {lang} आवाज़ नहीं",
         "btn_refresh":    "↺",
         "btn_download":   "⬇  आवाज़ें डाउनलोड करें",
+        "lbl_cloned_models": "क्लोन आवाज़ें",
     },
 }
 
@@ -1461,12 +1475,35 @@ class ConfigWindow(ctk.CTk):
                        "_voice_menu", "_test_btn", "_theme_btn", "_lang_menu",
                        "_tab_seg", "_config_frame_outer", "_clone_frame_outer",
                        "_dl_card", "_dl_card_kw", "_dl_inner",
-                       "_dl_progress", "_dl_pct_lbl", "_dl_status"):
+                       "_dl_progress", "_dl_pct_lbl", "_dl_status",
+                       "_show_clones"):
             try: delattr(self, _attr)
             except AttributeError: pass
 
         self._build()
         self._refresh_devices(startup=True)
+
+    def _filter_voices(self, lang_code: str, clones_only: bool = False) -> list[tuple[str, str]]:
+        """Filtra lista de vozes: clones_only=True → só 🎙; False → só Piper do idioma.
+        Filters voice list: clones_only=True → only 🎙 clones; False → Piper voices for lang."""
+        if clones_only:
+            return [(p, lbl) for p, lbl in self._voices if lbl.startswith("🎙 ")]
+        return [(p, lbl) for p, lbl in self._voices
+                if not lbl.startswith("🎙 ") and _voice_lang_code(p) == lang_code]
+
+    def _on_clone_filter_toggle(self) -> None:
+        """Alterna entre vozes Piper e clones OmniVoice no dropdown de saída.
+        Toggles between Piper voices and OmniVoice clones in the output voice dropdown."""
+        tgt_code = self._tgt_code()
+        clones_only = getattr(self, "_show_clones", None)
+        clones_only = clones_only.get() if clones_only else False
+        filtered = self._filter_voices(tgt_code, clones_only=clones_only)
+        labels = [lbl for _, lbl in filtered]
+        if not labels:
+            labels = [self._t("lbl_no_clones") if clones_only else "(nenhuma voz)"]
+        self._voice_menu.configure(values=labels)
+        if self.voice_var.get() not in labels:
+            self.voice_var.set(labels[0])
 
     # ── Ícone e splash ────────────────────────────────────────────────────────
 
@@ -2539,8 +2576,24 @@ class ConfigWindow(ctk.CTk):
 
     def _voice_field(self, row: int) -> int:
         self._voices: list[tuple[str, str]] = get_voices()
+        self._show_clones = ctk.BooleanVar(value=False)
         tgt_code = self._tgt_code()
-        filtered = _voices_for_lang(self._voices, tgt_code)
+
+        # Checkbox "Modelos clonados" — alterna entre Piper e clones
+        # Checkbox "Cloned models" — toggles between Piper and clones
+        ctk.CTkCheckBox(
+            self._card,
+            text=self._t("lbl_cloned_models"),
+            variable=self._show_clones,
+            command=self._on_clone_filter_toggle,
+            fg_color=self.ACCENT, hover_color=self.HOVER,
+            checkmark_color="#FFFFFF",
+            text_color=self.TEXT,
+            font=ctk.CTkFont(size=11),
+        ).grid(row=row, column=0, columnspan=2, sticky="w", padx=20, pady=(0, 4))
+        row += 1
+
+        filtered = self._filter_voices(tgt_code, clones_only=False)
         labels = [lbl for _, lbl in filtered] or ["(nenhuma voz)"]
 
         saved_path = self.cfg.get("voice_out", "")
@@ -2639,15 +2692,18 @@ class ConfigWindow(ctk.CTk):
         if not hasattr(self, "_voice_menu"):
             return
         tgt_code = self._tgt_code()
-        filtered = _voices_for_lang(self._voices, tgt_code)
+        clones_only = getattr(self, "_show_clones", None)
+        clones_only = clones_only.get() if clones_only else False
+        filtered = self._filter_voices(tgt_code, clones_only=clones_only)
         labels = [lbl for _, lbl in filtered]
         if labels:
             self._voice_menu.configure(values=labels)
             if self.voice_var.get() not in labels:
                 self.voice_var.set(labels[0])
         else:
-            self._voice_menu.configure(values=["(nenhuma voz)"])
-            self.voice_var.set("(nenhuma voz)")
+            empty = self._t("lbl_no_clones") if clones_only else "(nenhuma voz)"
+            self._voice_menu.configure(values=[empty])
+            self.voice_var.set(empty)
 
         # Mostra card de download se houver vozes do catálogo ainda não baixadas
         remaining = [v for v in VOICE_CATALOG
@@ -4315,17 +4371,20 @@ class ConfigWindow(ctk.CTk):
         """Define a voz clonada como voz de saída e vai para aba Config."""
         self._clone_voice_path = wav_path
         self._clone_voice_name = name
-        # Atualiza o seletor de voz na aba Config (adiciona item se não existe)
+        # Ativa filtro de clones e mostra apenas clones no dropdown
+        if hasattr(self, "_show_clones"):
+            self._show_clones.set(True)
         if hasattr(self, "_voice_menu"):
-            cur_vals = list(self._voice_menu.cget("values"))
+            # Garante que o clone está na lista interna de vozes
             label = f"🎙 {name}"
-            if label not in cur_vals:
-                cur_vals.insert(0, label)
+            if not any(p == wav_path for p, _ in self._voices):
                 self._voices.insert(0, (wav_path, label))
-                self._voice_menu.configure(values=cur_vals)
+            # Mostra apenas clones
+            clone_labels = [lbl for _, lbl in self._voices if lbl.startswith("🎙 ")]
+            self._voice_menu.configure(values=clone_labels or [label])
             self.voice_var.set(label)
-        self._tab_seg.set("⚙  Config")
-        self._on_tab_change("⚙  Config")
+        self._tab_seg.set(self._t("tab_config"))
+        self._on_tab_change(self._t("tab_config"))
 
     def _delete_clone(self, json_path: Path) -> None:
         """Remove clone de voz: apaga JSON, WAV e .pth associados.
