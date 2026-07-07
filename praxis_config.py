@@ -2958,35 +2958,103 @@ class ConfigWindow(ctk.CTk):
             font=ctk.CTkFont(size=11), text_color=self.MUTED)
         self._ov_rec_status.pack(side="left")
 
-        # Botão procurar arquivo alternativo / browse alternative file
+        def _ov_import_audio(src_path: str) -> None:
+            """Importa qualquer formato de áudio como referência OmniVoice,
+            convertendo para WAV 24 kHz mono via ffmpeg interno se necessário.
+            Imports any audio format as OmniVoice reference, converting to
+            WAV 24 kHz mono via internal ffmpeg when needed."""
+            import os, subprocess
+            src_path = src_path.strip()
+            if not src_path or not os.path.exists(src_path):
+                self._ov_rec_status.configure(
+                    text="❌ Arquivo não encontrado", text_color="#EF4444")
+                return
+            ext = os.path.splitext(src_path)[1].lower()
+            if ext == ".wav":
+                wav_path = src_path
+            else:
+                # Converte para WAV 24 kHz mono PCM_16 via ffmpeg
+                # Convert to WAV 24 kHz mono PCM_16 via ffmpeg
+                self._ov_rec_status.configure(
+                    text="Convertendo áudio…", text_color="#F59E0B")
+                self.update_idletasks()
+                wav_path = "/tmp/ov_ref_import.wav"
+                r = subprocess.run(
+                    ["ffmpeg", "-y", "-i", src_path,
+                     "-ar", "24000", "-ac", "1", "-sample_fmt", "s16", wav_path],
+                    capture_output=True, timeout=60,
+                )
+                if r.returncode != 0:
+                    self._ov_rec_status.configure(
+                        text="❌ Conversão falhou", text_color="#EF4444")
+                    return
+            self._ov_ref_path.set(wav_path)
+            # Atualiza entry com nome original / update entry with original filename
+            self._ov_import_entry.delete(0, "end")
+            self._ov_import_entry.insert(0, os.path.basename(src_path))
+            try:
+                self._ov_play_ref_btn.configure(state="normal")
+            except Exception:
+                pass
+            self._ov_rec_status.configure(
+                text=f"✓ {os.path.basename(src_path)}", text_color="#22C55E")
+            self._ov_transcribe()
+
         def _ov_browse() -> None:
-            """Abre diálogo para selecionar WAV alternativo. Open file dialog for alternative WAV."""
+            """Abre diálogo de arquivo com todos os formatos de áudio suportados.
+            Opens file dialog with all supported audio formats."""
             import tkinter.filedialog as fd
             path = fd.askopenfilename(
                 title="Selecionar áudio de referência",
-                filetypes=[("WAV", "*.wav"), ("Todos", "*.*")],
+                filetypes=[
+                    ("Áudio", "*.wav *.mp3 *.ogg *.opus *.m4a *.flac *.aac *.mp4 *.webm *.3gp"),
+                    ("WAV", "*.wav"),
+                    ("MP3", "*.mp3"),
+                    ("OGG / Opus  (WhatsApp)", "*.ogg *.opus"),
+                    ("M4A / AAC", "*.m4a *.aac"),
+                    ("FLAC", "*.flac"),
+                    ("Todos", "*.*"),
+                ],
             )
             if path:
-                self._ov_ref_path.set(path)
-                self._ov_rec_status.configure(
-                    text=f"Arquivo: {__import__('os').path.basename(path)}",
-                    text_color=self.TEXT)
-                self._ov_transcribe()
-
-        ctk.CTkButton(
-            _ov_ctl, text="…", width=32, height=32,
-            fg_color=self.SEG_BG, hover_color=self.IBORDER,
-            text_color=self.MUTED, border_width=1,
-            border_color=self.IBORDER, corner_radius=8,
-            font=ctk.CTkFont(size=14),
-            command=_ov_browse,
-        ).pack(side="right")
+                _ov_import_audio(path)
 
         self._ov_rec_prog = ctk.CTkProgressBar(_ov_rec_card, height=5,
                                                 fg_color=self.SEG_BG,
                                                 progress_color="#DC2626")
         self._ov_rec_prog.set(0)
-        self._ov_rec_prog.pack(fill="x", padx=12, pady=(4, 10))
+        self._ov_rec_prog.pack(fill="x", padx=12, pady=(4, 6))
+
+        # ── Importar áudio externo ──────────────────────────────────────────
+        # External audio import — any format, converted internally via ffmpeg
+        ctk.CTkLabel(_ov_rec_card,
+                     text="— ou importe um áudio gravado —",
+                     font=ctk.CTkFont(size=10), text_color=self.MUTED,
+                     ).pack(pady=(0, 4))
+
+        _ov_import_row = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
+        _ov_import_row.pack(fill="x", padx=12, pady=(0, 10))
+
+        ctk.CTkButton(
+            _ov_import_row, text="📂 Importar", width=100, height=28,
+            fg_color=self.SEG_BG, hover_color=self.IBORDER,
+            text_color=self.TEXT, border_width=1, border_color=self.IBORDER,
+            corner_radius=8, font=ctk.CTkFont(size=12),
+            command=_ov_browse,
+        ).pack(side="left", padx=(0, 8))
+
+        self._ov_import_entry = ctk.CTkEntry(
+            _ov_import_row,
+            placeholder_text="WAV · MP3 · OGG · OPUS (WhatsApp) · M4A · FLAC…",
+            fg_color=self.SEG_BG, border_color=self.IBORDER,
+            text_color=self.TEXT, font=ctk.CTkFont(size=11),
+        )
+        self._ov_import_entry.pack(side="left", fill="x", expand=True)
+        # Enter em campo de caminho importa diretamente / Enter in path field imports directly
+        self._ov_import_entry.bind(
+            "<Return>",
+            lambda e: _ov_import_audio(self._ov_import_entry.get()),
+        )
 
         # Transcrição (preenchida automaticamente após gravação / auto-filled after recording)
         _ref_txt_row = ctk.CTkFrame(_ov_rec_card, fg_color="transparent")
