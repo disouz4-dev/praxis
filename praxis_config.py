@@ -3047,6 +3047,12 @@ class ConfigWindow(ctk.CTk):
                      text_color=self.TEXT).pack(side="left")
 
         self._ov_test_lang_var = ctk.StringVar(value="🇧🇷 Português")
+        self._ov_lang_code = "pt"  # código ISO passado ao generate() / ISO code passed to generate()
+
+        def _ov_on_lang_change(label: str) -> None:
+            code, _ = _OV_LANG_PHRASES.get(label, ("pt", ""))
+            self._ov_lang_code = code
+
         _ov_lang_menu = ctk.CTkOptionMenu(
             _lang_row, values=list(_OV_LANG_PHRASES.keys()),
             variable=self._ov_test_lang_var,
@@ -3054,7 +3060,7 @@ class ConfigWindow(ctk.CTk):
             button_hover_color=self.SEG_BG, text_color=self.TEXT,
             dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
             dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=12),
-            width=160,
+            width=160, command=_ov_on_lang_change,
         )
         _ov_lang_menu.pack(side="left", padx=(8, 8))
 
@@ -3332,16 +3338,16 @@ class ConfigWindow(ctk.CTk):
                 text="❌ Digite o texto a gerar", text_color="#EF4444")
             return
 
+        lang_code = getattr(self, "_ov_lang_code", "pt")
         self._ov_gen_btn.configure(state="disabled", text="Gerando…")
         self._ov_play_btn.configure(state="disabled")
         self._ov_status_lbl.configure(text="Carregando modelo…", text_color=self.MUTED)
         threading.Thread(
             target=self._ov_generate_worker,
-            args=(ref_path, ref_text, gen_text),
+            args=(ref_path, ref_text, gen_text, lang_code),
             daemon=True,
         ).start()
 
-    @staticmethod
     @staticmethod
     def _transcribe_wav(wav_path: str) -> str:
         """Transcreve WAV com faster-whisper local. Evita TorchCodec do OmniVoice.
@@ -3374,7 +3380,7 @@ class ConfigWindow(ctk.CTk):
             wf.writeframes(raw)
         return out
 
-    def _ov_generate_worker(self, ref_path: str, ref_text: str, gen_text: str) -> None:
+    def _ov_generate_worker(self, ref_path: str, ref_text: str, gen_text: str, lang_code: str = "pt") -> None:
         """Worker: roda OmniVoice e salva resultado em /tmp/ov_result.wav.
         Worker: runs OmniVoice and saves result to /tmp/ov_result.wav.
         Usa create_voice_clone_prompt(ref_text=None) para auto-transcrição —
@@ -3418,7 +3424,9 @@ class ConfigWindow(ctk.CTk):
             _st("Gerando voz…")
             audio = self._ov_model.generate(
                 text=gen_text,
+                language=lang_code,
                 voice_clone_prompt=prompt,
+                speed=0.9,   # ligeiramente mais lento que o default / slightly slower than default
             )
 
             # Normaliza e salva como PCM_16 para evitar distorção / volume estourado
@@ -4230,7 +4238,9 @@ class ConfigWindow(ctk.CTk):
                 _update("Gerando voz de teste…", phase=(0.45, 0.88))
                 audio = self._ov_model.generate(
                     text=phrase,
+                    language=lang_code,
                     voice_clone_prompt=prompt,
+                    speed=0.9,
                 )
                 _anim_stop.set()
                 _set_prog(0.94)
