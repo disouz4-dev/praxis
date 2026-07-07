@@ -103,6 +103,695 @@ def _catalog_url(v: dict, ext: str = "") -> str:
     return f"{_HF_BASE}/{l}/{lo}/{sp}/{q}/{lo}-{sp}-{q}.onnx{ext}"
 
 
+# ── Tradução da interface / UI translation ────────────────────────────────────
+
+# Names of each language, translated into each of the 14 UI languages
+# Used to populate source/target language dropdowns in the selected UI language
+LANG_NAMES_BY_UI: dict[str, dict[str, str]] = {
+    "pt": {"pt":"Português","en":"Inglês","es":"Espanhol","fr":"Francês","de":"Alemão","it":"Italiano","ru":"Russo","zh":"Chinês","nl":"Holandês","pl":"Polonês","uk":"Ucraniano","tr":"Turco","ar":"Árabe","hi":"Hindi"},
+    "en": {"pt":"Portuguese","en":"English","es":"Spanish","fr":"French","de":"German","it":"Italian","ru":"Russian","zh":"Chinese","nl":"Dutch","pl":"Polish","uk":"Ukrainian","tr":"Turkish","ar":"Arabic","hi":"Hindi"},
+    "es": {"pt":"Portugués","en":"Inglés","es":"Español","fr":"Francés","de":"Alemán","it":"Italiano","ru":"Ruso","zh":"Chino","nl":"Holandés","pl":"Polaco","uk":"Ucraniano","tr":"Turco","ar":"Árabe","hi":"Hindi"},
+    "fr": {"pt":"Portugais","en":"Anglais","es":"Espagnol","fr":"Français","de":"Allemand","it":"Italien","ru":"Russe","zh":"Chinois","nl":"Néerlandais","pl":"Polonais","uk":"Ukrainien","tr":"Turc","ar":"Arabe","hi":"Hindi"},
+    "de": {"pt":"Portugiesisch","en":"Englisch","es":"Spanisch","fr":"Französisch","de":"Deutsch","it":"Italienisch","ru":"Russisch","zh":"Chinesisch","nl":"Niederländisch","pl":"Polnisch","uk":"Ukrainisch","tr":"Türkisch","ar":"Arabisch","hi":"Hindi"},
+    "it": {"pt":"Portoghese","en":"Inglese","es":"Spagnolo","fr":"Francese","de":"Tedesco","it":"Italiano","ru":"Russo","zh":"Cinese","nl":"Olandese","pl":"Polacco","uk":"Ucraino","tr":"Turco","ar":"Arabo","hi":"Hindi"},
+    "ru": {"pt":"Португальский","en":"Английский","es":"Испанский","fr":"Французский","de":"Немецкий","it":"Итальянский","ru":"Русский","zh":"Китайский","nl":"Нидерландский","pl":"Польский","uk":"Украинский","tr":"Турецкий","ar":"Арабский","hi":"Хинди"},
+    "zh": {"pt":"葡萄牙语","en":"英语","es":"西班牙语","fr":"法语","de":"德语","it":"意大利语","ru":"俄语","zh":"中文","nl":"荷兰语","pl":"波兰语","uk":"乌克兰语","tr":"土耳其语","ar":"阿拉伯语","hi":"印地语"},
+    "nl": {"pt":"Portugees","en":"Engels","es":"Spaans","fr":"Frans","de":"Duits","it":"Italiaans","ru":"Russisch","zh":"Chinees","nl":"Nederlands","pl":"Pools","uk":"Oekraïens","tr":"Turks","ar":"Arabisch","hi":"Hindi"},
+    "pl": {"pt":"Portugalski","en":"Angielski","es":"Hiszpański","fr":"Francuski","de":"Niemiecki","it":"Włoski","ru":"Rosyjski","zh":"Chiński","nl":"Niderlandzki","pl":"Polski","uk":"Ukraiński","tr":"Turecki","ar":"Arabski","hi":"Hindi"},
+    "uk": {"pt":"Португальська","en":"Англійська","es":"Іспанська","fr":"Французька","de":"Німецька","it":"Італійська","ru":"Російська","zh":"Китайська","nl":"Нідерландська","pl":"Польська","uk":"Українська","tr":"Турецька","ar":"Арабська","hi":"Гінді"},
+    "tr": {"pt":"Portekizce","en":"İngilizce","es":"İspanyolca","fr":"Fransızca","de":"Almanca","it":"İtalyanca","ru":"Rusça","zh":"Çince","nl":"Hollandaca","pl":"Lehçe","uk":"Ukraynaca","tr":"Türkçe","ar":"Arapça","hi":"Hintçe"},
+    "ar": {"pt":"البرتغالية","en":"الإنجليزية","es":"الإسبانية","fr":"الفرنسية","de":"الألمانية","it":"الإيطالية","ru":"الروسية","zh":"الصينية","nl":"الهولندية","pl":"البولندية","uk":"الأوكرانية","tr":"التركية","ar":"العربية","hi":"الهندية"},
+    "hi": {"pt":"पुर्तगाली","en":"अंग्रेज़ी","es":"स्पेनी","fr":"फ़्रांसीसी","de":"जर्मन","it":"इतालवी","ru":"रूसी","zh":"चीनी","nl":"डच","pl":"पोलिश","uk":"यूक्रेनी","tr":"तुर्की","ar":"अरबी","hi":"हिन्दी"},
+}
+
+_UI_LANG_FLAGS: dict[str, str] = {
+    "pt":"🇧🇷", "en":"🇺🇸", "es":"🇪🇸", "fr":"🇫🇷", "de":"🇩🇪",
+    "it":"🇮🇹", "ru":"🇷🇺", "zh":"🇨🇳", "nl":"🇳🇱", "pl":"🇵🇱",
+    "uk":"🇺🇦", "tr":"🇹🇷", "ar":"🇸🇦", "hi":"🇮🇳",
+}
+
+UI_STRINGS: dict[str, dict[str, str]] = {
+    "pt": {
+        "tagline":        "Uma mensagem. Todas as línguas.",
+        "tab_config":     "⚙  Config",
+        "tab_clone":      "🎙  Clonar minha voz",
+        "btn_save":       "Salvar",
+        "btn_start":      "✦  Iniciar",
+        "btn_stop":       "✦  Parar",
+        "sec_audio":      "Áudio",
+        "sec_langs":      "Idiomas",
+        "sec_whisper":    "Modelo Whisper",
+        "sec_voice_out":  "Voz de saída",
+        "lbl_input":      "Entrada  (microfone)",
+        "lbl_output":     "Saída  (fones / caixas)",
+        "lbl_sys_default":"(padrão do sistema)",
+        "mon_on":         "● Monitor ativo",
+        "mon_off":        "○ Monitor desligado",
+        "mon_hint":       "Ouvir a tradução na saída selecionada acima",
+        "bilat_on":       "● Bilateral ativo",
+        "bilat_off":      "○ Bilateral desligado",
+        "bilat_label":    "BILATERAL",
+        "bilat_voice":    "Voz deles (você ouve):",
+        "mode_vad":       "VAD automático",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(nenhum configurado)",
+        "btn_configure":  "Configurar botão",
+        "lbl_src_lang":   "Você fala",
+        "lbl_tgt_lang":   "Traduzir para",
+        "ov_title":       "OmniVoice — Clonagem zero-shot",
+        "ov_desc":        "Grave ~10s da sua voz lendo o texto abaixo, depois clique em Gerar.\nO Whisper transcreve automaticamente — sem treino necessário.",
+        "ov_read_aloud":  "Leia este trecho em voz alta:",
+        "ov_ref_text":    "Olá! Estou gravando uma amostra de voz para o sistema de clonagem. A tecnologia aprende com poucos segundos de áudio e reproduz qualquer texto mantendo o timbre e a entonação natural da voz gravada.",
+        "btn_rec_ref":    "● Gravar referência",
+        "btn_stop_rec":   "■ Parar gravação",
+        "lbl_ready":      "Pronto — grave ~10s",
+        "btn_import":     "📁  Importar áudio",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Nome do perfil",
+        "btn_test":       "▶  Testar",
+        "btn_use":        "✓  Usar",
+        "btn_generate":   "Gerar Clone",
+        "lbl_no_clones":  "Nenhum clone salvo",
+        "lbl_test_phrase":"Frase de teste",
+        "lbl_their_voice_hint": "Nenhuma voz {lang} instalada",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Baixar vozes",
+    },
+    "en": {
+        "tagline":        "One message. Every language.",
+        "tab_config":     "⚙  Config",
+        "tab_clone":      "🎙  Clone my voice",
+        "btn_save":       "Save",
+        "btn_start":      "✦  Start",
+        "btn_stop":       "✦  Stop",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Languages",
+        "sec_whisper":    "Whisper Model",
+        "sec_voice_out":  "Output voice",
+        "lbl_input":      "Input  (microphone)",
+        "lbl_output":     "Output  (speakers)",
+        "lbl_sys_default":"(system default)",
+        "mon_on":         "● Monitor active",
+        "mon_off":        "○ Monitor off",
+        "mon_hint":       "Hear the translation on the selected output above",
+        "bilat_on":       "● Bilateral active",
+        "bilat_off":      "○ Bilateral off",
+        "bilat_label":    "BILATERAL",
+        "bilat_voice":    "Their voice (you hear):",
+        "mode_vad":       "Auto VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(none configured)",
+        "btn_configure":  "Configure button",
+        "lbl_src_lang":   "You speak",
+        "lbl_tgt_lang":   "Translate to",
+        "ov_title":       "OmniVoice — Zero-shot cloning",
+        "ov_desc":        "Record ~10s of your voice reading the text below, then click Generate.\nWhisper transcribes automatically — no training needed.",
+        "ov_read_aloud":  "Read this text aloud:",
+        "ov_ref_text":    "Hello! I am recording a voice sample for the cloning system. The technology learns from just a few seconds of audio and reproduces any text while keeping the natural timbre and intonation of the recorded voice.",
+        "btn_rec_ref":    "● Record reference",
+        "btn_stop_rec":   "■ Stop recording",
+        "lbl_ready":      "Ready — record ~10s",
+        "btn_import":     "📁  Import audio",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Profile name",
+        "btn_test":       "▶  Test",
+        "btn_use":        "✓  Use",
+        "btn_generate":   "Generate Clone",
+        "lbl_no_clones":  "No saved clones",
+        "lbl_test_phrase":"Test phrase",
+        "lbl_their_voice_hint": "No {lang} voice installed",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Download voices",
+    },
+    "es": {
+        "tagline":        "Un mensaje. Todos los idiomas.",
+        "tab_config":     "⚙  Config",
+        "tab_clone":      "🎙  Clonar mi voz",
+        "btn_save":       "Guardar",
+        "btn_start":      "✦  Iniciar",
+        "btn_stop":       "✦  Detener",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Idiomas",
+        "sec_whisper":    "Modelo Whisper",
+        "sec_voice_out":  "Voz de salida",
+        "lbl_input":      "Entrada  (micrófono)",
+        "lbl_output":     "Salida  (auriculares / altavoces)",
+        "lbl_sys_default":"(predeterminado del sistema)",
+        "mon_on":         "● Monitor activo",
+        "mon_off":        "○ Monitor apagado",
+        "mon_hint":       "Escuchar la traducción en la salida seleccionada",
+        "bilat_on":       "● Bilateral activo",
+        "bilat_off":      "○ Bilateral apagado",
+        "bilat_label":    "BILATERAL",
+        "bilat_voice":    "Su voz (usted escucha):",
+        "mode_vad":       "VAD automático",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(ninguno configurado)",
+        "btn_configure":  "Configurar botón",
+        "lbl_src_lang":   "Usted habla",
+        "lbl_tgt_lang":   "Traducir a",
+        "ov_title":       "OmniVoice — Clonación zero-shot",
+        "ov_desc":        "Grabe ~10s de su voz leyendo el texto abajo, luego haga clic en Generar.\nWhisper transcribe automáticamente — sin entrenamiento.",
+        "ov_read_aloud":  "Lea este texto en voz alta:",
+        "ov_ref_text":    "¡Hola! Estoy grabando una muestra de voz para el sistema de clonación. La tecnología aprende con pocos segundos de audio y reproduce cualquier texto manteniendo el timbre y la entonación natural de la voz grabada.",
+        "btn_rec_ref":    "● Grabar referencia",
+        "btn_stop_rec":   "■ Parar grabación",
+        "lbl_ready":      "Listo — grabe ~10s",
+        "btn_import":     "📁  Importar audio",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Nombre del perfil",
+        "btn_test":       "▶  Probar",
+        "btn_use":        "✓  Usar",
+        "btn_generate":   "Generar Clone",
+        "lbl_no_clones":  "Sin clones guardados",
+        "lbl_test_phrase":"Frase de prueba",
+        "lbl_their_voice_hint": "Sin voz {lang} instalada",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Descargar voces",
+    },
+    "fr": {
+        "tagline":        "Un message. Toutes les langues.",
+        "tab_config":     "⚙  Config",
+        "tab_clone":      "🎙  Cloner ma voix",
+        "btn_save":       "Enregistrer",
+        "btn_start":      "✦  Démarrer",
+        "btn_stop":       "✦  Arrêter",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Langues",
+        "sec_whisper":    "Modèle Whisper",
+        "sec_voice_out":  "Voix de sortie",
+        "lbl_input":      "Entrée  (microphone)",
+        "lbl_output":     "Sortie  (casque / haut-parleurs)",
+        "lbl_sys_default":"(défaut système)",
+        "mon_on":         "● Moniteur actif",
+        "mon_off":        "○ Moniteur éteint",
+        "mon_hint":       "Écouter la traduction sur la sortie sélectionnée ci-dessus",
+        "bilat_on":       "● Bilatéral actif",
+        "bilat_off":      "○ Bilatéral éteint",
+        "bilat_label":    "BILATÉRAL",
+        "bilat_voice":    "Leur voix (vous entendez) :",
+        "mode_vad":       "VAD automatique",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(aucun configuré)",
+        "btn_configure":  "Configurer bouton",
+        "lbl_src_lang":   "Vous parlez",
+        "lbl_tgt_lang":   "Traduire en",
+        "ov_title":       "OmniVoice — Clonage zero-shot",
+        "ov_desc":        "Enregistrez ~10s de votre voix en lisant le texte ci-dessous, puis cliquez sur Générer.\nWhisper transcrit automatiquement — sans entraînement.",
+        "ov_read_aloud":  "Lisez ce texte à voix haute :",
+        "ov_ref_text":    "Bonjour ! J'enregistre un échantillon vocal pour le système de clonage. La technologie apprend avec quelques secondes d'audio et reproduit n'importe quel texte en conservant le timbre et l'intonation naturels de la voix enregistrée.",
+        "btn_rec_ref":    "● Enregistrer référence",
+        "btn_stop_rec":   "■ Arrêter enregistrement",
+        "lbl_ready":      "Prêt — enregistrez ~10s",
+        "btn_import":     "📁  Importer audio",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Nom du profil",
+        "btn_test":       "▶  Tester",
+        "btn_use":        "✓  Utiliser",
+        "btn_generate":   "Générer Clone",
+        "lbl_no_clones":  "Aucun clone sauvegardé",
+        "lbl_test_phrase":"Phrase de test",
+        "lbl_their_voice_hint": "Aucune voix {lang} installée",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Télécharger voix",
+    },
+    "de": {
+        "tagline":        "Eine Nachricht. Alle Sprachen.",
+        "tab_config":     "⚙  Einstellungen",
+        "tab_clone":      "🎙  Stimme klonen",
+        "btn_save":       "Speichern",
+        "btn_start":      "✦  Starten",
+        "btn_stop":       "✦  Stoppen",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Sprachen",
+        "sec_whisper":    "Whisper-Modell",
+        "sec_voice_out":  "Ausgabestimme",
+        "lbl_input":      "Eingabe  (Mikrofon)",
+        "lbl_output":     "Ausgabe  (Kopfhörer / Lautsprecher)",
+        "lbl_sys_default":"(Systemstandard)",
+        "mon_on":         "● Monitor aktiv",
+        "mon_off":        "○ Monitor aus",
+        "mon_hint":       "Übersetzung am ausgewählten Ausgang hören",
+        "bilat_on":       "● Bilateral aktiv",
+        "bilat_off":      "○ Bilateral aus",
+        "bilat_label":    "BILATERAL",
+        "bilat_voice":    "Ihre Stimme (Sie hören):",
+        "mode_vad":       "Auto VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(keine konfiguriert)",
+        "btn_configure":  "Taste konfigurieren",
+        "lbl_src_lang":   "Sie sprechen",
+        "lbl_tgt_lang":   "Übersetzen in",
+        "ov_title":       "OmniVoice — Zero-Shot-Klonierung",
+        "ov_desc":        "Nehmen Sie ~10s Ihrer Stimme beim Vorlesen des Textes auf, dann klicken Sie auf Generieren.\nWhisper transkribiert automatisch — kein Training nötig.",
+        "ov_read_aloud":  "Lesen Sie diesen Text laut vor:",
+        "ov_ref_text":    "Hallo! Ich nehme eine Sprachprobe für das Klonierungs-System auf. Die Technologie lernt aus wenigen Sekunden Audio und reproduziert beliebigen Text, dabei wird der natürliche Klang und die Intonation der aufgezeichneten Stimme beibehalten.",
+        "btn_rec_ref":    "● Referenz aufnehmen",
+        "btn_stop_rec":   "■ Aufnahme stoppen",
+        "lbl_ready":      "Bereit — nehmen Sie ~10s auf",
+        "btn_import":     "📁  Audio importieren",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Profilname",
+        "btn_test":       "▶  Testen",
+        "btn_use":        "✓  Verwenden",
+        "btn_generate":   "Klon generieren",
+        "lbl_no_clones":  "Keine gespeicherten Klone",
+        "lbl_test_phrase":"Testsatz",
+        "lbl_their_voice_hint": "Keine {lang}-Stimme installiert",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Stimmen herunterladen",
+    },
+    "it": {
+        "tagline":        "Un messaggio. Tutte le lingue.",
+        "tab_config":     "⚙  Config",
+        "tab_clone":      "🎙  Clona la mia voce",
+        "btn_save":       "Salva",
+        "btn_start":      "✦  Avvia",
+        "btn_stop":       "✦  Ferma",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Lingue",
+        "sec_whisper":    "Modello Whisper",
+        "sec_voice_out":  "Voce di uscita",
+        "lbl_input":      "Ingresso  (microfono)",
+        "lbl_output":     "Uscita  (cuffie / altoparlanti)",
+        "lbl_sys_default":"(predefinito di sistema)",
+        "mon_on":         "● Monitor attivo",
+        "mon_off":        "○ Monitor spento",
+        "mon_hint":       "Ascoltare la traduzione sull'uscita selezionata sopra",
+        "bilat_on":       "● Bilaterale attivo",
+        "bilat_off":      "○ Bilaterale spento",
+        "bilat_label":    "BILATERALE",
+        "bilat_voice":    "La loro voce (senti tu):",
+        "mode_vad":       "VAD automatico",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(nessuno configurato)",
+        "btn_configure":  "Configura pulsante",
+        "lbl_src_lang":   "Parli",
+        "lbl_tgt_lang":   "Traduci in",
+        "ov_title":       "OmniVoice — Clonazione zero-shot",
+        "ov_desc":        "Registra ~10s della tua voce leggendo il testo qui sotto, poi clicca Genera.\nWhisper trascrive automaticamente — senza addestramento.",
+        "ov_read_aloud":  "Leggi questo testo ad alta voce:",
+        "ov_ref_text":    "Ciao! Sto registrando un campione vocale per il sistema di clonazione. La tecnologia impara da pochi secondi di audio e riproduce qualsiasi testo mantenendo il timbro e l'intonazione naturale della voce registrata.",
+        "btn_rec_ref":    "● Registra riferimento",
+        "btn_stop_rec":   "■ Stop registrazione",
+        "lbl_ready":      "Pronto — registra ~10s",
+        "btn_import":     "📁  Importa audio",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Nome profilo",
+        "btn_test":       "▶  Test",
+        "btn_use":        "✓  Usa",
+        "btn_generate":   "Genera Clone",
+        "lbl_no_clones":  "Nessun clone salvato",
+        "lbl_test_phrase":"Frase di test",
+        "lbl_their_voice_hint": "Nessuna voce {lang} installata",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Scarica voci",
+    },
+    "ru": {
+        "tagline":        "Одно сообщение. Все языки.",
+        "tab_config":     "⚙  Настройки",
+        "tab_clone":      "🎙  Клонировать голос",
+        "btn_save":       "Сохранить",
+        "btn_start":      "✦  Запустить",
+        "btn_stop":       "✦  Остановить",
+        "sec_audio":      "Аудио",
+        "sec_langs":      "Языки",
+        "sec_whisper":    "Модель Whisper",
+        "sec_voice_out":  "Выходной голос",
+        "lbl_input":      "Вход  (микрофон)",
+        "lbl_output":     "Выход  (наушники / динамики)",
+        "lbl_sys_default":"(системный по умолчанию)",
+        "mon_on":         "● Монитор активен",
+        "mon_off":        "○ Монитор выключен",
+        "mon_hint":       "Слышать перевод на выбранном выходе выше",
+        "bilat_on":       "● Двусторонний активен",
+        "bilat_off":      "○ Двусторонний выключен",
+        "bilat_label":    "ДВУСТОРОННЕЕ",
+        "bilat_voice":    "Их голос (вы слышите):",
+        "mode_vad":       "Авто VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(не настроено)",
+        "btn_configure":  "Настроить кнопку",
+        "lbl_src_lang":   "Вы говорите",
+        "lbl_tgt_lang":   "Перевести на",
+        "ov_title":       "OmniVoice — Zero-shot клонирование",
+        "ov_desc":        "Запишите ~10с вашего голоса, читая текст ниже, затем нажмите Генерировать.\nWhisper транскрибирует автоматически — обучение не требуется.",
+        "ov_read_aloud":  "Прочтите этот текст вслух:",
+        "ov_ref_text":    "Привет! Я записываю образец голоса для системы клонирования. Технология обучается на нескольких секундах аудио и воспроизводит любой текст, сохраняя тембр и естественную интонацию записанного голоса.",
+        "btn_rec_ref":    "● Записать референс",
+        "btn_stop_rec":   "■ Стоп запись",
+        "lbl_ready":      "Готово — запишите ~10с",
+        "btn_import":     "📁  Импортировать аудио",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Имя профиля",
+        "btn_test":       "▶  Тест",
+        "btn_use":        "✓  Использовать",
+        "btn_generate":   "Генерировать клон",
+        "lbl_no_clones":  "Нет сохранённых клонов",
+        "lbl_test_phrase":"Тестовая фраза",
+        "lbl_their_voice_hint": "Нет голоса {lang}",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Загрузить голоса",
+    },
+    "zh": {
+        "tagline":        "一条消息。所有语言。",
+        "tab_config":     "⚙  设置",
+        "tab_clone":      "🎙  克隆我的声音",
+        "btn_save":       "保存",
+        "btn_start":      "✦  开始",
+        "btn_stop":       "✦  停止",
+        "sec_audio":      "音频",
+        "sec_langs":      "语言",
+        "sec_whisper":    "Whisper 模型",
+        "sec_voice_out":  "输出语音",
+        "lbl_input":      "输入（麦克风）",
+        "lbl_output":     "输出（耳机/扬声器）",
+        "lbl_sys_default":"（系统默认）",
+        "mon_on":         "● 监听已激活",
+        "mon_off":        "○ 监听已关闭",
+        "mon_hint":       "在上方选择的输出上听取翻译",
+        "bilat_on":       "● 双向已激活",
+        "bilat_off":      "○ 双向已关闭",
+        "bilat_label":    "双向模式",
+        "bilat_voice":    "他们的声音（您听到）：",
+        "mode_vad":       "自动 VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "（未配置）",
+        "btn_configure":  "配置按钮",
+        "lbl_src_lang":   "您说",
+        "lbl_tgt_lang":   "翻译为",
+        "ov_title":       "OmniVoice — 零样本克隆",
+        "ov_desc":        "录制 ~10s 朗读下方文本的声音，然后点击生成。\nWhisper 自动转录 — 无需训练。",
+        "ov_read_aloud":  "大声朗读此文本：",
+        "ov_ref_text":    "你好！我正在为克隆系统录制声音样本。该技术只需几秒钟的音频即可学习，并在保留所录声音的自然音色和语调的同时再现任何文本。",
+        "btn_rec_ref":    "● 录制参考",
+        "btn_stop_rec":   "■ 停止录制",
+        "lbl_ready":      "就绪 — 录制 ~10s",
+        "btn_import":     "📁  导入音频",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"配置文件名称",
+        "btn_test":       "▶  测试",
+        "btn_use":        "✓  使用",
+        "btn_generate":   "生成克隆",
+        "lbl_no_clones":  "无已保存的克隆",
+        "lbl_test_phrase":"测试短语",
+        "lbl_their_voice_hint": "未安装 {lang} 语音",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  下载语音",
+    },
+    "nl": {
+        "tagline":        "Één bericht. Elke taal.",
+        "tab_config":     "⚙  Config",
+        "tab_clone":      "🎙  Mijn stem klonen",
+        "btn_save":       "Opslaan",
+        "btn_start":      "✦  Starten",
+        "btn_stop":       "✦  Stoppen",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Talen",
+        "sec_whisper":    "Whisper-model",
+        "sec_voice_out":  "Uitgangsstem",
+        "lbl_input":      "Ingang  (microfoon)",
+        "lbl_output":     "Uitgang  (koptelefoon / luidsprekers)",
+        "lbl_sys_default":"(systeemstandaard)",
+        "mon_on":         "● Monitor actief",
+        "mon_off":        "○ Monitor uit",
+        "mon_hint":       "Vertaling horen op de bovenstaande geselecteerde uitgang",
+        "bilat_on":       "● Bidirectioneel actief",
+        "bilat_off":      "○ Bidirectioneel uit",
+        "bilat_label":    "BIDIRECTIONEEL",
+        "bilat_voice":    "Hun stem (u hoort):",
+        "mode_vad":       "Auto VAD",
+        "mode_gate":      "Gate drempel",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(geen geconfigureerd)",
+        "btn_configure":  "Knop configureren",
+        "lbl_src_lang":   "U spreekt",
+        "lbl_tgt_lang":   "Vertaal naar",
+        "ov_title":       "OmniVoice — Zero-shot klonen",
+        "ov_desc":        "Neem ~10s op terwijl u de tekst hieronder leest, klik dan op Genereer.\nWhisper transcribeert automatisch — geen training vereist.",
+        "ov_read_aloud":  "Lees deze tekst hardop:",
+        "ov_ref_text":    "Hallo! Ik neem een stemsample op voor het kloonsysteem. De technologie leert van slechts een paar seconden audio en reproduceert elke tekst met behoud van het natuurlijke timbre en de intonatie van de opgenomen stem.",
+        "btn_rec_ref":    "● Referentie opnemen",
+        "btn_stop_rec":   "■ Stop opname",
+        "lbl_ready":      "Klaar — neem ~10s op",
+        "btn_import":     "📁  Audio importeren",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Profielnaam",
+        "btn_test":       "▶  Testen",
+        "btn_use":        "✓  Gebruiken",
+        "btn_generate":   "Kloon genereren",
+        "lbl_no_clones":  "Geen opgeslagen klonen",
+        "lbl_test_phrase":"Testzin",
+        "lbl_their_voice_hint": "Geen {lang} stem geïnstalleerd",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Stemmen downloaden",
+    },
+    "pl": {
+        "tagline":        "Jedna wiadomość. Każdy język.",
+        "tab_config":     "⚙  Ustawienia",
+        "tab_clone":      "🎙  Sklonuj głos",
+        "btn_save":       "Zapisz",
+        "btn_start":      "✦  Uruchom",
+        "btn_stop":       "✦  Zatrzymaj",
+        "sec_audio":      "Audio",
+        "sec_langs":      "Języki",
+        "sec_whisper":    "Model Whisper",
+        "sec_voice_out":  "Głos wyjściowy",
+        "lbl_input":      "Wejście  (mikrofon)",
+        "lbl_output":     "Wyjście  (słuchawki / głośniki)",
+        "lbl_sys_default":"(domyślny systemu)",
+        "mon_on":         "● Monitor aktywny",
+        "mon_off":        "○ Monitor wyłączony",
+        "mon_hint":       "Słuchać tłumaczenia na wybranym wyjściu powyżej",
+        "bilat_on":       "● Dwukierunkowe aktywne",
+        "bilat_off":      "○ Dwukierunkowe wyłączone",
+        "bilat_label":    "DWUKIERUNKOWE",
+        "bilat_voice":    "Ich głos (słyszysz):",
+        "mode_vad":       "Auto VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(nie skonfigurowano)",
+        "btn_configure":  "Skonfiguruj przycisk",
+        "lbl_src_lang":   "Mówisz",
+        "lbl_tgt_lang":   "Tłumacz na",
+        "ov_title":       "OmniVoice — Klonowanie zero-shot",
+        "ov_desc":        "Nagraj ~10s swojego głosu czytając tekst poniżej, potem kliknij Generuj.\nWhisper transkrybuje automatycznie — bez treningu.",
+        "ov_read_aloud":  "Przeczytaj ten tekst na głos:",
+        "ov_ref_text":    "Hej! Nagrywam próbkę głosu dla systemu klonowania. Technologia uczy się z zaledwie kilku sekund audio i odtwarza dowolny tekst, zachowując naturalne brzmienie i intonację nagranego głosu.",
+        "btn_rec_ref":    "● Nagraj referencję",
+        "btn_stop_rec":   "■ Zatrzymaj nagranie",
+        "lbl_ready":      "Gotowe — nagraj ~10s",
+        "btn_import":     "📁  Importuj audio",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Nazwa profilu",
+        "btn_test":       "▶  Test",
+        "btn_use":        "✓  Użyj",
+        "btn_generate":   "Generuj klon",
+        "lbl_no_clones":  "Brak zapisanych klonów",
+        "lbl_test_phrase":"Fraza testowa",
+        "lbl_their_voice_hint": "Brak głosu {lang}",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Pobierz głosy",
+    },
+    "uk": {
+        "tagline":        "Одне повідомлення. Всі мови.",
+        "tab_config":     "⚙  Налаштування",
+        "tab_clone":      "🎙  Клонувати голос",
+        "btn_save":       "Зберегти",
+        "btn_start":      "✦  Запустити",
+        "btn_stop":       "✦  Зупинити",
+        "sec_audio":      "Аудіо",
+        "sec_langs":      "Мови",
+        "sec_whisper":    "Модель Whisper",
+        "sec_voice_out":  "Вихідний голос",
+        "lbl_input":      "Вхід  (мікрофон)",
+        "lbl_output":     "Вихід  (навушники / динаміки)",
+        "lbl_sys_default":"(системний за замовчуванням)",
+        "mon_on":         "● Монітор активний",
+        "mon_off":        "○ Монітор вимкнено",
+        "mon_hint":       "Чути переклад на вибраному виходи вище",
+        "bilat_on":       "● Двосторонній активний",
+        "bilat_off":      "○ Двосторонній вимкнено",
+        "bilat_label":    "ДВОСТОРОННЄ",
+        "bilat_voice":    "Їх голос (ви чуєте):",
+        "mode_vad":       "Авто VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(не налаштовано)",
+        "btn_configure":  "Налаштувати кнопку",
+        "lbl_src_lang":   "Ви говорите",
+        "lbl_tgt_lang":   "Перекласти на",
+        "ov_title":       "OmniVoice — Zero-shot клонування",
+        "ov_desc":        "Запишіть ~10с вашого голосу, читаючи текст нижче, потім натисніть Генерувати.\nWhisper транскрибує автоматично — навчання не потрібно.",
+        "ov_read_aloud":  "Прочитайте цей текст вголос:",
+        "ov_ref_text":    "Привіт! Я записую зразок голосу для системи клонування. Технологія навчається на кількох секундах аудіо і відтворює будь-який текст, зберігаючи тембр і природну інтонацію записаного голосу.",
+        "btn_rec_ref":    "● Записати референс",
+        "btn_stop_rec":   "■ Зупинити запис",
+        "lbl_ready":      "Готово — запишіть ~10с",
+        "btn_import":     "📁  Імпортувати аудіо",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Назва профілю",
+        "btn_test":       "▶  Тест",
+        "btn_use":        "✓  Використати",
+        "btn_generate":   "Генерувати клон",
+        "lbl_no_clones":  "Немає збережених клонів",
+        "lbl_test_phrase":"Тестова фраза",
+        "lbl_their_voice_hint": "Немає голосу {lang}",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Завантажити голоси",
+    },
+    "tr": {
+        "tagline":        "Bir mesaj. Her dil.",
+        "tab_config":     "⚙  Ayarlar",
+        "tab_clone":      "🎙  Sesimi klonla",
+        "btn_save":       "Kaydet",
+        "btn_start":      "✦  Başlat",
+        "btn_stop":       "✦  Durdur",
+        "sec_audio":      "Ses",
+        "sec_langs":      "Diller",
+        "sec_whisper":    "Whisper Modeli",
+        "sec_voice_out":  "Çıkış sesi",
+        "lbl_input":      "Giriş  (mikrofon)",
+        "lbl_output":     "Çıkış  (kulaklık / hoparlörler)",
+        "lbl_sys_default":"(sistem varsayılanı)",
+        "mon_on":         "● Monitör aktif",
+        "mon_off":        "○ Monitör kapalı",
+        "mon_hint":       "Yukarıda seçilen çıkışta çeviriyi duyun",
+        "bilat_on":       "● Çift yönlü aktif",
+        "bilat_off":      "○ Çift yönlü kapalı",
+        "bilat_label":    "ÇİFT YÖNLÜ",
+        "bilat_voice":    "Onların sesi (siz duyuyorsunuz):",
+        "mode_vad":       "Otomatik VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(hiçbiri yapılandırılmadı)",
+        "btn_configure":  "Düğme yapılandır",
+        "lbl_src_lang":   "Siz konuşuyorsunuz",
+        "lbl_tgt_lang":   "Çeviri dili",
+        "ov_title":       "OmniVoice — Zero-shot klonlama",
+        "ov_desc":        "Aşağıdaki metni okurken ~10s ses kaydı yapın, ardından Oluştur'a tıklayın.\nWhisper otomatik transkribe eder — eğitim gerekmez.",
+        "ov_read_aloud":  "Bu metni sesli okuyun:",
+        "ov_ref_text":    "Merhaba! Klonlama sistemi için ses örneği kaydediyorum. Teknoloji, yalnızca birkaç saniyelik sesle öğrenir ve kaydedilen sesin doğal tını ve tonlamasını koruyarak herhangi bir metni yeniden üretir.",
+        "btn_rec_ref":    "● Referans kaydet",
+        "btn_stop_rec":   "■ Kaydı durdur",
+        "lbl_ready":      "Hazır — ~10s kaydedin",
+        "btn_import":     "📁  Ses içe aktar",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"Profil adı",
+        "btn_test":       "▶  Test",
+        "btn_use":        "✓  Kullan",
+        "btn_generate":   "Klon oluştur",
+        "lbl_no_clones":  "Kayıtlı klon yok",
+        "lbl_test_phrase":"Test cümlesi",
+        "lbl_their_voice_hint": "{lang} sesi kurulu değil",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  Ses indir",
+    },
+    "ar": {
+        "tagline":        "رسالة واحدة. كل اللغات.",
+        "tab_config":     "⚙  الإعدادات",
+        "tab_clone":      "🎙  استنسخ صوتي",
+        "btn_save":       "حفظ",
+        "btn_start":      "✦  ابدأ",
+        "btn_stop":       "✦  أوقف",
+        "sec_audio":      "الصوت",
+        "sec_langs":      "اللغات",
+        "sec_whisper":    "نموذج Whisper",
+        "sec_voice_out":  "صوت الإخراج",
+        "lbl_input":      "الإدخال  (الميكروفون)",
+        "lbl_output":     "الإخراج  (السماعات)",
+        "lbl_sys_default":"(افتراضي النظام)",
+        "mon_on":         "● المراقب نشط",
+        "mon_off":        "○ المراقب معطل",
+        "mon_hint":       "سماع الترجمة على الإخراج المحدد أعلاه",
+        "bilat_on":       "● ثنائي الاتجاه نشط",
+        "bilat_off":      "○ ثنائي الاتجاه معطل",
+        "bilat_label":    "ثنائي الاتجاه",
+        "bilat_voice":    "صوتهم (تسمع أنت):",
+        "mode_vad":       "VAD تلقائي",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(لم يُضبط)",
+        "btn_configure":  "ضبط الزر",
+        "lbl_src_lang":   "أنت تتحدث",
+        "lbl_tgt_lang":   "ترجمة إلى",
+        "ov_title":       "OmniVoice — استنساخ zero-shot",
+        "ov_desc":        "سجّل ~10s من صوتك وأنت تقرأ النص أدناه، ثم انقر توليد.\nيُفرَّغ الصوت تلقائياً — لا يلزم تدريب.",
+        "ov_read_aloud":  "اقرأ هذا النص بصوت عالٍ:",
+        "ov_ref_text":    "مرحباً! أسجّل عيّنة صوتية لنظام الاستنساخ. تتعلم التقنية من ثوانٍ قليلة من الصوت وتُعيد إنتاج أي نص مع الحفاظ على الجرس والنبرة الطبيعية للصوت المُسجَّل.",
+        "btn_rec_ref":    "● تسجيل مرجع",
+        "btn_stop_rec":   "■ إيقاف التسجيل",
+        "lbl_ready":      "جاهز — سجّل ~10s",
+        "btn_import":     "📁  استيراد صوت",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"اسم الملف الشخصي",
+        "btn_test":       "▶  اختبار",
+        "btn_use":        "✓  استخدام",
+        "btn_generate":   "توليد كلون",
+        "lbl_no_clones":  "لا توجد كلونات محفوظة",
+        "lbl_test_phrase":"جملة اختبار",
+        "lbl_their_voice_hint": "لا يوجد صوت {lang} مثبّت",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  تحميل الأصوات",
+    },
+    "hi": {
+        "tagline":        "एक संदेश। हर भाषा।",
+        "tab_config":     "⚙  सेटिंग्स",
+        "tab_clone":      "🎙  मेरी आवाज़ क्लोन करें",
+        "btn_save":       "सहेजें",
+        "btn_start":      "✦  शुरू करें",
+        "btn_stop":       "✦  रोकें",
+        "sec_audio":      "ऑडियो",
+        "sec_langs":      "भाषाएं",
+        "sec_whisper":    "Whisper मॉडल",
+        "sec_voice_out":  "आउटपुट आवाज़",
+        "lbl_input":      "इनपुट  (माइक्रोफोन)",
+        "lbl_output":     "आउटपुट  (हेडफोन / स्पीकर)",
+        "lbl_sys_default":"(सिस्टम डिफ़ॉल्ट)",
+        "mon_on":         "● मॉनिटर सक्रिय",
+        "mon_off":        "○ मॉनिटर बंद",
+        "mon_hint":       "ऊपर चुने गए आउटपुट पर अनुवाद सुनें",
+        "bilat_on":       "● द्विपक्षीय सक्रिय",
+        "bilat_off":      "○ द्विपक्षीय बंद",
+        "bilat_label":    "द्विपक्षीय",
+        "bilat_voice":    "उनकी आवाज़ (आप सुनते हैं):",
+        "mode_vad":       "ऑटो VAD",
+        "mode_gate":      "Gate threshold",
+        "mode_ptt":       "Push-to-talk",
+        "ptt_none":       "(कोई नहीं कॉन्फ़िगर किया)",
+        "btn_configure":  "बटन कॉन्फ़िगर करें",
+        "lbl_src_lang":   "आप बोलते हैं",
+        "lbl_tgt_lang":   "अनुवाद करें",
+        "ov_title":       "OmniVoice — Zero-shot क्लोनिंग",
+        "ov_desc":        "नीचे का टेक्स्ट पढ़ते हुए ~10s रिकॉर्ड करें, फिर जेनरेट पर क्लिक करें।\nWhisper स्वचालित रूप से ट्रांसक्राइब करता है — कोई ट्रेनिंग नहीं।",
+        "ov_read_aloud":  "यह टेक्स्ट ज़ोर से पढ़ें:",
+        "ov_ref_text":    "नमस्ते! मैं क्लोनिंग सिस्टम के लिए आवाज़ का नमूना रिकॉर्ड कर रहा हूं। तकनीक कुछ सेकंड के ऑडियो से सीखती है और रिकॉर्ड की गई आवाज़ के प्राकृतिक स्वर और लय को बनाए रखते हुए किसी भी टेक्स्ट को पुन: प्रस्तुत करती है।",
+        "btn_rec_ref":    "● रेफरेंस रिकॉर्ड करें",
+        "btn_stop_rec":   "■ रिकॉर्डिंग रोकें",
+        "lbl_ready":      "तैयार — ~10s रिकॉर्ड करें",
+        "btn_import":     "📁  ऑडियो आयात करें",
+        "lbl_import_hint":"WAV · MP3 · OGG · OPUS · M4A · FLAC · WhatsApp",
+        "lbl_profile_name":"प्रोफ़ाइल नाम",
+        "btn_test":       "▶  टेस्ट",
+        "btn_use":        "✓  उपयोग करें",
+        "btn_generate":   "क्लोन जेनरेट करें",
+        "lbl_no_clones":  "कोई सहेजा गया क्लोन नहीं",
+        "lbl_test_phrase":"टेस्ट वाक्यांश",
+        "lbl_their_voice_hint": "कोई {lang} आवाज़ नहीं",
+        "btn_refresh":    "↺",
+        "btn_download":   "⬇  आवाज़ें डाउनलोड करें",
+    },
+}
+
+
 DEFAULT_CFG: dict = {
     "src":            "pt",
     "tgt":            "en",
@@ -116,6 +805,7 @@ DEFAULT_CFG: dict = {
     "gate_threshold": 0.10,
     "ptt_key":        "",
     "theme":          "light",
+    "ui_lang":        "pt",
 }
 
 THEME_LIGHT: dict = {
@@ -709,6 +1399,75 @@ class ConfigWindow(ctk.CTk):
         )
         self.destroy()
 
+    # ── Helpers de tradução e cores / Translation and color helpers ───────────
+
+    def _t(self, key: str) -> str:
+        """Retorna string da UI para o idioma atual, com fallback para PT-BR.
+        Returns UI string for current language, falling back to PT-BR."""
+        lang = self.cfg.get("ui_lang", "pt")
+        return UI_STRINGS.get(lang, UI_STRINGS["pt"]).get(key, UI_STRINGS["pt"].get(key, key))
+
+    def _lang_name(self, code: str) -> str:
+        """Retorna nome do idioma `code` no idioma da UI atual.
+        Returns the name of language `code` in the current UI language."""
+        ui_lang = self.cfg.get("ui_lang", "pt")
+        return LANG_NAMES_BY_UI.get(ui_lang, LANG_NAMES_BY_UI["pt"]).get(code, code)
+
+    def _fix_seg_colors(self, seg, sel_tc: str = "#FFFFFF", unsel_tc: str | None = None) -> None:
+        """Corrige cores de texto selecionado/não-selecionado no CTkSegmentedButton.
+        Fixes selected/unselected text colors for CTkSegmentedButton internals.
+        CustomTkinter applies a single text_color to all states, so we patch _buttons_dict directly."""
+        if unsel_tc is None:
+            unsel_tc = self.TEXT
+        try:
+            selected = seg.get()
+            for key, btn in seg._buttons_dict.items():
+                btn.configure(text_color=sel_tc if key == selected else unsel_tc)
+        except Exception:
+            pass
+
+    def _change_ui_lang(self, lang_label: str) -> None:
+        """Muda o idioma da UI e reconstrói a interface.
+        Changes the UI language and rebuilds the entire interface."""
+        code = lang_label.strip().split()[-1].lower()
+        if code == self.cfg.get("ui_lang", "pt"):
+            return
+        self.cfg["ui_lang"] = code
+
+        # Para processos ativos antes de reconstruir (mesmo padrão de _toggle_theme_impl)
+        # Stop active processes before rebuilding (same pattern as _toggle_theme_impl)
+        if self._meter_poll_id:
+            try: self.after_cancel(self._meter_poll_id)
+            except Exception: pass
+        self._meter_poll_id = None
+        self._meter_stop.set()
+        if self._meter_proc:
+            try: self._meter_proc.terminate()
+            except Exception: pass
+        self._meter_proc = None
+        self._stop_ptt_config_listener()
+        self._stop_engine(collapse=False)
+
+        self.configure(fg_color=self.BG)
+        self._main.destroy()
+
+        # Limpa referências stale / clear stale refs
+        self._meter_ids = {}
+        self._meter_W   = 0
+        self._meter_H   = 0
+        for _attr in ("_gate_info_row", "_gate_info_row_kw", "_gate_pct_lbl",
+                       "_meter_canvas", "_btn_vad", "_btn_gate", "_btn_ptt",
+                       "_mode_cond", "_mode_cond_kw", "_ptt_info",
+                       "_voice_menu", "_test_btn", "_theme_btn", "_lang_menu",
+                       "_tab_seg", "_config_frame_outer", "_clone_frame_outer",
+                       "_dl_card", "_dl_card_kw", "_dl_inner",
+                       "_dl_progress", "_dl_pct_lbl", "_dl_status"):
+            try: delattr(self, _attr)
+            except AttributeError: pass
+
+        self._build()
+        self._refresh_devices(startup=True)
+
     # ── Ícone e splash ────────────────────────────────────────────────────────
 
     def _create_loading_splash(self) -> "tuple[tk.Toplevel, ctk.CTkProgressBar, ctk.CTkLabel]":
@@ -839,15 +1598,29 @@ class ConfigWindow(ctk.CTk):
 
         _is_dark = ctk.get_appearance_mode().lower() == "dark"
 
-        # Estrutura: [spacer 34px] [centro expand] [botão 34px]
-        # O spacer espelha a largura do botão → centro fica geometricamente centrado
-        _hdr_spacer = ctk.CTkFrame(hdr, fg_color="transparent", width=34, height=34)
-        _hdr_spacer.pack(side="left")
-        _hdr_spacer.pack_propagate(False)
-
-        _hdr_right = ctk.CTkFrame(hdr, fg_color="transparent", width=34)
+        # Estrutura: [spacer 120px] [centro expand] [seletor idioma 80px + botão 34px]
+        # Right side: [lang selector] + [theme btn] — width matches left spacer for logo centering
+        _hdr_right = ctk.CTkFrame(hdr, fg_color="transparent")
         _hdr_right.pack(side="right", anchor="n")
-        _hdr_right.pack_propagate(False)
+
+        _cur_lang = self.cfg.get("ui_lang", "pt")
+        _lang_options = [f"{_UI_LANG_FLAGS[c]} {c.upper()}" for c in _UI_LANG_FLAGS]
+        _lang_cur_label = f"{_UI_LANG_FLAGS.get(_cur_lang, '🌐')} {_cur_lang.upper()}"
+        self._lang_menu = ctk.CTkOptionMenu(
+            _hdr_right,
+            values=_lang_options,
+            width=80, height=34,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
+            button_hover_color=self.HOVER,
+            text_color=self.TEXT,
+            dropdown_fg_color=self.CARD,
+            dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG,
+            font=ctk.CTkFont(size=11),
+            command=self._change_ui_lang,
+        )
+        self._lang_menu.set(_lang_cur_label)
+        self._lang_menu.pack(side="left", padx=(0, 6))
 
         self._theme_btn = ctk.CTkButton(
             _hdr_right, text="☀" if _is_dark else "☾",
@@ -857,7 +1630,13 @@ class ConfigWindow(ctk.CTk):
             corner_radius=17, font=ctk.CTkFont(size=15),
             command=self._toggle_theme,
         )
-        self._theme_btn.pack()
+        self._theme_btn.pack(side="left")
+
+        # Spacer esquerdo espelha largura do lado direito para centralizar o logo
+        # Left spacer mirrors right side width for logo centering (80+6+34 = 120px)
+        _hdr_spacer = ctk.CTkFrame(hdr, fg_color="transparent", width=120, height=34)
+        _hdr_spacer.pack(side="left")
+        _hdr_spacer.pack_propagate(False)
 
         _hdr_center = ctk.CTkFrame(hdr, fg_color="transparent")
         _hdr_center.pack(side="left", fill="both", expand=True)
@@ -878,7 +1657,7 @@ class ConfigWindow(ctk.CTk):
 
         ctk.CTkLabel(
             _hdr_center,
-            text="Uma mensagem. Todas as línguas.",
+            text=self._t("tagline"),
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self.MUTED,
         ).pack(pady=(6, 0))
@@ -887,7 +1666,7 @@ class ConfigWindow(ctk.CTk):
         # Tab selector using SegmentedButton (avoids CTkTabview opening a new window on Linux)
         self._tab_seg = ctk.CTkSegmentedButton(
             self._left,
-            values=["⚙  Config", "🎙  Clonar minha voz"],
+            values=[self._t("tab_config"), self._t("tab_clone")],
             fg_color=self.SEG_BG,
             selected_color=self.ACCENT,
             selected_hover_color=self.HOVER,
@@ -897,7 +1676,8 @@ class ConfigWindow(ctk.CTk):
             font=ctk.CTkFont(size=13),
             command=self._on_tab_change,
         )
-        self._tab_seg.set("⚙  Config")
+        self._tab_seg.set(self._t("tab_config"))
+        self._fix_seg_colors(self._tab_seg)
         self._tab_seg.pack(fill="x", padx=24, pady=(8, 0))
 
         # ── Frame container das abas (só um visível por vez) ─────────────────
@@ -919,19 +1699,19 @@ class ConfigWindow(ctk.CTk):
         self._card.grid_columnconfigure((0, 1), weight=1)
 
         r = 0
-        r = self._section(r, "Áudio", right_widget=self._make_refresh_btn())
+        r = self._section(r, self._t("sec_audio"), right_widget=self._make_refresh_btn())
         r = self._audio_section(r)
         r = self._sep(r)
 
-        r = self._section(r, "Idiomas")
+        r = self._section(r, self._t("sec_langs"))
         r = self._idiomas(r)
         r = self._sep(r)
 
-        r = self._section(r, "Modelo Whisper")
+        r = self._section(r, self._t("sec_whisper"))
         r = self._whisper(r)
         r = self._sep(r)
 
-        r = self._section(r, "Voz de saída",
+        r = self._section(r, self._t("sec_voice_out"),
                           right_widget=self._make_voice_header_btns())
         r = self._voice_field(r)
         r = self._sep(r)
@@ -943,14 +1723,14 @@ class ConfigWindow(ctk.CTk):
         footer = ctk.CTkFrame(self._left, fg_color="transparent")
         footer.pack(fill="x", padx=24, pady=(4, 20))
         ctk.CTkButton(
-            footer, text="Salvar", width=100, height=38,
+            footer, text=self._t("btn_save"), width=100, height=38,
             fg_color=self.SEG_BG, hover_color=self.IBORDER,
             text_color=self.TEXT, border_width=1, border_color=self.IBORDER,
             corner_radius=10, font=ctk.CTkFont(size=13),
             command=self._save,
         ).pack(side="left")
         self._iniciar_btn = ctk.CTkButton(
-            footer, text="✦  Iniciar", height=38,
+            footer, text=self._t("btn_start"), height=38,
             fg_color=self.ACCENT, hover_color=self.HOVER,
             text_color="#FFFFFF", corner_radius=10,
             font=ctk.CTkFont(size=14, weight="bold"),
@@ -969,6 +1749,7 @@ class ConfigWindow(ctk.CTk):
     def _on_tab_change(self, value: str) -> None:
         """Alterna a aba visível entre Config e Clonar, mostrando/ocultando os frames.
         Switches the visible tab between Config and Clone by showing/hiding frames."""
+        self._fix_seg_colors(self._tab_seg)
         if "Config" in value:
             self._clone_frame_outer.pack_forget()
             self._config_frame_outer.pack(fill="both", expand=True)
@@ -981,27 +1762,30 @@ class ConfigWindow(ctk.CTk):
         """Seção de seleção de idiomas (fala → traduz para). Returns next grid row.
         Language selection section (speaks → translates to). Returns next grid row."""
         card = self._card
-        ctk.CTkLabel(card, text="Você fala",
+        ctk.CTkLabel(card, text=self._t("lbl_src_lang"),
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED).grid(row=r, column=0, sticky="w",
                                                   padx=20, pady=(0, 4))
-        ctk.CTkLabel(card, text="Traduz para",
+        ctk.CTkLabel(card, text=self._t("lbl_tgt_lang"),
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED).grid(row=r, column=1, sticky="w",
                                                   padx=20, pady=(0, 4))
         r += 1
-        self.src_var = ctk.StringVar(value=lang_label(self.cfg["src"]))
+        # labels traduzidos para o idioma de UI atual
+        _src_labels = [f"{self._lang_name(c)}  ({c})" for c, _ in LANGS]
+        self.src_var = ctk.StringVar(
+            value=f"{self._lang_name(self.cfg['src'])}  ({self.cfg['src']})")
         # destino: apenas idiomas com voz disponível no catálogo ou instalada
         _tgt_pairs  = _tgt_langs_with_voices()
-        _tgt_labels = [f"{n}  ({c})" for c, n in _tgt_pairs]
+        _tgt_labels = [f"{self._lang_name(c)}  ({c})" for c, _ in _tgt_pairs]
         self._tgt_pairs = _tgt_pairs
-        saved_tgt = lang_label(self.cfg["tgt"])
+        saved_tgt = f"{self._lang_name(self.cfg['tgt'])}  ({self.cfg['tgt']})"
         if saved_tgt not in _tgt_labels:
             saved_tgt = _tgt_labels[0]
         self.tgt_var = ctk.StringVar(value=saved_tgt)
         self.tgt_var.trace_add("write", lambda *_: self.after(0, self._on_tgt_change))
         self.src_var.trace_add("write", lambda *_: self.after(0, self._on_src_change))
-        self._optmenu(card, r, 0, LANG_LABELS, self.src_var, pr=8)
+        self._optmenu(card, r, 0, _src_labels, self.src_var, pr=8)
         self._optmenu(card, r, 1, _tgt_labels, self.tgt_var, pl=8)
         return r + 1
 
@@ -1009,13 +1793,15 @@ class ConfigWindow(ctk.CTk):
         """Seção de seleção do modelo Whisper (tiny/base/small/medium/large-v2).
         Whisper model selection section."""
         self.model_var = ctk.StringVar(value=self.cfg["model"])
-        ctk.CTkSegmentedButton(
+        _whisper_seg = ctk.CTkSegmentedButton(
             self._card, values=MODELS, variable=self.model_var,
             fg_color=self.SEG_BG,
             selected_color=self.ACCENT, selected_hover_color=self.HOVER,
             unselected_color=self.SEG_BG, unselected_hover_color=self.IBORDER,
             text_color=self.MUTED, font=ctk.CTkFont(size=12),
-        ).grid(row=r, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 16))
+        )
+        _whisper_seg.grid(row=r, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 16))
+        self._fix_seg_colors(_whisper_seg, unsel_tc=self.MUTED)
         return r + 1
 
     def _audio_section(self, r: int) -> int:
@@ -1027,14 +1813,14 @@ class ConfigWindow(ctk.CTk):
         r = self._mode_section(r)
 
         # 2. Entrada (microfone)
-        ctk.CTkLabel(card, text="Entrada  (microfone)",
+        ctk.CTkLabel(card, text=self._t("lbl_input"),
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED).grid(row=r, column=0, columnspan=2,
                                                   sticky="w", padx=20, pady=(0, 4))
         r += 1
-        self.mic_var   = ctk.StringVar(value="(padrão do sistema)")
+        self.mic_var   = ctk.StringVar(value=self._t("lbl_sys_default"))
         self._mic_menu = ctk.CTkOptionMenu(
-            card, values=["(padrão do sistema)"], variable=self.mic_var,
+            card, values=[self._t("lbl_sys_default")], variable=self.mic_var,
             fg_color=self.INPUT, button_color=self.IBORDER,
             button_hover_color=self.SEG_BG, text_color=self.TEXT,
             dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
@@ -1052,14 +1838,14 @@ class ConfigWindow(ctk.CTk):
         r = self._build_gate_bar(r)
 
         # 5. Saída (fones / caixas)
-        ctk.CTkLabel(card, text="Saída  (fones / caixas)",
+        ctk.CTkLabel(card, text=self._t("lbl_output"),
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED).grid(row=r, column=0, columnspan=2,
                                                   sticky="w", padx=20, pady=(0, 4))
         r += 1
-        self.out_var   = ctk.StringVar(value="(padrão do sistema)")
+        self.out_var   = ctk.StringVar(value=self._t("lbl_sys_default"))
         self._out_menu = ctk.CTkOptionMenu(
-            card, values=["(padrão do sistema)"], variable=self.out_var,
+            card, values=[self._t("lbl_sys_default")], variable=self.out_var,
             fg_color=self.INPUT, button_color=self.IBORDER,
             button_hover_color=self.SEG_BG, text_color=self.TEXT,
             dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
@@ -1072,7 +1858,7 @@ class ConfigWindow(ctk.CTk):
         # 6. Monitor toggle
         self._mon_btn = ctk.CTkButton(
             card,
-            text="● Monitor ativo" if self._monitor else "○ Monitor desligado",
+            text=self._t("mon_on") if self._monitor else self._t("mon_off"),
             height=38, corner_radius=10,
             fg_color=self.MON_ON if self._monitor else self.MON_OFF,
             hover_color=self.HOVER if self._monitor else self.IBORDER,
@@ -1085,7 +1871,7 @@ class ConfigWindow(ctk.CTk):
                            padx=20, pady=(0, 4))
         r += 1
         ctk.CTkLabel(
-            card, text="Ouvir a tradução na saída selecionada acima",
+            card, text=self._t("mon_hint"),
             font=ctk.CTkFont(size=11), text_color=self.MUTED,
         ).grid(row=r, column=0, columnspan=2, sticky="w", padx=20, pady=(0, 18))
         r += 1
@@ -1426,9 +2212,9 @@ class ConfigWindow(ctk.CTk):
                                 **(kw_active if self._mode_var.get() == value else kw_idle))
             return btn
 
-        self._btn_vad  = _make_btn("VAD automático",  "vad")
-        self._btn_gate = _make_btn("Gate threshold",   "gate")
-        self._btn_ptt  = _make_btn("Push-to-talk",     "ptt")
+        self._btn_vad  = _make_btn(self._t("mode_vad"),  "vad")
+        self._btn_gate = _make_btn(self._t("mode_gate"), "gate")
+        self._btn_ptt  = _make_btn(self._t("mode_ptt"),  "ptt")
         self._btn_vad .grid(row=0, column=0, sticky="ew", padx=(0, 4))
         self._btn_gate.grid(row=0, column=1, sticky="ew", padx=(0, 4))
         self._btn_ptt .grid(row=0, column=2, sticky="ew")
@@ -1446,13 +2232,13 @@ class ConfigWindow(ctk.CTk):
         ptt_row.pack(fill="x", pady=(2, 6))
         self._ptt_key_lbl = ctk.CTkLabel(
             ptt_row,
-            text=self._ptt_key if self._ptt_key else "(nenhum configurado)",
+            text=self._ptt_key if self._ptt_key else self._t("ptt_none"),
             font=ctk.CTkFont(size=12, weight="bold"),
             text_color=self.TEXT,
         )
         self._ptt_key_lbl.pack(side="left", padx=(0, 12))
         ctk.CTkButton(
-            ptt_row, text="Configurar botão", width=140, height=28,
+            ptt_row, text=self._t("btn_configure"), width=140, height=28,
             fg_color=self.SEG_BG, hover_color=self.IBORDER,
             text_color=self.MUTED, border_width=1, border_color=self.IBORDER,
             corner_radius=8, font=ctk.CTkFont(size=11),
@@ -1780,7 +2566,7 @@ class ConfigWindow(ctk.CTk):
                      font=ctk.CTkFont(size=10), text_color=self.MUTED).grid(
                          row=0, column=0, sticky="w")
         self._test_btn = ctk.CTkButton(
-            info_row, text="▶  Testar", width=90, height=26,
+            info_row, text=self._t("btn_test"), width=90, height=26,
             fg_color=self.SEG_BG, hover_color=self.IBORDER,
             text_color=self.MUTED, border_width=1, border_color=self.IBORDER,
             corner_radius=8, font=ctk.CTkFont(size=11),
@@ -1821,24 +2607,26 @@ class ConfigWindow(ctk.CTk):
         if label is None:
             return self.cfg.get("tgt", "en")
         lbl = label.get()
-        # Tenta _tgt_pairs primeiro (lista filtrada de destino)
-        pairs = getattr(self, "_tgt_pairs", None) or []
-        for code, name in pairs:
-            if f"{name}  ({code})" == lbl:
-                return code
-        # Fallback: lista global
+        # extrai código do sufixo "Nome  (code)" / extract code from "Name  (code)"
         try:
-            return LANG_CODES[LANG_LABELS.index(lbl)]
+            code = lbl.split("(")[-1].rstrip(")")
+            if code in LANG_CODES:
+                return code
         except (ValueError, IndexError):
-            return self.cfg.get("tgt", "en")
+            pass
+        return self.cfg.get("tgt", "en")
 
     def _on_src_change(self) -> None:
         """Atualiza o seletor de voz bilateral quando o idioma de origem muda."""
         if not hasattr(self, "_voice_in_menu"):
             return
         try:
-            src_code = LANG_CODES[LANG_LABELS.index(self.src_var.get())]
-        except ValueError:
+            # extrai código do label "Nome  (code)" / extract code from label "Name  (code)"
+            raw = self.src_var.get()
+            src_code = raw.split("(")[-1].rstrip(")")
+            if src_code not in LANG_CODES:
+                return
+        except (ValueError, IndexError):
             return
         in_voices = _voices_for_lang(self._voices, src_code)
         in_labels = [lbl for _, lbl in in_voices] or [f"(nenhuma voz {src_code})"]
@@ -2056,7 +2844,7 @@ class ConfigWindow(ctk.CTk):
                 pass
             finally:
                 self.after(0, lambda: self._test_btn.configure(
-                    state="normal", text="▶  Testar"))
+                    state="normal", text=self._t("btn_test")))
 
         threading.Thread(target=_run, daemon=True).start()
 
@@ -2328,15 +3116,12 @@ class ConfigWindow(ctk.CTk):
                                 corner_radius=10, border_width=1,
                                 border_color=self.IBORDER)
         _ov_info.pack(fill="x", padx=16, pady=(14, 8))
-        ctk.CTkLabel(_ov_info, text="OmniVoice — Clonagem zero-shot",
+        ctk.CTkLabel(_ov_info, text=self._t("ov_title"),
                      font=ctk.CTkFont(size=12, weight="bold"),
                      text_color=self.TEXT).pack(anchor="w", padx=12, pady=(10, 2))
         ctk.CTkLabel(
             _ov_info,
-            text=(
-                "Grave ~10s da sua voz lendo o texto abaixo, depois clique em Gerar.\n"
-                "O Whisper transcreve automaticamente — sem treino necessário."
-            ),
+            text=self._t("ov_desc"),
             font=ctk.CTkFont(size=11), text_color=self.MUTED,
             justify="left", anchor="w",
         ).pack(anchor="w", padx=12, pady=(0, 10))
@@ -2349,16 +3134,12 @@ class ConfigWindow(ctk.CTk):
         _ov_rec_card.pack(fill="x", padx=16, pady=(0, 6))
 
         # Texto de exemplo para leitura / sample text to read aloud
-        ctk.CTkLabel(_ov_rec_card, text="Leia este trecho em voz alta:",
+        ctk.CTkLabel(_ov_rec_card, text=self._t("ov_read_aloud"),
                      font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED).pack(anchor="w", padx=12, pady=(10, 2))
         ctk.CTkLabel(
             _ov_rec_card,
-            text=(
-                "Olá! Estou gravando uma amostra de voz para o sistema de clonagem. "
-                "A tecnologia aprende com poucos segundos de áudio e reproduz qualquer texto "
-                "mantendo o timbre e a entonação natural da voz gravada."
-            ),
+            text=self._t("ov_ref_text"),
             font=ctk.CTkFont(size=12), text_color=self.TEXT,
             wraplength=380, justify="left", anchor="nw",
         ).pack(fill="x", padx=12, pady=(0, 8))
@@ -2368,7 +3149,7 @@ class ConfigWindow(ctk.CTk):
         _ov_ctl.pack(fill="x", padx=12, pady=(0, 4))
 
         self._ov_rec_btn = ctk.CTkButton(
-            _ov_ctl, text="● Gravar referência", width=150, height=32,
+            _ov_ctl, text=self._t("btn_rec_ref"), width=150, height=32,
             fg_color="#DC2626", hover_color="#B91C1C",
             text_color="#FFFFFF", corner_radius=8,
             font=ctk.CTkFont(size=12, weight="bold"),
@@ -2377,7 +3158,7 @@ class ConfigWindow(ctk.CTk):
         self._ov_rec_btn.pack(side="left", padx=(0, 10))
 
         self._ov_rec_status = ctk.CTkLabel(
-            _ov_ctl, text="Pronto — grave ~10s",
+            _ov_ctl, text=self._t("lbl_ready"),
             font=ctk.CTkFont(size=11), text_color=self.MUTED)
         self._ov_rec_status.pack(side="left")
 
@@ -2460,7 +3241,7 @@ class ConfigWindow(ctk.CTk):
         _ov_import_row.pack(fill="x", padx=12, pady=(0, 10))
 
         ctk.CTkButton(
-            _ov_import_row, text="📂 Importar", width=100, height=28,
+            _ov_import_row, text=self._t("btn_import"), width=100, height=28,
             fg_color=self.SEG_BG, hover_color=self.IBORDER,
             text_color=self.TEXT, border_width=1, border_color=self.IBORDER,
             corner_radius=8, font=ctk.CTkFont(size=12),
@@ -2469,7 +3250,7 @@ class ConfigWindow(ctk.CTk):
 
         self._ov_import_entry = ctk.CTkEntry(
             _ov_import_row,
-            placeholder_text="WAV · MP3 · OGG · OPUS (WhatsApp) · M4A · FLAC…",
+            placeholder_text=self._t("lbl_import_hint"),
             fg_color=self.SEG_BG, border_color=self.IBORDER,
             text_color=self.TEXT, font=ctk.CTkFont(size=11),
         )
@@ -2735,7 +3516,7 @@ class ConfigWindow(ctk.CTk):
             return
         self._ov_rec_frames = []
         self._ov_rec_active = True
-        self._ov_rec_btn.configure(text="■ Parar", fg_color="#7C3AED",
+        self._ov_rec_btn.configure(text=self._t("btn_stop_rec"), fg_color="#7C3AED",
                                     hover_color="#6D28D9")
         self._ov_rec_status.configure(text="● Gravando — leia o texto acima",
                                        text_color="#DC2626")
@@ -2762,7 +3543,7 @@ class ConfigWindow(ctk.CTk):
         """Para gravação de referência, salva WAV e transcreve com Whisper.
         Stops reference recording, saves WAV, and transcribes with Whisper."""
         self._ov_rec_active = False
-        self._ov_rec_btn.configure(text="● Gravar referência",
+        self._ov_rec_btn.configure(text=self._t("btn_rec_ref"),
                                     fg_color="#DC2626", hover_color="#B91C1C")
         frames = list(self._ov_rec_frames)
         if not frames:
@@ -3146,7 +3927,7 @@ class ConfigWindow(ctk.CTk):
         profiles = sorted(self.CLONES_DIR.glob("*.json"))
         if not profiles:
             ctk.CTkLabel(self._clone_list_frame,
-                         text="Nenhuma voz clonada ainda.",
+                         text=self._t("lbl_no_clones"),
                          font=ctk.CTkFont(size=11), text_color=self.MUTED).pack(
                              anchor="w", pady=4)
             return
@@ -3182,7 +3963,7 @@ class ConfigWindow(ctk.CTk):
             btn_frame.grid(row=0, column=1, padx=6)
             wav_path = str(self.CLONES_DIR / meta.get("wav", f"{jp.stem}.wav"))
             _tbtn = ctk.CTkButton(
-                btn_frame, text="▶ Testar", width=80, height=26,
+                btn_frame, text=self._t("btn_test"), width=80, height=26,
                 fg_color=self.SEG_BG, hover_color=self.IBORDER,
                 text_color=self.MUTED, border_width=1,
                 border_color=self.IBORDER, corner_radius=6,
@@ -3190,7 +3971,7 @@ class ConfigWindow(ctk.CTk):
             )
             _tbtn.pack(side="left", padx=(0, 4))
             ctk.CTkButton(
-                btn_frame, text="Usar", width=60, height=26,
+                btn_frame, text=self._t("btn_use"), width=60, height=26,
                 fg_color=self.ACCENT, hover_color=self.HOVER,
                 text_color="#FFFFFF", corner_radius=6,
                 font=ctk.CTkFont(size=11),
@@ -3441,7 +4222,7 @@ class ConfigWindow(ctk.CTk):
             if test_btn:
                 try:
                     self.after(0, lambda: test_btn.configure(
-                        state="normal", text="▶ Testar"))
+                        state="normal", text=self._t("btn_test")))
                 except Exception:
                     pass
 
@@ -3567,13 +4348,13 @@ class ConfigWindow(ctk.CTk):
         self._monitor = not self._monitor
         if self._monitor:
             self._mon_btn.configure(
-                text="● Monitor ativo",
+                text=self._t("mon_on"),
                 fg_color=self.MON_ON, hover_color=self.HOVER,
                 text_color="#FFFFFF",
             )
         else:
             self._mon_btn.configure(
-                text="○ Monitor desligado",
+                text=self._t("mon_off"),
                 fg_color=self.MON_OFF, hover_color=self.IBORDER,
                 text_color=self.MUTED,
             )
@@ -3586,7 +4367,7 @@ class ConfigWindow(ctk.CTk):
         hdr = ctk.CTkFrame(self._card, fg_color="transparent")
         hdr.grid(row=row, column=0, columnspan=2, sticky="ew", padx=20, pady=(10, 4))
         hdr.grid_columnconfigure(0, weight=1)
-        ctk.CTkLabel(hdr, text="BILATERAL",
+        ctk.CTkLabel(hdr, text=self._t("bilat_label"),
                      font=ctk.CTkFont(size=10, weight="bold"),
                      text_color=self.MUTED).grid(row=0, column=0, sticky="w")
         row += 1
@@ -3594,7 +4375,7 @@ class ConfigWindow(ctk.CTk):
         # Botão toggle
         self._bilat_btn = ctk.CTkButton(
             self._card,
-            text="● Bilateral ativo" if self._bilateral else "○ Bilateral desligado",
+            text=self._t("bilat_on") if self._bilateral else self._t("bilat_off"),
             height=32, corner_radius=8,
             fg_color=self.MON_ON if self._bilateral else self.MON_OFF,
             hover_color=self.HOVER if self._bilateral else self.IBORDER,
@@ -3613,7 +4394,7 @@ class ConfigWindow(ctk.CTk):
                                      sticky="ew", padx=20, pady=(0, 4))
         self._bilat_voice_frame.grid_columnconfigure(1, weight=1)
         ctk.CTkLabel(self._bilat_voice_frame,
-                     text="Voz deles (você ouve):",
+                     text=self._t("bilat_voice"),
                      font=ctk.CTkFont(size=12), text_color=self.TEXT).grid(
             row=0, column=0, sticky="w", padx=(0, 8))
 
@@ -3663,7 +4444,7 @@ class ConfigWindow(ctk.CTk):
         self._bilateral = not self._bilateral
         if self._bilateral:
             self._bilat_btn.configure(
-                text="● Bilateral ativo",
+                text=self._t("bilat_on"),
                 fg_color=self.MON_ON, hover_color=self.HOVER,
                 text_color="#FFFFFF",
             )
@@ -3671,7 +4452,7 @@ class ConfigWindow(ctk.CTk):
             self._bilat_info.grid()
         else:
             self._bilat_btn.configure(
-                text="○ Bilateral desligado",
+                text=self._t("bilat_off"),
                 fg_color=self.MON_OFF, hover_color=self.IBORDER,
                 text_color=self.MUTED,
             )
@@ -3690,10 +4471,14 @@ class ConfigWindow(ctk.CTk):
         """Coleta todos os valores atuais da UI e retorna como dict de configuração.
         Collects all current UI values and returns as a config dict."""
         def code_of(label: str) -> str:
+            # extrai código do sufixo "Nome  (code)" / extract code from "Name  (code)"
             try:
-                return LANG_CODES[LANG_LABELS.index(label)]
-            except ValueError:
-                return label
+                code = label.split("(")[-1].rstrip(")")
+                if code in LANG_CODES:
+                    return code
+            except (ValueError, IndexError):
+                pass
+            return label
 
         selected_label = self.voice_var.get()
         voice_path = next(
@@ -3810,7 +4595,7 @@ class ConfigWindow(ctk.CTk):
         if collapse:
             self._right.pack_forget()
             self._left.pack_configure(expand=True)  # restaura expansão total
-            self._iniciar_btn.configure(state="normal", text="✦  Iniciar")
+            self._iniciar_btn.configure(state="normal", text=self._t("btn_start"))
             self._mon_set_status("Parado", "#EF4444")
         if hasattr(self, "_theme_btn"):
             self._theme_btn.configure(state="normal")
