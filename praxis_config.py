@@ -2971,16 +2971,17 @@ class ConfigWindow(ctk.CTk):
                 return
             ext = os.path.splitext(src_path)[1].lower()
             if ext == ".wav":
-                wav_path = src_path
+                # Apara WAV para ≤15s sem recodificar / trim WAV to ≤15s without re-encoding
+                wav_path = self._trim_ref_wav(src_path, max_s=15.0)
             else:
-                # Converte para WAV 24 kHz mono PCM_16 via ffmpeg
-                # Convert to WAV 24 kHz mono PCM_16 via ffmpeg
+                # Converte + apara para ≤15s em uma passagem ffmpeg
+                # Convert + trim to ≤15s in a single ffmpeg pass
                 self._ov_rec_status.configure(
                     text="Convertendo áudio…", text_color="#F59E0B")
                 self.update_idletasks()
                 wav_path = "/tmp/ov_ref_import.wav"
                 r = subprocess.run(
-                    ["ffmpeg", "-y", "-i", src_path,
+                    ["ffmpeg", "-y", "-i", src_path, "-t", "15",
                      "-ar", "24000", "-ac", "1", "-sample_fmt", "s16", wav_path],
                     capture_output=True, timeout=60,
                 )
