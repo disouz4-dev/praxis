@@ -3426,7 +3426,10 @@ class ConfigWindow(ctk.CTk):
                 text=gen_text,
                 language=lang_code,
                 voice_clone_prompt=prompt,
-                speed=0.9,   # ligeiramente mais lento que o default / slightly slower than default
+                speed=0.9,
+                guidance_scale=3.5,          # mais fiel ao texto / more faithful to text
+                audio_chunk_threshold=120.0,  # só fragmenta acima de ~2min / only chunk above ~2min
+                postprocess_output=False,     # evita cortes/adições indevidas / avoid unwanted cuts/additions
             )
 
             # Normaliza e salva como PCM_16 para evitar distorção / volume estourado
@@ -4241,6 +4244,9 @@ class ConfigWindow(ctk.CTk):
                     language=lang_code,
                     voice_clone_prompt=prompt,
                     speed=0.9,
+                    guidance_scale=3.5,
+                    audio_chunk_threshold=120.0,
+                    postprocess_output=False,
                 )
                 _anim_stop.set()
                 _set_prog(0.94)
