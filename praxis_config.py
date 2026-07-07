@@ -3371,6 +3371,62 @@ class ConfigWindow(ctk.CTk):
             return ""
 
     @staticmethod
+    def _patch_ov_transcribe(model):
+        """Monkey-patch do método ASR interno do OmniVoice para usar faster-whisper.
+        Monkey-patches OmniVoice's internal ASR to use faster-whisper.
+
+        TorchCodec 0.14 é incompatível com PyTorch 2.6.0+cu124 (undefined symbol:
+        aoti_torch_abi_version). O OmniVoice usa TorchCodec internamente para decodificar
+        áudio antes do ASR. Substituindo o callable _asr_pipe (ou transcribe) por uma
+        implementação faster-whisper, podemos usar ref_text=None e deixar o OmniVoice
+        transcrever o ref_audio com alinhamento perfeito — eliminando alucinações por mismatch.
+
+        TorchCodec 0.14 is incompatible with PyTorch 2.6.0+cu124 (undefined symbol:
+        aoti_torch_abi_version). OmniVoice uses TorchCodec internally to decode audio
+        before ASR. By replacing the _asr_pipe callable (or transcribe) with a
+        faster-whisper implementation, we can pass ref_text=None and let OmniVoice
+        transcribe ref_audio with perfect alignment — eliminating hallucinations from mismatch.
+        """
+        import tempfile, soundfile as _sf, numpy as _np
+
+        def _fw_asr(audio_input):
+            # audio_input pode ser (array, sr) ou path str
+            # audio_input may be (array, sr) tuple or a path str
+            if isinstance(audio_input, (list, tuple)) and len(audio_input) == 2:
+                arr, sr = audio_input
+                arr = _np.asarray(arr)
+                if arr.dtype != _np.float32:
+                    arr = arr.astype(_np.float32)
+                if arr.ndim > 1:
+                    arr = arr.mean(axis=-1)  # mono
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
+                    _sf.write(f.name, arr, int(sr), subtype="PCM_16")
+                    _path = f.name
+            else:
+                _path = str(audio_input)
+
+            try:
+                from faster_whisper import WhisperModel
+                import torch as _t
+                _dev   = "cuda" if _t.cuda.is_available() else "cpu"
+                _ctype = "int8_float16" if _dev == "cuda" else "int8"
+                _wm    = WhisperModel("small", device=_dev, compute_type=_ctype)
+                segs, _ = _wm.transcribe(_path, task="transcribe")
+                return " ".join(s.text.strip() for s in segs).strip()
+            except Exception:
+                return ""
+
+        # Tenta patching via atributo _asr_pipe (OmniVoice >= 0.2)
+        # Try patching via _asr_pipe attribute (OmniVoice >= 0.2)
+        if hasattr(model, "_asr_pipe"):
+            model._asr_pipe = _fw_asr
+        # Fallback: patch direto no método transcribe (versões mais antigas)
+        # Fallback: patch transcribe method directly (older versions)
+        if hasattr(model, "transcribe"):
+            model.transcribe = _fw_asr
+        return model
+
+    @staticmethod
     def _trim_ref_wav(wav_path: str, max_s: float = 15.0) -> str:
         """Apara WAV de referência para max_s segundos para evitar OOM em gravações longas.
         Trims reference WAV to max_s seconds to prevent OOM on long recordings."""
@@ -3409,24 +3465,24 @@ class ConfigWindow(ctk.CTk):
                 _st(f"Baixando modelo ({device})… pode demorar na 1ª vez")
                 self._ov_model = OmniVoice.from_pretrained(
                     "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
+                # Patch: substitui _asr_pipe do OmniVoice por faster-whisper local.
+                # TorchCodec 0.14 é incompatível com PyTorch 2.6 (undefined symbol aoti_torch_abi_version).
+                # Patch: replace OmniVoice's internal _asr_pipe with local faster-whisper.
+                self._ov_model = self._patch_ov_transcribe(self._ov_model)
 
-            # Apara para ≤8s: reduz pressão de memória no encoder DAC da GPU
-            # Trim to ≤8s: reduces GPU memory pressure on DAC acoustic encoder
+            # Apara para ≤5s — fronteira ref/target mais limpa
+            # Trim to ≤5s — cleaner ref/target boundary
             ref_path = self._trim_ref_wav(ref_path, max_s=5.0)
 
-            # Libera cache CUDA antes da inferência para maximizar memória livre
-            # Free CUDA cache before inference to maximize available memory
+            # Libera cache CUDA antes da inferência / free CUDA cache before inference
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
 
-            # Usa ref_text da UI (preenchido pelo Whisper na gravação) ou transcreve agora.
-            # Nunca passa ref_text=None → evita TorchCodec quebrado do OmniVoice interno.
-            if not ref_text:
-                _st("Transcrevendo referência (Whisper)…")
-                ref_text = self._transcribe_wav(ref_path)
-            _st("Extraindo voz de referência…")
+            # ref_text=None → OmniVoice transcreve internamente via nosso patch Whisper
+            # ref_text=None → OmniVoice transcribes internally via our Whisper patch
+            _st("Transcrevendo referência…")
             prompt = self._ov_model.create_voice_clone_prompt(
-                ref_audio=ref_path, ref_text=ref_text or "referência")
+                ref_audio=ref_path, ref_text=None)
 
             _st("Gerando voz…")
             audio = self._ov_model.generate(
@@ -4223,27 +4279,25 @@ class ConfigWindow(ctk.CTk):
                             phase=(0.05, 0.45))
                     self._ov_model = OmniVoice.from_pretrained(
                         "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
+                    # Patch ASR interno para faster-whisper — TorchCodec 0.14 incompatível.
+                    # Patch internal ASR to faster-whisper — TorchCodec 0.14 incompatible.
+                    self._ov_model = self._patch_ov_transcribe(self._ov_model)
                 else:
                     _update("OmniVoice em memória…", phase=(0.05, 0.15))
 
-                # Apara para ≤8s: reduz pressão no encoder DAC da GPU
-                # Trim to ≤8s: reduces GPU memory pressure on DAC acoustic encoder
+                # Apara para ≤5s — fronteira ref/target mais limpa
+                # Trim to ≤5s — cleaner ref/target boundary
                 trimmed = self._trim_ref_wav(wav_path, max_s=5.0)
 
-                # Libera cache CUDA antes da inferência
-                # Free CUDA cache before inference
+                # Libera cache CUDA antes da inferência / free CUDA cache before inference
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
 
-                # Usa ref_text do JSON (ou transcreve com Whisper local; nunca ref_text=None)
-                # Use ref_text from JSON (or transcribe with local Whisper; never ref_text=None)
-                _rt = ref_text or ""
-                if not _rt:
-                    _update("Transcrevendo referência (Whisper)…", phase=(0.15, 0.30))
-                    _rt = self._transcribe_wav(trimmed)
-                _update("Extraindo voz de referência…", phase=(0.30, 0.45))
+                # ref_text=None → OmniVoice transcreve internamente via patch Whisper
+                # ref_text=None → OmniVoice transcribes internally via Whisper patch
+                _update("Transcrevendo referência…", phase=(0.15, 0.45))
                 prompt = self._ov_model.create_voice_clone_prompt(
-                    ref_audio=trimmed, ref_text=_rt or "referência")
+                    ref_audio=trimmed, ref_text=None)
 
                 _update("Gerando voz de teste…", phase=(0.45, 0.88))
                 audio = self._ov_model.generate(
