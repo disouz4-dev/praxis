@@ -4034,10 +4034,10 @@ class ConfigWindow(ctk.CTk):
                 command=lambda p=wav_path, n=name: self._use_clone(p, n),
             ).pack(side="left", padx=(0, 4))
             ctk.CTkButton(
-                btn_frame, text="✕", width=26, height=26,
+                btn_frame, text="🗑 Apagar", width=80, height=26,
                 fg_color=self.SEG_BG, hover_color="#FEE2E2",
-                text_color=self.MUTED, border_width=1,
-                border_color=self.IBORDER, corner_radius=6,
+                text_color="#EF4444", border_width=1,
+                border_color="#EF4444", corner_radius=6,
                 font=ctk.CTkFont(size=11),
                 command=lambda jp=jp: self._delete_clone(jp),
             ).pack(side="left")
