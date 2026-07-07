@@ -25,7 +25,7 @@ Immagina un brasiliano che parla in portoghese mentre un americano lo sente in i
 
 Più di un traduttore vocale, **Praxis** mira a rendere la tecnologia invisibile, permettendo alla comunicazione di avvenire come dovrebbe essere: spontanea, umana e accessibile.
 
-Il nome **Praxis** rappresenta l'azione — l'idea di mettere in pratica ciò che avvicina le persone. L'ispirazione dietro al progetto evoca anche la narrativa degli Atti 2, dove uomini e donne di diverse nazioni udirono lo stesso messaggio nella propria lingua. Indipendentemente dalle credenze di ciascuno, quell'immagine simboleggia qualcosa di universale: quando il linguaggio smette di essere una barriera, la comprensione diventa possibile.
+Il nome **Praxis** rappresenta l'azione — l'idea di mettere in pratica ciò che avvicina le persone.
 
 ---
 

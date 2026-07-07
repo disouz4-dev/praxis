@@ -25,7 +25,7 @@ Stellen Sie sich einen Brasilianer vor, der auf Portugiesisch spricht, während 
 
 Mehr als ein Sprachübersetzer strebt **Praxis** danach, die Technologie unsichtbar zu machen und Kommunikation so zu ermöglichen, wie sie sein sollte: spontan, menschlich und zugänglich.
 
-Der Name **Praxis** steht für Handlung — die Idee, das in die Praxis umzusetzen, was Menschen einander näherbringt. Die Inspiration hinter dem Projekt erinnert auch an die Erzählung der Apostelgeschichte 2, wo Männer und Frauen aus verschiedenen Nationen dieselbe Botschaft in ihren eigenen Sprachen hörten. Unabhängig von den Überzeugungen jedes Einzelnen symbolisiert dieses Bild etwas Universelles: Wenn Sprache aufhört, eine Barriere zu sein, wird Verständigung möglich.
+Der Name **Praxis** steht für Handlung — die Idee, das in die Praxis umzusetzen, was Menschen einander näherbringt.
 
 ---
 

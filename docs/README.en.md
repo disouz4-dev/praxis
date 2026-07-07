@@ -25,7 +25,7 @@ Picture a Brazilian speaking in Portuguese while an American hears every word in
 
 More than a voice translator, **Praxis** aims to make technology invisible — letting communication happen the way it should: spontaneous, human, and accessible.
 
-The name **Praxis** means action — the act of putting into practice what brings people together. The inspiration behind the project also echoes the story of Acts 2, where men and women from different nations heard the same message in their own languages. Regardless of anyone's beliefs, that image stands for something universal: when language stops being a barrier, understanding becomes possible.
+The name **Praxis** means action — the act of putting into practice what brings people together.
 
 ---
 
