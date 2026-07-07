@@ -940,10 +940,6 @@ class ConfigWindow(ctk.CTk):
         # ── Aba Clonar minha voz ──────────────────────────────────────────────
         self._build_clone_tab(self._clone_frame_outer)
 
-        # Detecta treino em andamento 500ms após a UI estar pronta
-        # Detect in-progress training 500ms after UI is ready
-        self.after(500, self._detect_existing_training)
-
         footer = ctk.CTkFrame(self._left, fg_color="transparent")
         footer.pack(fill="x", padx=24, pady=(4, 20))
         ctk.CTkButton(
@@ -980,180 +976,6 @@ class ConfigWindow(ctk.CTk):
             self._config_frame_outer.pack_forget()
             self._clone_frame_outer.pack(fill="both", expand=True)
 
-    # ── Helpers do dashboard de treino ───────────────────────────────────────
-
-    def _set_train_phase(self, phase: int, done: bool = False) -> None:
-        """Atualiza os pills de fase (0=pré-proc, 1=extração, 2=treino).
-        Updates phase pills (0=preproc, 1=extract, 2=train)."""
-        names = ["Pré-proc", "Extração", "Treino"]
-        for i, lbl in enumerate(self._dash_phases):
-            if i < phase:
-                lbl.configure(text=f"✓  {names[i]}", text_color="#22C55E")
-            elif i == phase:
-                icon, color = ("✓", "#22C55E") if done else ("●", "#F59E0B")
-                lbl.configure(text=f"{icon}  {names[i]}", text_color=color)
-            else:
-                lbl.configure(text=f"○  {names[i]}", text_color=self.MUTED)
-
-    @staticmethod
-    def _parse_train_line(line: str, total: int = 300) -> dict | None:
-        """Extrai métricas estruturadas de uma linha do train.py.
-        Extracts structured metrics from a train.py stdout line.
-        Retorna None se a linha não for uma linha de época / Returns None if not an epoch line."""
-        import re
-        if "epoch=" not in line:
-            return None
-        data: dict = {"total": total}
-        for key, pat in [
-            ("epoch",      r"epoch=(\d+)"),
-            ("loss_gen",   r"smoothed_loss_gen=([\d.]+)"),
-            ("loss_disc",  r"smoothed_loss_disc=([\d.]+)"),
-            ("best_loss",  r"lowest_value=([\d.]+)"),
-            ("best_epoch", r"lowest_value=[\d.]+\s*\(epoch\s+(\d+)"),
-        ]:
-            m = re.search(pat, line)
-            if m:
-                data[key] = float(m.group(1))
-        # training_speed=0:00:21 → segundos / → seconds
-        m = re.search(r"training_speed=(?:(\d+):)?(\d+):(\d+)", line)
-        if m:
-            h, mn, s = (int(x or 0) for x in m.groups())
-            data["speed_s"] = h * 3600 + mn * 60 + s
-        return data if "epoch" in data else None
-
-    def _update_train_dashboard(self, data: dict) -> None:
-        """Atualiza widgets do dashboard com métricas parseadas da linha de treino.
-        Updates dashboard widgets with metrics parsed from a training line."""
-        epoch = data.get("epoch")
-        total = int(data.get("total", 300))
-
-        if epoch is not None:
-            epoch = int(epoch)
-            self._dash_epoch_lbl.configure(text=f"{epoch} / {total}")
-            pct = int(epoch / total * 100)
-            self._dash_pct_lbl.configure(text=f"{pct}%")
-            # Faixa de treino: 0.33 → 0.99 / Training range: 0.33 → 0.99
-            self._train_prog.set(min(0.33 + 0.66 * epoch / total, 0.99))
-
-        if "loss_gen" in data:
-            self._dash_loss_gen.configure(text=f"{data['loss_gen']:.2f}")
-        if "loss_disc" in data:
-            self._dash_loss_disc.configure(text=f"{data['loss_disc']:.2f}")
-
-        if "speed_s" in data and epoch is not None:
-            spd = int(data["speed_s"])
-            rem = (total - epoch) * spd
-            self._dash_speed.configure(text=f"~{spd}s")
-            if rem >= 3600:
-                h, m = divmod(rem, 3600)
-                self._dash_eta.configure(text=f"{h}h{m//60:02d}m")
-            else:
-                self._dash_eta.configure(text=f"{rem // 60}min")
-
-        if "best_loss" in data and "best_epoch" in data:
-            self._train_status.configure(
-                text=f"✦ Melhor: época {int(data['best_epoch'])} · loss {data['best_loss']:.3f}",
-                text_color=self.MUTED)
-
-    def _detect_existing_training(self) -> None:
-        """Escaneia /proc buscando train.py em execução; se achar, faz tail do log.
-        Scans /proc for a running train.py; if found, tails its log into the UI."""
-        import glob, os, re
-
-        train_pid   = None
-        model_name  = None
-        total_epochs = 300
-
-        # Percorre todos os cmdline de processos Python / scan all Python process cmdlines
-        for cmdline_path in glob.glob("/proc/[0-9]*/cmdline"):
-            try:
-                raw = open(cmdline_path, "rb").read().replace(b"\x00", b" ").decode(errors="replace")
-                if "train.py" not in raw:
-                    continue
-                # Primeiro argumento após train.py é o nome do modelo / first arg after train.py is model name
-                m = re.search(r"train\.py\s+(\S+)", raw)
-                if m:
-                    model_name   = m.group(1)
-                    train_pid    = int(cmdline_path.split("/")[2])
-                    # Tenta extrair total_epoch da linha de comando / try to extract total_epoch from cmdline
-                    ep_m = re.search(r"train\.py\s+\S+\s+\d+\s+(\d+)", raw)
-                    if ep_m:
-                        total_epochs = int(ep_m.group(1))
-                    break
-            except Exception:
-                continue
-
-        if not train_pid or not model_name:
-            return  # Nenhum treino em andamento / no training in progress
-
-        log_path = f"/tmp/rvc_train_{model_name}.log"
-        if not os.path.exists(log_path):
-            return
-
-        # Treino detectado — atualiza UI e muda para aba Clonar
-        # Training detected — update UI and switch to Clone tab
-        self._training = True
-        self._train_btn.configure(state="disabled", text="Treinando…")
-        self._set_train_phase(2)  # Já está na fase de treino / already in training phase
-        self._tab_seg.set("🎙  Clonar minha voz")
-        self._on_tab_change("🎙  Clonar minha voz")
-
-        import threading
-        t = threading.Thread(
-            target=self._tail_log_worker,
-            args=(log_path, train_pid, total_epochs),
-            daemon=True,
-        )
-        t.start()
-
-    def _tail_log_worker(self, log_path: str, pid: int, total_epochs: int) -> None:
-        """Thread que faz tail do arquivo de log existente e alimenta o dashboard visual.
-        Thread that tails an existing log file and feeds the visual training dashboard."""
-        import os, time
-
-        # Fase de treino já em andamento ao detectar processo externo
-        # Training phase already in progress when external process detected
-        self.after(0, self._set_train_phase, 2)
-
-        # Carrega última linha de época do histórico para popular o dashboard imediatamente
-        # Load last epoch line from history to populate dashboard immediately
-        def _load_from_history():
-            try:
-                with open(log_path, "r", errors="replace") as f:
-                    lines = f.readlines()
-                for ln in reversed(lines):
-                    parsed = self._parse_train_line(ln, total=total_epochs)
-                    if parsed:
-                        self._update_train_dashboard(parsed)
-                        break
-            except Exception:
-                pass
-        self.after(0, _load_from_history)
-
-        # Tail em tempo real / real-time tail
-        with open(log_path, "r", errors="replace") as f:
-            f.seek(0, 2)
-            while True:
-                try:
-                    os.kill(pid, 0)
-                except ProcessLookupError:
-                    break
-                line = f.readline()
-                if not line:
-                    time.sleep(0.5)
-                    continue
-                parsed = self._parse_train_line(line, total=total_epochs)
-                if parsed:
-                    self.after(0, self._update_train_dashboard, parsed)
-
-        # Processo terminou / process ended
-        self._training = False
-        self.after(0, self._set_train_phase, 2, True)
-        self.after(0, self._train_prog.set, 1.0)
-        self.after(0, self._train_status.configure,
-                   {"text": "✅ Treino concluído!", "text_color": "#22C55E"})
-        self.after(0, self._train_btn.configure,
-                   {"state": "normal", "text": "🎙 Treinar Voz"})
 
     def _idiomas(self, r: int) -> int:
         """Seção de seleção de idiomas (fala → traduz para). Returns next grid row.
@@ -2411,18 +2233,13 @@ class ConfigWindow(ctk.CTk):
     CLONES_DIR = VOICES_DIR / "clones"
 
     def _build_clone_tab(self, parent: ctk.CTkFrame) -> None:
-        """Constrói a aba de clonagem de voz: texto paginado, gravação, treino RVC.
-        Builds the voice cloning tab: paginated text, recording, RVC training."""
+        """Constrói a aba de clonagem de voz com OmniVoice (zero-shot).
+        Builds the voice cloning tab with OmniVoice (zero-shot)."""
         self.CLONES_DIR.mkdir(parents=True, exist_ok=True)
-        self._rec_thread   = None
-        self._rec_stop_evt = None
-        self._rec_frames   = []
-        self._xtts_model   = None   # cache — carrega só uma vez por sessão / loaded once per session
-        self._xtts_latents = {}     # cache de latents por wav_path / latents cache by wav path
-        self._meter_stream = None   # sounddevice stream do VU meter / VU meter audio stream
-        self._testing      = False  # trava para evitar testes simultâneos / lock to prevent concurrent tests
-        self._training     = False  # trava para evitar treinos simultâneos / lock to prevent concurrent training
-        self._clone_page   = 0      # página atual do texto de clonagem / current clone text page
+        self._xtts_model   = None
+        self._xtts_latents = {}
+        self._meter_stream = None
+        self._testing      = False
 
         scroll = ctk.CTkScrollableFrame(
             parent, fg_color="transparent",
@@ -2431,137 +2248,11 @@ class ConfigWindow(ctk.CTk):
         )
         scroll.pack(fill="both", expand=True, padx=4, pady=4)
 
-        # ── Seletor de modo de clonagem ─────────────────────────────────────
-        # Clone mode selector: RVC (training) vs OmniVoice (zero-shot)
-        self._clone_mode_var = ctk.StringVar(value="rvc")
-        ctk.CTkSegmentedButton(
-            scroll,
-            values=["🎙 RVC — Treino", "🤖 OmniVoice"],
-            variable=self._clone_mode_var,
-            command=self._switch_clone_mode,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            fg_color=self.SEG_BG, selected_color=self.ACCENT,
-            selected_hover_color=self.HOVER, unselected_color=self.SEG_BG,
-            text_color=self.TEXT,
-        ).pack(fill="x", padx=16, pady=(12, 4))
-
-        # Frames por modo — criados mas ainda não empacotados / created but not yet packed
-        # (pack acontece após o VU meter para garantir a ordem correta de layout)
-        # (pack happens after the VU meter to ensure correct layout order)
-        self._rvc_section = ctk.CTkFrame(scroll, fg_color="transparent")
+        # Seção OmniVoice — única engine de clonagem / OmniVoice section — only cloning engine
         self._ov_section  = ctk.CTkFrame(scroll, fg_color="transparent")
 
-        # Alias local para construção da seção RVC / local alias for RVC section build
-        _s = self._rvc_section
-
-        # ── Instruções ─────────────────────────────────────────────────────
-        info = ctk.CTkFrame(_s, fg_color=self.SEG_BG,
-                            corner_radius=10, border_width=1,
-                            border_color=self.IBORDER)
-        info.pack(fill="x", padx=16, pady=(14, 8))
-        ctk.CTkLabel(info, text="Como funciona",
-                     font=ctk.CTkFont(size=12, weight="bold"),
-                     text_color=self.TEXT).pack(anchor="w", padx=12, pady=(10, 2))
-        ctk.CTkLabel(info,
-                     text=(
-                         "1. Dê um nome e grave lendo o texto abaixo (pode gravar várias vezes — o áudio acumula)\n"
-                         "2. Meta: 3 minutos no total — quanto mais, melhor a qualidade\n"
-                         "3. Com 3min+ gravados, clique em Treinar Voz (leva 10-30 min)\n"
-                         "4. Após o treino, use Testar para ouvir e Usar para ativar"
-                     ),
-                     font=ctk.CTkFont(size=11), text_color=self.MUTED,
-                     justify="left", anchor="w").pack(anchor="w", padx=12, pady=(0, 10))
-
-        # ── Nome do perfil ──────────────────────────────────────────────────
-        name_row = ctk.CTkFrame(_s, fg_color="transparent")
-        name_row.pack(fill="x", padx=16, pady=(4, 0))
-        name_row.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(name_row, text="Nome do perfil:",
-                     font=ctk.CTkFont(size=12), text_color=self.TEXT).grid(
-            row=0, column=0, sticky="w", padx=(0, 8))
-        self._clone_name_var = ctk.StringVar(value="minha_voz")
-        ctk.CTkEntry(name_row, textvariable=self._clone_name_var,
-                     fg_color=self.INPUT, border_color=self.IBORDER,
-                     text_color=self.TEXT, font=ctk.CTkFont(size=13)).grid(
-            row=0, column=1, sticky="ew")
-
-        # ── Texto de referência paginado ────────────────────────────────────
-        # Paginated reference text — no scroll, navigate with buttons
-        _total_pages = len(self.CLONE_PAGES)
-
-        # Cabeçalho: título + indicador de página / header: title + page indicator
-        ref_header = ctk.CTkFrame(_s, fg_color="transparent")
-        ref_header.pack(fill="x", padx=16, pady=(12, 4))
-        ctk.CTkLabel(ref_header, text="Leia este texto em voz alta:",
-                     font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.MUTED).pack(side="left")
-        self._page_lbl = ctk.CTkLabel(
-            ref_header,
-            text=f"Página 1 de {_total_pages}",
-            font=ctk.CTkFont(size=11), text_color=self.MUTED)
-        self._page_lbl.pack(side="right")
-
-        # Card com o texto da página atual / card showing current page text
-        ref_card = ctk.CTkFrame(_s, fg_color=self.INPUT,
-                                border_color=self.IBORDER, border_width=1,
-                                corner_radius=8)
-        ref_card.pack(fill="x", padx=16)
-        self._ref_lbl = ctk.CTkLabel(
-            ref_card, text=self.CLONE_PAGES[0],
-            font=ctk.CTkFont(size=12), text_color=self.TEXT,
-            wraplength=400, justify="left", anchor="nw")
-        self._ref_lbl.pack(fill="x", padx=12, pady=10)
-
-        # Ajusta wraplength ao redimensionar (bind no card evita loop infinito)
-        # Adjust wraplength on resize (bind on card to avoid infinite loop)
-        _last_w = [0]
-        def _on_card_resize(e):
-            new_w = max(100, e.width - 28)
-            if abs(new_w - _last_w[0]) > 2:
-                _last_w[0] = new_w
-                self._ref_lbl.configure(wraplength=new_w)
-        ref_card.bind("<Configure>", _on_card_resize)
-
-        # Botões de navegação de página / page navigation buttons
-        nav_row = ctk.CTkFrame(_s, fg_color="transparent")
-        nav_row.pack(fill="x", padx=16, pady=(6, 2))
-
-        def _go_page(delta: int):
-            # Navega entre páginas, atualizando texto e indicador
-            # Navigate between pages, updating text and indicator
-            self._clone_page = max(0, min(_total_pages - 1, self._clone_page + delta))
-            self._ref_lbl.configure(text=self.CLONE_PAGES[self._clone_page])
-            self._page_lbl.configure(
-                text=f"Página {self._clone_page + 1} de {_total_pages}")
-            _prev_btn.configure(state="normal" if self._clone_page > 0 else "disabled")
-            _next_btn.configure(state="normal" if self._clone_page < _total_pages - 1 else "disabled")
-
-        _prev_btn = ctk.CTkButton(
-            nav_row, text="← Anterior", width=100, height=28,
-            fg_color=self.SEG_BG, hover_color=self.IBORDER,
-            text_color=self.MUTED, border_width=1,
-            border_color=self.IBORDER, corner_radius=6,
-            font=ctk.CTkFont(size=11),
-            state="disabled",
-            command=lambda: _go_page(-1),
-        )
-        _prev_btn.pack(side="left")
-
-        _next_btn = ctk.CTkButton(
-            nav_row, text="Próximo →", width=100, height=28,
-            fg_color=self.SEG_BG, hover_color=self.IBORDER,
-            text_color=self.MUTED, border_width=1,
-            border_color=self.IBORDER, corner_radius=6,
-            font=ctk.CTkFont(size=11),
-            command=lambda: _go_page(1),
-        )
-        _next_btn.pack(side="right")
-
-        # Dispositivo herdado da aba Config — sem seletor próprio na aba de clonagem
-        # Device inherited from Config tab — no separate selector in clone tab
-
-        # ── VU Meter compartilhado (visível em ambos os modos) ─────────────
-        # Shared VU meter — visible in both RVC and OmniVoice modes
+        # ── VU Meter ───────────────────────────────────────────────────────
+        # Shared VU meter — displayed above the OmniVoice section
         meter_frame = ctk.CTkFrame(scroll, fg_color=self.INPUT,
                                    border_color=self.IBORDER, border_width=1,
                                    corner_radius=8)
@@ -2622,275 +2313,9 @@ class ConfigWindow(ctk.CTk):
         # 300ms delay so mainloop is ready before opening the audio stream
         self.after(300, self._start_meter)
 
-        # Empacota as seções APÓS o VU meter para que apareçam abaixo dele
-        # Pack sections AFTER the VU meter so they appear below it in layout
-        self._rvc_section.pack(fill="x")
-
-        # ── Botão + barra de progresso da gravação ─────────────────────────
-        rec_row = ctk.CTkFrame(_s, fg_color="transparent")
-        rec_row.pack(fill="x", padx=16, pady=(10, 2))
-        self._rec_btn = ctk.CTkButton(
-            rec_row, text="● Gravar", width=130, height=36,
-            fg_color="#DC2626", hover_color="#B91C1C",
-            text_color="#FFFFFF", corner_radius=10,
-            font=ctk.CTkFont(size=13, weight="bold"),
-            command=self._toggle_recording,
-        )
-        self._rec_btn.pack(side="left", padx=(0, 10))
-        self._rec_status = ctk.CTkLabel(
-            rec_row, text="Pronto para gravar",
-            font=ctk.CTkFont(size=11), text_color=self.MUTED)
-        self._rec_status.pack(side="left")
-
-        self._rec_prog = ctk.CTkProgressBar(_s, height=6,
-                                             fg_color=self.SEG_BG,
-                                             progress_color="#DC2626")
-        self._rec_prog.set(0)
-        self._rec_prog.pack(fill="x", padx=16, pady=(2, 4))
-
-        # ── Card de efeitos de áudio: Denoise + Compressor ─────────────────
-        # Audio FX card: applied after recording before saving
-        fx_card = ctk.CTkFrame(_s, fg_color=self.INPUT,
-                               border_color=self.IBORDER, border_width=1,
-                               corner_radius=8)
-        fx_card.pack(fill="x", padx=16, pady=(6, 4))
-
-        # Linha Denoise / Denoise row
-        dn_row = ctk.CTkFrame(fx_card, fg_color="transparent")
-        dn_row.pack(fill="x", padx=12, pady=(8, 2))
-        ctk.CTkLabel(dn_row, text="Denoise",
-                     font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.TEXT).pack(side="left")
-        self._denoise_pct_lbl = ctk.CTkLabel(
-            dn_row, text="0%", width=36,
-            font=ctk.CTkFont(size=11), text_color=self.MUTED)
-        self._denoise_pct_lbl.pack(side="right")
-        self._denoise_var = ctk.DoubleVar(value=0.0)
-
-        def _on_denoise_slide(v):
-            self._denoise_pct_lbl.configure(text=f"{int(float(v)*100)}%")
-        ctk.CTkSlider(
-            fx_card, from_=0.0, to=1.0, variable=self._denoise_var,
-            fg_color=self.SEG_BG, progress_color=self.ACCENT,
-            button_color=self.ACCENT, button_hover_color=self.HOVER,
-            command=_on_denoise_slide,
-        ).pack(fill="x", padx=12, pady=(0, 6))
-
-        # ── Compressor — parâmetros individuais / individual parameters ────
-        cmp_header = ctk.CTkFrame(fx_card, fg_color="transparent")
-        cmp_header.pack(fill="x", padx=12, pady=(2, 4))
-        ctk.CTkLabel(cmp_header, text="Compressor",
-                     font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.TEXT).pack(side="left")
-        # Switch para ligar/desligar sem perder os valores / toggle without losing values
-        self._cmp_on_var = ctk.BooleanVar(value=False)
-        ctk.CTkSwitch(
-            cmp_header, text="", width=40,
-            variable=self._cmp_on_var, onvalue=True, offvalue=False,
-            progress_color=self.ACCENT,
-        ).pack(side="right")
-
-        # Grid de 4 parâmetros: Threshold / Ratio / Attack / Release
-        # 4-parameter grid: Threshold / Ratio / Attack / Release
-        cmp_grid = ctk.CTkFrame(fx_card, fg_color="transparent")
-        cmp_grid.pack(fill="x", padx=12, pady=(0, 8))
-        cmp_grid.grid_columnconfigure((0, 1, 2, 3), weight=1)
-
-        def _cmp_param(col: int, label: str, unit: str,
-                       from_: float, to: float, init: float,
-                       fmt: str = ".0f") -> ctk.DoubleVar:
-            """Cria célula de parâmetro com label, valor numérico e slider.
-            Creates a parameter cell with label, numeric value and slider."""
-            cell = ctk.CTkFrame(cmp_grid, fg_color=self.SEG_BG, corner_radius=8)
-            cell.grid(row=0, column=col, sticky="ew", padx=4, pady=4)
-            ctk.CTkLabel(cell, text=label,
-                         font=ctk.CTkFont(size=9), text_color=self.MUTED).pack(pady=(6, 0))
-            var = ctk.DoubleVar(value=init)
-            val_lbl = ctk.CTkLabel(cell, text=f"{init:{fmt}}{unit}",
-                                   font=ctk.CTkFont(size=13, weight="bold"),
-                                   text_color=self.TEXT)
-            val_lbl.pack()
-
-            def _on_slide(v):
-                val_lbl.configure(text=f"{float(v):{fmt}}{unit}")
-
-            ctk.CTkSlider(
-                cell, from_=from_, to=to, variable=var,
-                orientation="horizontal", height=12,
-                fg_color=self.BORDER, progress_color=self.ACCENT,
-                button_color=self.ACCENT, button_hover_color=self.HOVER,
-                command=_on_slide,
-            ).pack(fill="x", padx=8, pady=(2, 8))
-            return var
-
-        self._cmp_threshold = _cmp_param(0, "Threshold", " dB", -40, 0,  -18)
-        self._cmp_ratio     = _cmp_param(1, "Ratio",     ":1",   1, 20,   4, ".1f")
-        self._cmp_attack    = _cmp_param(2, "Attack",    " ms",  1, 100,  5)
-        self._cmp_release   = _cmp_param(3, "Release",   " ms", 10, 500, 80)
-
-        # ── Duração acumulada + botão Treinar ──────────────────────────────
-        # Accumulated duration + Train button
-        dur_row = ctk.CTkFrame(_s, fg_color="transparent")
-        dur_row.pack(fill="x", padx=16, pady=(0, 4))
-        self._dur_lbl = ctk.CTkLabel(
-            dur_row, text="0s gravados — mínimo 180s para treinar",
-            font=ctk.CTkFont(size=11), text_color=self.MUTED)
-        self._dur_lbl.pack(side="left")
-
-        # Botão Treinar — habilitado somente quando há áudio suficiente
-        # Train button — enabled only when enough audio is recorded
-        self._train_btn = ctk.CTkButton(
-            dur_row, text="🎙 Treinar Voz", width=120, height=30,
-            fg_color=self.SEG_BG, hover_color=self.IBORDER,
-            text_color=self.MUTED, border_width=1,
-            border_color=self.IBORDER, corner_radius=8,
-            font=ctk.CTkFont(size=12, weight="bold"),
-            state="disabled",
-            command=self._start_train_rvc,
-        )
-        self._train_btn.pack(side="right")
-
-        # ── Dashboard visual de treino RVC ─────────────────────────────────
-        # Visual training dashboard — phases, epoch counter, metric cards, ETA
-        _dash = ctk.CTkFrame(_s, fg_color=self.INPUT,
-                             border_color=self.IBORDER, border_width=1,
-                             corner_radius=10)
-        _dash.pack(fill="x", padx=16, pady=(0, 8))
-
-        # Pills de fase / Phase indicator pills
-        phase_row = ctk.CTkFrame(_dash, fg_color="transparent")
-        phase_row.pack(fill="x", padx=12, pady=(10, 4))
-        self._dash_phases = []
-        for _ph_label in ["Pré-proc", "Extração", "Treino"]:
-            _pill = ctk.CTkFrame(phase_row, fg_color=self.SEG_BG, corner_radius=20)
-            _pill.pack(side="left", padx=(0, 6))
-            _ph_lbl = ctk.CTkLabel(_pill, text=f"○  {_ph_label}",
-                                   font=ctk.CTkFont(size=10), text_color=self.MUTED)
-            _ph_lbl.pack(padx=10, pady=4)
-            self._dash_phases.append(_ph_lbl)
-
-        ctk.CTkFrame(_dash, height=1, fg_color=self.BORDER).pack(
-            fill="x", padx=12, pady=(4, 0))
-
-        # Contador de épocas / Epoch counter row
-        _ep_row = ctk.CTkFrame(_dash, fg_color="transparent")
-        _ep_row.pack(fill="x", padx=14, pady=(8, 2))
-        ctk.CTkLabel(_ep_row, text="Época",
-                     font=ctk.CTkFont(size=10), text_color=self.MUTED).pack(side="left")
-        self._dash_epoch_lbl = ctk.CTkLabel(
-            _ep_row, text="—",
-            font=ctk.CTkFont(size=20, weight="bold"), text_color=self.TEXT)
-        self._dash_epoch_lbl.pack(side="left", padx=(8, 0))
-        self._dash_pct_lbl = ctk.CTkLabel(
-            _ep_row, text="",
-            font=ctk.CTkFont(size=12), text_color=self.MUTED)
-        self._dash_pct_lbl.pack(side="right")
-
-        # Barra de progresso do treino / Training progress bar
-        self._train_prog = ctk.CTkProgressBar(
-            _dash, height=10, corner_radius=5,
-            fg_color=self.SEG_BG, progress_color="#8B5CF6")
-        self._train_prog.set(0)
-        self._train_prog.pack(fill="x", padx=14, pady=(0, 8))
-
-        ctk.CTkFrame(_dash, height=1, fg_color=self.BORDER).pack(
-            fill="x", padx=12)
-
-        # Cards de métricas (Loss Gen / Loss Disc / Velocidade / ETA)
-        # Metric cards
-        _metrics_row = ctk.CTkFrame(_dash, fg_color="transparent")
-        _metrics_row.pack(fill="x", padx=10, pady=(8, 4))
-        _metrics_row.grid_columnconfigure((0, 1, 2, 3), weight=1)
-
-        def _metric_card(col: int, title: str) -> ctk.CTkLabel:
-            card = ctk.CTkFrame(_metrics_row, fg_color=self.SEG_BG, corner_radius=8)
-            card.grid(row=0, column=col, sticky="ew", padx=4)
-            ctk.CTkLabel(card, text=title,
-                         font=ctk.CTkFont(size=9), text_color=self.MUTED).pack(pady=(6, 0))
-            val = ctk.CTkLabel(card, text="—",
-                               font=ctk.CTkFont(size=14, weight="bold"),
-                               text_color=self.TEXT)
-            val.pack(pady=(0, 6))
-            return val
-
-        self._dash_loss_gen  = _metric_card(0, "Loss Gen")
-        self._dash_loss_disc = _metric_card(1, "Loss Disc")
-        self._dash_speed     = _metric_card(2, "Vel./época")
-        self._dash_eta       = _metric_card(3, "ETA")
-
-        # Linha de melhor época + status / Best epoch + status line
-        self._train_status = ctk.CTkLabel(
-            _dash, text="",
-            font=ctk.CTkFont(size=10), text_color=self.MUTED)
-        self._train_status.pack(anchor="w", padx=14, pady=(0, 10))
-
-        # Atualiza label de duração se já existe arquivo wav salvo
-        # Update duration label if wav file already exists
-        self._refresh_dur_label()
-
-        # ── Card de texto para teste de voz clonada ────────────────────────
-        # Test text card — mesma UX do OmniVoice; texto alimenta os botões ▶ Testar
-        # Test text card — same UX as OmniVoice; text feeds into all ▶ Testar buttons
-        _test_lang_options = [
-            "pt — Português", "en — English", "es — Español",
-            "fr — Français", "de — Deutsch", "it — Italiano",
-            "ru — Русский", "zh — 中文",
-        ]
-        self._test_lang_var = ctk.StringVar(value="pt — Português")
-
-        _rvc_tcard = ctk.CTkFrame(_s, fg_color=self.INPUT,
-                                   border_color=self.IBORDER, border_width=1,
-                                   corner_radius=10)
-        _rvc_tcard.pack(fill="x", padx=16, pady=(0, 8))
-
-        _rvc_trow = ctk.CTkFrame(_rvc_tcard, fg_color="transparent")
-        _rvc_trow.pack(fill="x", padx=12, pady=(10, 4))
-
-        ctk.CTkLabel(_rvc_trow, text="Texto para teste:",
-                     font=ctk.CTkFont(size=11, weight="bold"),
-                     text_color=self.TEXT).pack(side="left")
-
-        ctk.CTkOptionMenu(
-            _rvc_trow, values=_test_lang_options, variable=self._test_lang_var,
-            fg_color=self.SEG_BG, button_color=self.IBORDER,
-            button_hover_color=self.SEG_BG, text_color=self.TEXT,
-            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
-            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=12),
-            width=160,
-        ).pack(side="left", padx=(8, 8))
-
-        def _rvc_fill_phrase() -> None:
-            """Preenche a caixa com a frase padrão do idioma selecionado.
-            Fills the box with the default phrase for the selected language."""
-            lang = self._test_lang_var.get().split(" ")[0]
-            self._rvc_test_text.delete("1.0", "end")
-            self._rvc_test_text.insert("1.0", TEST_PHRASES.get(lang, TEST_PHRASES["pt"]))
-
-        ctk.CTkButton(
-            _rvc_trow, text="↺ Frase", width=72, height=28,
-            fg_color=self.SEG_BG, hover_color=self.HOVER,
-            text_color=self.TEXT, corner_radius=8,
-            font=ctk.CTkFont(size=12),
-            command=_rvc_fill_phrase,
-        ).pack(side="left")
-
-        self._rvc_test_text = ctk.CTkTextbox(
-            _rvc_tcard, height=72, wrap="word",
-            fg_color=self.SEG_BG, border_color=self.IBORDER, border_width=1,
-            text_color=self.TEXT, font=ctk.CTkFont(size=12),
-        )
-        self._rvc_test_text.pack(fill="x", padx=12, pady=(0, 10))
-        self._rvc_test_text.insert("1.0", TEST_PHRASES["pt"])
-
-        # ── Separador + lista de vozes clonadas ────────────────────────────
-        ctk.CTkFrame(_s, height=1, fg_color=self.BORDER).pack(
-            fill="x", padx=16, pady=(6, 0))
-        ctk.CTkLabel(_s, text="VOZES SALVAS",
-                     font=ctk.CTkFont(size=10, weight="bold"),
-                     text_color=self.MUTED).pack(anchor="w", padx=16, pady=(10, 6))
-        self._clone_list_frame = ctk.CTkFrame(_s, fg_color="transparent")
-        self._clone_list_frame.pack(fill="x", padx=16)
-        self._refresh_clone_list()
+        # Empacota seção OmniVoice APÓS o VU meter para que apareça abaixo dele
+        # Pack OmniVoice section AFTER the VU meter so it appears below it in layout
+        self._ov_section.pack(fill="x")
 
         # ── Seção OmniVoice (zero-shot) ─────────────────────────────────────
         # OmniVoice section — shown only when mode="ov"
@@ -3234,18 +2659,62 @@ class ConfigWindow(ctk.CTk):
         )
         self._ov_gen_btn.pack(side="right")
 
-        # Ativa o modo padrão (RVC) / activate default mode (RVC)
-        self._switch_clone_mode("🎙 RVC — Treino")
+        # ── Texto para teste de vozes salvas ───────────────────────────────
+        _test_lang_options = [
+            "pt — Português", "en — English", "es — Español",
+            "fr — Français", "de — Deutsch", "it — Italiano",
+            "ru — Русский", "zh — 中文",
+        ]
+        self._test_lang_var = ctk.StringVar(value="pt — Português")
 
-    def _switch_clone_mode(self, mode: str) -> None:
-        """Alterna entre seção RVC e OmniVoice na aba Clone.
-        Switches between RVC and OmniVoice sections in the Clone tab."""
-        if "OmniVoice" in mode:
-            self._rvc_section.pack_forget()
-            self._ov_section.pack(fill="x")
-        else:
-            self._ov_section.pack_forget()
-            self._rvc_section.pack(fill="x")
+        _tcard = ctk.CTkFrame(_ov, fg_color=self.INPUT,
+                               border_color=self.IBORDER, border_width=1,
+                               corner_radius=10)
+        _tcard.pack(fill="x", padx=16, pady=(12, 4))
+
+        _trow = ctk.CTkFrame(_tcard, fg_color="transparent")
+        _trow.pack(fill="x", padx=12, pady=(10, 4))
+        ctk.CTkLabel(_trow, text="Texto para teste de vozes:",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.TEXT).pack(side="left")
+        ctk.CTkOptionMenu(
+            _trow, values=_test_lang_options, variable=self._test_lang_var,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
+            button_hover_color=self.SEG_BG, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=12),
+            width=160,
+        ).pack(side="left", padx=(8, 8))
+
+        def _fill_test_phrase() -> None:
+            lang = self._test_lang_var.get().split(" ")[0]
+            self._rvc_test_text.delete("1.0", "end")
+            self._rvc_test_text.insert("1.0", TEST_PHRASES.get(lang, TEST_PHRASES["pt"]))
+
+        ctk.CTkButton(
+            _trow, text="↺ Frase", width=72, height=28,
+            fg_color=self.SEG_BG, hover_color=self.HOVER,
+            text_color=self.TEXT, corner_radius=8,
+            font=ctk.CTkFont(size=12),
+            command=_fill_test_phrase,
+        ).pack(side="left")
+
+        self._rvc_test_text = ctk.CTkTextbox(
+            _tcard, height=72, wrap="word",
+            fg_color=self.SEG_BG, border_color=self.IBORDER, border_width=1,
+            text_color=self.TEXT, font=ctk.CTkFont(size=12),
+        )
+        self._rvc_test_text.pack(fill="x", padx=12, pady=(0, 10))
+        self._rvc_test_text.insert("1.0", TEST_PHRASES["pt"])
+
+        # ── Lista de vozes salvas ───────────────────────────────────────────
+        ctk.CTkFrame(_ov, height=1, fg_color=self.BORDER).pack(fill="x", padx=16, pady=(4, 0))
+        ctk.CTkLabel(_ov, text="VOZES SALVAS",
+                     font=ctk.CTkFont(size=10, weight="bold"),
+                     text_color=self.MUTED).pack(anchor="w", padx=16, pady=(10, 6))
+        self._clone_list_frame = ctk.CTkFrame(_ov, fg_color="transparent")
+        self._clone_list_frame.pack(fill="x", padx=16)
+        self._refresh_clone_list()
 
     # ── OmniVoice: gravação de referência ────────────────────────────────────
 
@@ -3764,58 +3233,6 @@ class ConfigWindow(ctk.CTk):
                               pg=_card_prog, st=_card_status:
                     self._test_clone(p, rt, b, pg, st))
 
-    _REC_MAX_S    = 300   # máximo por sessão de gravação / max seconds per recording session
-    _REC_MIN_TRAIN = 180  # mínimo para habilitar treino / minimum seconds to enable training
-
-    def _toggle_recording(self) -> None:
-        """Alterna entre iniciar e parar a gravação. Toggle recording on/off."""
-        if getattr(self, "_rec_active", False):
-            self._stop_recording()
-        else:
-            self._start_recording()
-
-    def _start_recording(self) -> None:
-        """Inicia gravação: ativa coleta de frames no stream full-duplex compartilhado.
-        Starts recording: activates frame collection in the shared full-duplex stream."""
-        if not self._meter_stream:
-            self._rec_status.configure(
-                text="❌ Sem microfone — verifique o dispositivo de áudio")
-            return
-        self._rec_frames = []
-        self._rec_active = True
-        self._rec_btn.configure(text="■ Parar", fg_color="#7C3AED",
-                                hover_color="#6D28D9")
-        self._rec_status.configure(text="● Gravando — fale agora", text_color="#DC2626")
-        self._rec_prog.configure(progress_color="#DC2626")
-        self._rec_prog.set(0)
-        self._rec_timer = 0
-        self._rec_tick()
-
-    def _rec_tick(self) -> None:
-        """Tick a cada segundo durante a gravação: atualiza barra de progresso e timer.
-        Fires every second during recording: updates progress bar and timer."""
-        if getattr(self, "_rec_active", False):
-            self._rec_timer += 1
-            pct = min(self._rec_timer / self._REC_MAX_S, 1.0)
-            self._rec_prog.set(pct)
-            self._rec_status.configure(
-                text=f"● Gravando — {self._rec_timer}s / {self._REC_MAX_S}s")
-            if self._rec_timer >= self._REC_MAX_S:
-                self._stop_recording()
-                return
-            self.after(1000, self._rec_tick)
-
-    def _stop_recording(self) -> None:
-        """Para a gravação e inicia o worker de salvamento do áudio.
-        Stops recording and starts the audio save worker."""
-        self._rec_active = False
-        self._rec_btn.configure(text="● Gravar", fg_color="#DC2626",
-                                hover_color="#B91C1C", state="disabled")
-        self._rec_status.configure(text="Salvando áudio…", text_color=self.MUTED)
-        self._rec_prog.configure(progress_color="#60A5FA")
-        self._rec_prog.set(0.1)
-        threading.Thread(target=self._save_clone_worker, daemon=True).start()
-
     def _restart_audio_stream(self) -> None:
         """Reinicia o stream quando o dispositivo da Config muda.
         Restarts the stream when the Config device changes."""
@@ -3934,10 +3351,6 @@ class ConfigWindow(ctk.CTk):
                     else:
                         outdata.fill(0)
 
-                    # Gravação RVC / RVC recording
-                    if getattr(self, "_rec_active", False):
-                        self._rec_frames.append(indata.copy())
-
                     # Gravação de referência OmniVoice / OmniVoice reference recording
                     if getattr(self, "_ov_rec_active", False):
                         self._ov_rec_frames.append(indata.copy())
@@ -3971,370 +3384,6 @@ class ConfigWindow(ctk.CTk):
 
     def _stop_meter(self) -> None:
         self._meter_stream = None
-
-    def _refresh_dur_label(self) -> None:
-        """Atualiza o label de duração acumulada e habilita/desabilita botão de treino.
-        Updates accumulated duration label and enables/disables train button."""
-        import wave as _wave
-        name = self._clone_name_var.get().strip() or "minha_voz"
-        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
-        wav_p = self.CLONES_DIR / f"{safe}.wav"
-        dur = 0.0
-        if wav_p.exists():
-            try:
-                with _wave.open(str(wav_p), "rb") as wf:
-                    dur = wf.getnframes() / wf.getframerate()
-            except Exception:
-                pass
-        mins = int(dur) // 60
-        secs = int(dur) % 60
-        meta = self._REC_MIN_TRAIN
-        if dur >= meta:
-            # Áudio suficiente — habilita treino / enough audio — enable training
-            self._dur_lbl.configure(
-                text=f"✅ {mins}m{secs:02d}s gravados — pronto para treinar!",
-                text_color="#22C55E")
-            self._train_btn.configure(
-                state="normal", fg_color=self.ACCENT,
-                hover_color=self.HOVER, text_color="#FFFFFF",
-                border_color=self.ACCENT)
-        else:
-            falta = meta - int(dur)
-            self._dur_lbl.configure(
-                text=f"{mins}m{secs:02d}s gravados — faltam {falta}s para treinar",
-                text_color=self.MUTED)
-            self._train_btn.configure(
-                state="disabled", fg_color=self.SEG_BG,
-                text_color=self.MUTED, border_color=self.IBORDER)
-
-    def _start_train_rvc(self) -> None:
-        """Inicia o pipeline de treino RVC em thread separada.
-        Starts the RVC training pipeline in a separate thread."""
-        if self._training:
-            return
-        name = self._clone_name_var.get().strip() or "minha_voz"
-        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
-        wav_p = self.CLONES_DIR / f"{safe}.wav"
-        if not wav_p.exists():
-            return
-        self._training = True
-        self._train_btn.configure(state="disabled", text="Treinando…")
-        self._train_prog.set(0)
-        self._train_status.configure(text="Iniciando pipeline de treino…", text_color=self.MUTED)
-        threading.Thread(
-            target=self._train_rvc_worker,
-            args=(safe, str(wav_p)),
-            daemon=True
-        ).start()
-
-    def _train_rvc_worker(self, model_name: str, wav_path: str) -> None:
-        """Pipeline completo de treino RVC: pré-processamento → extração → treino.
-        Full RVC training pipeline: preprocessing → feature extraction → training.
-        Usa Popen para leitura em tempo real e atualiza log + barra de progresso.
-        Uses Popen for real-time reading and updates log + progress bar."""
-        import subprocess, os, re, shutil, glob
-
-        APPLIO_DIR  = "/home/lab2/Documentos/praxis/applio/src"
-        PYTHON      = "/home/lab2/Documentos/praxis/applio/venv/bin/python"
-        LOGS_DIR    = os.path.join(APPLIO_DIR, "logs")
-        DATASET_DIR = os.path.join(APPLIO_DIR, "assets", "datasets", model_name)
-        TOTAL_EPOCHS = 300
-
-        # ── Helpers de UI thread-safe ─────────────────────────────────────
-        def _status(msg: str, color: str | None = None) -> None:
-            kw: dict = {"text": msg}
-            if color:
-                kw["text_color"] = color
-            self.after(0, self._train_status.configure, kw)
-
-        def _prog(v: float) -> None:
-            self.after(0, self._train_prog.set, v)
-
-        def _phase(idx: int, done: bool = False) -> None:
-            self.after(0, self._set_train_phase, idx, done)
-
-        def _dash(data: dict) -> None:
-            self.after(0, self._update_train_dashboard, data)
-
-        def _run_phase(cmd: list, phase_start: float, phase_end: float,
-                       epoch_range: int | None = None) -> bool:
-            """Executa subcomando via Popen e alimenta o dashboard em tempo real.
-            Runs subprocess via Popen and feeds the dashboard in real time."""
-            proc = subprocess.Popen(
-                cmd, cwd=APPLIO_DIR,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                text=True, bufsize=1,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"},
-            )
-            _prog(phase_start)
-            for raw in proc.stdout:
-                if epoch_range:
-                    parsed = self._parse_train_line(raw, total=epoch_range)
-                    if parsed:
-                        _dash(parsed)
-            proc.wait()
-            return proc.returncode == 0
-
-        def _done(ok: bool, msg: str) -> None:
-            self._training = False
-            _status(msg, "#22C55E" if ok else "#DC2626")
-            _prog(1.0 if ok else 0.0)
-            label = "🎙 Treinar Voz" if ok else "🎙 Tentar de novo"
-            self.after(0, self._train_btn.configure, {"state": "normal", "text": label})
-
-        try:
-            # Reseta dashboard / reset dashboard to initial state
-            self.after(0, self._set_train_phase, 0)
-
-            # ── Fase 1/3: Pré-processamento ───────────────────────────────
-            # Phase 1/3: Preprocessing — slice audio into chunks
-            _status("Fase 1/3 — Pré-processando áudio…", "#F59E0B")
-            _phase(0)
-            os.makedirs(DATASET_DIR, exist_ok=True)
-            shutil.copy2(wav_path, os.path.join(DATASET_DIR, f"{model_name}.wav"))
-
-            ok = _run_phase([
-                PYTHON,
-                os.path.join(APPLIO_DIR, "rvc", "train", "preprocess", "preprocess.py"),
-                os.path.join(LOGS_DIR, model_name),
-                DATASET_DIR,
-                "40000", "4", "Automatic", "False", "False",
-                "0.7", "3.0", "0.3", "none",
-            ], phase_start=0.02, phase_end=0.10)
-            if not ok:
-                _done(False, "❌ Pré-processamento falhou")
-                return
-            _phase(0, done=True)
-            _prog(0.10)
-
-            # ── Fase 2/3: Extração de features ────────────────────────────
-            # Phase 2/3: Feature extraction — HuBERT embeddings + F0 (RMVPE)
-            _status("Fase 2/3 — Extraindo features…", "#F59E0B")
-            _phase(1)
-            ok = _run_phase([
-                PYTHON,
-                os.path.join(APPLIO_DIR, "rvc", "train", "extract", "extract.py"),
-                os.path.join(LOGS_DIR, model_name),
-                "rmvpe", "4", "0", "40000", "contentvec", "None", "2",
-            ], phase_start=0.10, phase_end=0.33)
-            if not ok:
-                _done(False, "❌ Extração falhou")
-                return
-            _phase(1, done=True)
-            _prog(0.33)
-
-            # ── Fase 3/3: Treino ──────────────────────────────────────────
-            # Phase 3/3: Model training — HiFi-GAN generator + discriminator
-            _status("Fase 3/3 — Treinando…", "#8B5CF6")
-            _phase(2)
-
-            sys_path_backup = __import__("sys").path[:]
-            __import__("sys").path.insert(0, APPLIO_DIR)
-            try:
-                from rvc.lib.tools.pretrained_selector import pretrained_selector
-                pg, pd = pretrained_selector("HiFi-GAN", 40000)
-            finally:
-                __import__("sys").path[:] = sys_path_backup
-
-            ok = _run_phase([
-                PYTHON,
-                os.path.join(APPLIO_DIR, "rvc", "train", "train.py"),
-                model_name, "10", str(TOTAL_EPOCHS),
-                pg, pd, "0", "4", "40000",
-                "True", "True", "False",
-                "True", "50", "False",
-                "HiFi-GAN", "False",
-            ], phase_start=0.33, phase_end=0.95, epoch_range=TOTAL_EPOCHS)
-            if not ok:
-                _done(False, "❌ Treino falhou")
-                return
-            _phase(2, done=True)
-
-            # ── Copia modelo para a pasta do Praxis ───────────────────────
-            # Copy trained model to Praxis voices folder
-            _status("Copiando modelo…", "#F59E0B")
-            _prog(0.97)
-
-            pth_files = glob.glob(os.path.join(LOGS_DIR, model_name, f"{model_name}*.pth"))
-            if not pth_files:
-                pth_files = glob.glob(
-                    os.path.join(APPLIO_DIR, "assets", "weights", f"{model_name}*.pth"))
-
-            if pth_files:
-                pth_files.sort(key=os.path.getmtime)
-                shutil.copy2(pth_files[-1], str(self.CLONES_DIR / f"{model_name}.pth"))
-
-                json_p = self.CLONES_DIR / f"{model_name}.json"
-                if json_p.exists():
-                    meta = json.loads(json_p.read_text())
-                    meta["type"] = "rvc"
-                    meta["pth"]  = f"{model_name}.pth"
-                    json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
-
-                _done(True, f"✅ Modelo {model_name} pronto!")
-                self.after(0, self._refresh_clone_list)
-            else:
-                _done(False, "❌ .pth não encontrado após treino")
-
-        except Exception as e:
-            _done(False, f"❌ Erro: {e}")
-
-    def _apply_audio_fx(self, pcm: "np.ndarray", sr: int,
-                        status_fn: "callable") -> "np.ndarray":
-        """Aplica denoise (DeepFilterNet com resample) e compressor (pedalboard).
-        Applies DeepFilterNet denoising (with resampling) and pedalboard compression."""
-        import numpy as np
-
-        # Normaliza shape para 1D float32 / normalize to 1D float32
-        pcm = np.asarray(pcm, dtype=np.float32).flatten()
-
-        # ── Denoise ────────────────────────────────────────────────────────
-        strength = self._denoise_var.get()   # 0.0 → 1.0
-        if strength > 0.01:
-            try:
-                status_fn(f"Reduzindo ruído ({int(strength * 100)}%)…")
-                from df import enhance, init_df
-                import torch
-                from torchaudio.functional import resample as torch_resample
-
-                model, df_state, _ = init_df()
-                df_state.set_atten_lim_db(strength * 40.0)   # 0–40 dB de atenuação
-
-                # Resample para o SR do modelo (48 kHz) antes de processar
-                # Resample to model SR (48 kHz) before processing
-                model_sr = df_state.sr()
-                tensor = torch.from_numpy(pcm.reshape(1, -1))
-                if sr != model_sr:
-                    tensor = torch_resample(tensor, sr, model_sr)
-
-                enhanced = enhance(model, df_state, tensor)
-
-                # Resample de volta ao SR original / resample back to original SR
-                if sr != model_sr:
-                    enhanced = torch_resample(enhanced, model_sr, sr)
-
-                pcm = enhanced.squeeze(0).numpy()
-            except Exception:
-                import traceback; traceback.print_exc()
-
-        # ── Compressor ─────────────────────────────────────────────────────
-        if getattr(self, "_cmp_on_var", None) and self._cmp_on_var.get():
-            try:
-                th    = self._cmp_threshold.get()
-                ratio = self._cmp_ratio.get()
-                atk   = self._cmp_attack.get()
-                rel   = self._cmp_release.get()
-                status_fn(f"Compressor ({th:.0f}dB  {ratio:.1f}:1  {atk:.0f}/{rel:.0f}ms)…")
-                from pedalboard import Pedalboard, Compressor as PBComp
-                board = Pedalboard([PBComp(threshold_db=th, ratio=ratio,
-                                           attack_ms=atk, release_ms=rel)])
-                # pedalboard espera float32 normalizado em (canais, amostras)
-                # pedalboard expects normalized float32 in (channels, samples)
-                norm = pcm.reshape(1, -1).astype(np.float32) / 32768.0
-                pcm = board(norm, sample_rate=float(sr)).reshape(-1) * 32768.0
-            except Exception:
-                import traceback; traceback.print_exc()
-
-        return pcm
-
-    def _save_clone_worker(self) -> None:
-        """Worker: converte frames gravados para WAV e concatena com sessões anteriores.
-        Worker: converts recorded frames to WAV and concatenates with previous sessions."""
-        def _status(msg, color=None):
-            kw = {"text": msg}
-            if color:
-                kw["text_color"] = color
-            self.after(0, self._rec_status.configure, kw)
-
-        def _prog(v, color=None):
-            self.after(0, self._rec_prog.set, v)
-            if color:
-                self.after(0, self._rec_prog.configure, {"progress_color": color})
-
-        try:
-            if not self._rec_frames:
-                _status("❌ Nenhum áudio capturado — tente gravar novamente.", "#DC2626")
-                self.after(0, self._rec_btn.configure, {"state": "normal"})
-                _prog(0)
-                return
-
-            import numpy as np, wave
-            SR = getattr(self, "_audio_sr", 44100)  # SR real do dispositivo / actual device SR
-
-            _status("Concatenando áudio da sessão…")
-            _prog(0.3, "#F59E0B")
-            # Concatena frames da sessão atual / concatenate frames from current session
-            new_pcm = np.concatenate(self._rec_frames, axis=0).astype(np.float32)
-
-            # Aplica denoise + compressor conforme controles da UI
-            # Apply denoise + compressor according to UI controls
-            new_pcm = self._apply_audio_fx(new_pcm, SR, _status)
-            _prog(0.55, "#F59E0B")
-
-            name   = self._clone_name_var.get().strip() or "minha_voz"
-            safe   = "".join(c if c.isalnum() or c in "-_" else "_" for c in name)
-            wav_p  = self.CLONES_DIR / f"{safe}.wav"
-            json_p = self.CLONES_DIR / f"{safe}.json"
-
-            # Acumula com gravação anterior se existir / accumulate with previous recording
-            if wav_p.exists():
-                _status("Acumulando com gravação anterior…")
-                _prog(0.45, "#F59E0B")
-                with wave.open(str(wav_p), "rb") as wf:
-                    existing_raw = wf.readframes(wf.getnframes())
-                existing_pcm = np.frombuffer(existing_raw, dtype=np.int16).astype(np.float32)
-                # Adiciona 0.3s de silêncio entre sessões / add 0.3s silence between sessions
-                silence = np.zeros(int(SR * 0.3), dtype=np.float32)
-                combined = np.concatenate([existing_pcm, silence, new_pcm])
-            else:
-                combined = new_pcm
-
-            dur = len(combined) / SR
-
-            # Normaliza para amplitude 0.88 / normalize to 0.88 amplitude
-            _status(f"Normalizando áudio ({dur:.0f}s total)…")
-            _prog(0.65, "#F59E0B")
-            peak = np.max(np.abs(combined))
-            if peak > 0:
-                pcm16 = np.clip(combined * (32767 * 0.88 / peak), -32767, 32767).astype(np.int16)
-            else:
-                pcm16 = combined.astype(np.int16)
-
-            _status(f"Salvando {safe}.wav…")
-            _prog(0.8, "#F59E0B")
-            with wave.open(str(wav_p), "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(SR)
-                wf.writeframes(pcm16.tobytes())
-
-            # Tipo depende do modo de clonagem selecionado / type depends on selected clone mode
-            _mode = getattr(self, "_clone_mode_var", None)
-            _voice_type = "omnivoice" if (_mode and "OmniVoice" in _mode.get()) else "xtts"
-            meta = {
-                "name":       name,
-                "wav":        wav_p.name,
-                "ref_text":   self.CLONE_TEXT,
-                "duration_s": round(dur, 1),
-                "type":       _voice_type,
-                "lang":       self.cfg.get("src", "pt"),
-            }
-            json_p.write_text(json.dumps(meta, ensure_ascii=False, indent=2))
-
-            _prog(1.0, "#22C55E")
-            new_s = len(new_pcm) / SR
-            _status(f"✅ +{new_s:.0f}s adicionados — total: {dur:.0f}s gravados.", "#22C55E")
-            self.after(0, self._rec_btn.configure, {"state": "normal"})
-            self.after(0, self._refresh_clone_list)
-            self.after(0, self._refresh_dur_label)
-
-        except Exception as e:
-            _status(f"❌ Erro ao salvar: {e}", "#DC2626")
-            _prog(0)
-
-        finally:
-            self.after(0, self._rec_btn.configure, {"state": "normal"})
-            self._start_meter()   # reativa VU meter após gravar/salvar
 
     def _test_clone(self, wav_path: str, ref_text: str,
                     test_btn: ctk.CTkButton | None = None,
