@@ -3460,6 +3460,43 @@ class ConfigWindow(ctk.CTk):
         return model
 
     @staticmethod
+    def _ov_warmup(model, torch_mod) -> None:
+        """Aquece kernels CUDA com inferência muda (num_step=4, texto mínimo).
+        Warms up CUDA kernels with a dummy inference so the first real test is accurate.
+
+        Sem warm-up: primeira inferência usa kernels não compilados → pitch extractor
+        (RMVPE) produz estimativas erradas → timbre distorcido no primeiro teste.
+        Without warm-up: first inference uses uncompiled kernels → RMVPE pitch estimates
+        are inaccurate → distorted timbre on the first test.
+        """
+        import tempfile, soundfile as _sf, numpy as _np
+        try:
+            # Cria WAV de silêncio curto como referência para o warm-up.
+            # Creates a short silent WAV as reference for the warm-up.
+            _dummy = _np.zeros(int(0.5 * 24000), dtype=_np.float32)
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as _f:
+                _sf.write(_f.name, _dummy, 24000, subtype="PCM_16")
+                _dp = _f.name
+            # Usa ref_text explícito — silêncio não tem transcrição útil
+            # Use explicit ref_text — silence has no useful transcription
+            _p = model.create_voice_clone_prompt(ref_audio=_dp, ref_text="ok")
+            model.generate(
+                text="ok",
+                language="pt",
+                voice_clone_prompt=_p,
+                audio_chunk_duration=1.0,
+                audio_chunk_threshold=0.5,
+                guidance_scale=1.0,
+                num_step=4,          # mínimo de passos para compilar kernels rapidamente
+                postprocess_output=False,
+            )
+        except Exception:
+            pass  # falha no warm-up não é fatal / warm-up failure is non-fatal
+        finally:
+            if torch_mod.cuda.is_available():
+                torch_mod.cuda.empty_cache()
+
+    @staticmethod
     def _trim_ref_wav(wav_path: str, max_s: float = 15.0) -> str:
         """Apara WAV de referência para max_s segundos para evitar OOM em gravações longas.
         Trims reference WAV to max_s seconds to prevent OOM on long recordings."""
@@ -3502,6 +3539,10 @@ class ConfigWindow(ctk.CTk):
                 # TorchCodec 0.14 é incompatível com PyTorch 2.6 (undefined symbol aoti_torch_abi_version).
                 # Patch: replace OmniVoice's internal _asr_pipe with local faster-whisper.
                 self._ov_model = self._patch_ov_transcribe(self._ov_model)
+                # Aquece GPU: compila kernels CUDA para o primeiro teste ser preciso
+                # Warm up GPU: compiles CUDA kernels so the first test is accurate
+                _st("Aquecendo GPU…")
+                self._ov_warmup(self._ov_model, torch)
 
             # Apara para ≤5s — fronteira ref/target mais limpa
             # Trim to ≤5s — cleaner ref/target boundary
@@ -3523,9 +3564,10 @@ class ConfigWindow(ctk.CTk):
                 language=lang_code,
                 voice_clone_prompt=prompt,
                 speed=0.9,
-                guidance_scale=3.5,          # mais fiel ao texto / more faithful to text
-                audio_chunk_threshold=120.0,  # só fragmenta acima de ~2min / only chunk above ~2min
-                postprocess_output=False,     # evita cortes/adições indevidas / avoid unwanted cuts/additions
+                guidance_scale=3.5,    # mais fiel ao texto / more faithful to text
+                audio_chunk_duration=60.0,    # até 60s por chunk / up to 60s per chunk
+                audio_chunk_threshold=5.0,    # sempre chunka → concatena todo o texto
+                postprocess_output=False,     # evita cortes indevidos / avoid unwanted cuts
             )
 
             # Normaliza e salva como PCM_16 para evitar distorção / volume estourado
@@ -4324,6 +4366,9 @@ class ConfigWindow(ctk.CTk):
                     # Patch ASR interno para faster-whisper — TorchCodec 0.14 incompatível.
                     # Patch internal ASR to faster-whisper — TorchCodec 0.14 incompatible.
                     self._ov_model = self._patch_ov_transcribe(self._ov_model)
+                    # Aquece GPU para o primeiro teste ser preciso / warm GPU for accurate first test
+                    _update("Aquecendo GPU…", phase=(0.45, 0.50))
+                    self._ov_warmup(self._ov_model, torch)
                 else:
                     _update("OmniVoice em memória…", phase=(0.05, 0.15))
 
@@ -4348,7 +4393,8 @@ class ConfigWindow(ctk.CTk):
                     voice_clone_prompt=prompt,
                     speed=0.9,
                     guidance_scale=3.5,
-                    audio_chunk_threshold=120.0,
+                    audio_chunk_duration=60.0,   # até 60s por chunk / up to 60s per chunk
+                    audio_chunk_threshold=5.0,   # sempre chunka → texto completo gerado
                     postprocess_output=False,
                 )
                 _anim_stop.set()
