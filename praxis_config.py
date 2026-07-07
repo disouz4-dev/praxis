@@ -3210,13 +3210,32 @@ class ConfigWindow(ctk.CTk):
         threading.Thread(target=_save_and_transcribe, daemon=True).start()
 
     def _ov_play_ref(self) -> None:
-        """Reproduz o WAV de referência gravado via aplay (evita conflito com o meter stream).
-        Plays the recorded reference WAV via aplay (avoids conflict with the meter stream)."""
+        """Toggle play/pause do WAV de referência. Toggle play/pause of reference WAV."""
+        # Se já está tocando, mata o processo e volta ao estado inicial
+        # If already playing, kill the process and return to idle state
+        proc: subprocess.Popen | None = getattr(self, "_ov_play_proc", None)
+        if proc and proc.poll() is None:
+            proc.kill()
+            self._ov_play_proc = None
+            self._ov_play_ref_btn.configure(text="▶ Ouvir referência")
+            return
+
         path = self._ov_ref_path.get()
         if not path or not __import__("os").path.exists(path):
             return
+
+        self._ov_play_ref_btn.configure(text="■ Parar")
+
         def _play():
-            subprocess.run(["aplay", path], stderr=subprocess.DEVNULL, timeout=60)
+            self._ov_play_proc = subprocess.Popen(
+                ["aplay", path], stderr=subprocess.DEVNULL)
+            self._ov_play_proc.wait()
+            # Quando terminar naturalmente, restaura o botão
+            # When playback finishes naturally, restore button
+            self.after(0, lambda: self._ov_play_ref_btn.configure(
+                text="▶ Ouvir referência"))
+            self._ov_play_proc = None
+
         threading.Thread(target=_play, daemon=True).start()
 
     def _ov_transcribe(self) -> None:
@@ -3378,14 +3397,17 @@ class ConfigWindow(ctk.CTk):
                 self._ov_model = OmniVoice.from_pretrained(
                     "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
 
-            # Apara para ≤15s para evitar OOM em gravações longas
-            # Trim to ≤15s to prevent OOM on long recordings
-            ref_path = self._trim_ref_wav(ref_path)
+            # Apara para ≤8s: reduz pressão de memória no encoder DAC da GPU
+            # Trim to ≤8s: reduces GPU memory pressure on DAC acoustic encoder
+            ref_path = self._trim_ref_wav(ref_path, max_s=8.0)
+
+            # Libera cache CUDA antes da inferência para maximizar memória livre
+            # Free CUDA cache before inference to maximize available memory
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
             # Usa ref_text da UI (preenchido pelo Whisper na gravação) ou transcreve agora.
             # Nunca passa ref_text=None → evita TorchCodec quebrado do OmniVoice interno.
-            # Use ref_text from UI (filled by Whisper on recording) or transcribe now.
-            # Never pass ref_text=None → avoids OmniVoice's broken internal TorchCodec.
             if not ref_text:
                 _st("Transcrevendo referência (Whisper)…")
                 ref_text = self._transcribe_wav(ref_path)
@@ -4186,14 +4208,17 @@ class ConfigWindow(ctk.CTk):
                 else:
                     _update("OmniVoice em memória…", phase=(0.05, 0.15))
 
-                # Apara para ≤15s para evitar OOM em arquivos longos (ex: DIego.wav 273s)
-                # Trim to ≤15s to prevent OOM on long files (e.g. DIego.wav 273s)
-                trimmed = self._trim_ref_wav(wav_path)
+                # Apara para ≤8s: reduz pressão no encoder DAC da GPU
+                # Trim to ≤8s: reduces GPU memory pressure on DAC acoustic encoder
+                trimmed = self._trim_ref_wav(wav_path, max_s=8.0)
 
-                # Usa ref_text do JSON do clone (ou transcreve agora com Whisper local).
-                # Nunca ref_text=None → evita TorchCodec quebrado do OmniVoice interno.
-                # Use ref_text from clone JSON (or transcribe now with local Whisper).
-                # Never ref_text=None → avoids OmniVoice's broken internal TorchCodec.
+                # Libera cache CUDA antes da inferência
+                # Free CUDA cache before inference
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
+                # Usa ref_text do JSON (ou transcreve com Whisper local; nunca ref_text=None)
+                # Use ref_text from JSON (or transcribe with local Whisper; never ref_text=None)
                 _rt = ref_text or ""
                 if not _rt:
                     _update("Transcrevendo referência (Whisper)…", phase=(0.15, 0.30))
