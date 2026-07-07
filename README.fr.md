@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · [🇪🇸 Español](README.es.md) · **[🇫🇷 Français](README.fr.md)** · [🇩🇪 Deutsch](README.de.md) · [🇮🇹 Italiano](README.it.md)
+[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · [🇪🇸 Español](README.es.md) · **[🇫🇷 Français](README.fr.md)** · [🇩🇪 Deutsch](README.de.md) · [🇮🇹 Italiano](README.it.md) · [🇷🇺 Русский](README.ru.md) · [🇨🇳 中文](README.zh.md) · [🇳🇱 Nederlands](README.nl.md) · [🇵🇱 Polski](README.pl.md) · [🇺🇦 Українська](README.uk.md) · [🇹🇷 Türkçe](README.tr.md) · [🇸🇦 العربية](README.ar.md) · [🇮🇳 हिन्दी](README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
@@ -129,20 +129,20 @@ Dans la fenêtre de configuration, sélectionnez le mode d'activation, le microp
 
 ---
 
-## Clonage de voix (RVC)
+## Clonage de voix (OmniVoice)
 
-L'onglet **"Cloner ma voix"** permet d'entraîner un modèle RVC avec votre propre voix, sans outils externes. Tout le pipeline s'exécute dans Praxis.
+L'onglet **"Cloner ma voix"** permet de cloner n'importe quelle voix en quelques secondes — enregistrez ou importez simplement un clip audio de 5 à 15 secondes. Sans entraînement, sans attente.
 
 ### Comment utiliser
 
 1. Ouvrez l'onglet **🎙 Cloner ma voix**
 2. Saisissez un nom pour le profil (ex. `Diego`)
-3. Lisez le texte de référence à voix haute (4 pages, ~1000 mots) avec les boutons **← Précédent** / **Suivant →**
-4. Avec **3 minutes ou plus** enregistrées, le bouton **🎙 Entraîner la voix** est activé
-5. Cliquez sur **Entraîner la voix** — le pipeline exécute le prétraitement, l'extraction de features et l'entraînement (10-30 min avec GPU)
-6. Cliquez sur **Tester** pour écouter et sur **Utiliser** pour activer la voix clonée
+3. **Option A — Enregistrer :** cliquez sur le microphone et lisez un texte générique court
+   **Option B — Importer :** cliquez sur "Importer audio" et sélectionnez tout WAV/MP3/OGG/OPUS/M4A/FLAC/AAC (y compris les messages vocaux WhatsApp)
+4. Cliquez sur **Tester** pour écouter la voix clonée
+5. Cliquez sur **Utiliser** pour l'activer comme sortie par défaut
 
-> L'audio d'entraînement s'accumule automatiquement : vous pouvez enregistrer en plusieurs sessions courtes.
+> L'audio de référence est automatiquement coupé à 15 secondes pour une meilleure qualité de clonage.
 
 ---
 

@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · [🇪🇸 Español](README.es.md) · [🇫🇷 Français](README.fr.md) · **[🇩🇪 Deutsch](README.de.md)** · [🇮🇹 Italiano](README.it.md)
+[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · [🇪🇸 Español](README.es.md) · [🇫🇷 Français](README.fr.md) · **[🇩🇪 Deutsch](README.de.md)** · [🇮🇹 Italiano](README.it.md) · [🇷🇺 Русский](README.ru.md) · [🇨🇳 中文](README.zh.md) · [🇳🇱 Nederlands](README.nl.md) · [🇵🇱 Polski](README.pl.md) · [🇺🇦 Українська](README.uk.md) · [🇹🇷 Türkçe](README.tr.md) · [🇸🇦 العربية](README.ar.md) · [🇮🇳 हिन्दी](README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
@@ -129,20 +129,20 @@ Wählen Sie im Konfigurationsfenster den Aktivierungsmodus, das Mikrofon, Quell-
 
 ---
 
-## Stimmklonierung (RVC)
+## Stimmklonierung (OmniVoice)
 
-Die Registerkarte **"Meine Stimme klonen"** ermöglicht das Training eines RVC-Modells mit Ihrer eigenen Stimme — ohne externe Tools. Die gesamte Pipeline läuft innerhalb von Praxis.
+Die Registerkarte **"Meine Stimme klonen"** ermöglicht das Klonen einer Stimme in Sekunden — nehmen Sie einfach einen 5–15-sekündigen Audioclip auf oder importieren Sie einen. Kein Training, kein Warten.
 
 ### Verwendung
 
 1. Öffnen Sie die Registerkarte **🎙 Meine Stimme klonen**
 2. Geben Sie einen Namen für das Profil ein (z.B. `Diego`)
-3. Lesen Sie den Referenztext laut vor (4 Seiten, ~1000 Wörter) mit den Schaltflächen **← Zurück** / **Weiter →**
-4. Mit **3 Minuten oder mehr** aufgezeichnet, wird die Schaltfläche **🎙 Stimme trainieren** aktiviert
-5. Klicken Sie auf **Stimme trainieren** — die Pipeline führt Vorverarbeitung, Feature-Extraktion und Training durch (10-30 Min. mit GPU)
-6. Klicken Sie auf **Testen** zum Anhören und **Verwenden** zum Aktivieren der geklonten Stimme
+3. **Option A — Aufnehmen:** Klicken Sie auf das Mikrofon und lesen Sie einen kurzen generischen Text
+   **Option B — Importieren:** Klicken Sie auf "Audio importieren" und wählen Sie eine WAV/MP3/OGG/OPUS/M4A/FLAC/AAC-Datei (auch WhatsApp-Sprachnachrichten)
+4. Klicken Sie auf **Testen** zum Anhören der geklonten Stimme
+5. Klicken Sie auf **Verwenden** zum Aktivieren als Standardausgabe
 
-> Trainingsaudio akkumuliert automatisch: Sie können in mehreren kurzen Sitzungen aufnehmen.
+> Das Referenzaudio wird automatisch auf 15 Sekunden gekürzt, um beste Klonqualität zu erzielen.
 
 ---
 

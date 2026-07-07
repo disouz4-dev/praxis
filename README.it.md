@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · [🇪🇸 Español](README.es.md) · [🇫🇷 Français](README.fr.md) · [🇩🇪 Deutsch](README.de.md) · **[🇮🇹 Italiano](README.it.md)**
+[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · [🇪🇸 Español](README.es.md) · [🇫🇷 Français](README.fr.md) · [🇩🇪 Deutsch](README.de.md) · **[🇮🇹 Italiano](README.it.md)** · [🇷🇺 Русский](README.ru.md) · [🇨🇳 中文](README.zh.md) · [🇳🇱 Nederlands](README.nl.md) · [🇵🇱 Polski](README.pl.md) · [🇺🇦 Українська](README.uk.md) · [🇹🇷 Türkçe](README.tr.md) · [🇸🇦 العربية](README.ar.md) · [🇮🇳 हिन्दी](README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
@@ -129,20 +129,20 @@ Nella finestra di configurazione, seleziona la modalità di attivazione, il micr
 
 ---
 
-## Clonazione vocale (RVC)
+## Clonazione vocale (OmniVoice)
 
-La scheda **"Clona la mia voce"** permette di addestrare un modello RVC con la propria voce, senza strumenti esterni. L'intera pipeline viene eseguita all'interno di Praxis.
+La scheda **"Clona la mia voce"** permette di clonare qualsiasi voce in pochi secondi — basta registrare o importare un clip audio di 5–15 secondi. Nessun addestramento, nessuna attesa.
 
 ### Come usare
 
 1. Apri la scheda **🎙 Clona la mia voce**
 2. Inserisci un nome per il profilo (es. `Diego`)
-3. Leggi il testo di riferimento ad alta voce (4 pagine, ~1000 parole) con i pulsanti **← Precedente** / **Successivo →**
-4. Con **3 minuti o più** registrati, il pulsante **🎙 Addestra voce** viene abilitato
-5. Clicca su **Addestra voce** — la pipeline esegue preprocessing, estrazione features e addestramento (10-30 min con GPU)
-6. Clicca su **Test** per ascoltare e **Usa** per attivare la voce clonata
+3. **Opzione A — Registra:** clicca sul microfono e leggi un testo generico breve
+   **Opzione B — Importa:** clicca su "Importa audio" e seleziona qualsiasi WAV/MP3/OGG/OPUS/M4A/FLAC/AAC (inclusi i messaggi vocali di WhatsApp)
+4. Clicca su **Test** per ascoltare la voce clonata
+5. Clicca su **Usa** per attivarla come uscita predefinita
 
-> L'audio di addestramento si accumula automaticamente: puoi registrare in più sessioni brevi.
+> L'audio di riferimento viene automaticamente tagliato a 15 secondi per la migliore qualità di clonazione.
 
 ---
 

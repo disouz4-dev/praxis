@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · **[🇪🇸 Español](README.es.md)** · [🇫🇷 Français](README.fr.md) · [🇩🇪 Deutsch](README.de.md) · [🇮🇹 Italiano](README.it.md)
+[🇧🇷 Português](README.md) · [🇺🇸 English](README.en.md) · **[🇪🇸 Español](README.es.md)** · [🇫🇷 Français](README.fr.md) · [🇩🇪 Deutsch](README.de.md) · [🇮🇹 Italiano](README.it.md) · [🇷🇺 Русский](README.ru.md) · [🇨🇳 中文](README.zh.md) · [🇳🇱 Nederlands](README.nl.md) · [🇵🇱 Polski](README.pl.md) · [🇺🇦 Українська](README.uk.md) · [🇹🇷 Türkçe](README.tr.md) · [🇸🇦 العربية](README.ar.md) · [🇮🇳 हिन्दी](README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
@@ -138,20 +138,20 @@ En la app de llamadas, selecciona **Praxis_Microfone** como dispositivo de entra
 
 ---
 
-## Clonación de voz (RVC)
+## Clonación de voz (OmniVoice)
 
-La pestaña **"Clonar mi voz"** permite entrenar un modelo RVC con tu propia voz, sin herramientas externas. Todo el pipeline corre dentro de Praxis.
+La pestaña **"Clonar mi voz"** permite clonar cualquier voz en segundos — solo graba o importa un clip de audio de 5 a 15 segundos. Sin entrenamiento, sin espera.
 
 ### Cómo usar
 
 1. Abre la pestaña **🎙 Clonar mi voz**
 2. Escribe un nombre para el perfil (ej. `Diego`)
-3. Lee el texto de referencia en voz alta (4 páginas, ~1000 palabras) usando los botones **← Anterior** / **Siguiente →**
-4. Con **3 minutos o más** grabados, el botón **🎙 Entrenar Voz** se activa
-5. Haz clic en **Entrenar Voz** — el pipeline ejecuta preprocesado, extracción de features y entrenamiento (10-30 min con GPU)
-6. Haz clic en **Probar** para escuchar y en **Usar** para activar la voz clonada
+3. **Opción A — Grabar:** haz clic en el micrófono y lee un texto genérico corto
+   **Opción B — Importar:** haz clic en "Importar audio" y selecciona cualquier WAV/MP3/OGG/OPUS/M4A/FLAC/AAC (incluidos audios de WhatsApp)
+4. Haz clic en **Probar** para escuchar la voz clonada
+5. Haz clic en **Usar** para activarla como salida predeterminada
 
-> El audio de entrenamiento se acumula automáticamente: puedes grabar en múltiples sesiones cortas.
+> El audio de referencia se recorta automáticamente a 15 segundos para mejor calidad de clonación.
 
 ---
 

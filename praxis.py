@@ -58,7 +58,7 @@ _json_out: bool = False  # modo JSON para integração com a UI Electron / JSON 
 
 # Referência mutável para hot-swap de voz sem reiniciar Whisper
 # Mutable reference for voice hot-swap without restarting Whisper
-_piper_out_ref: list = [None]   # [PiperVoice | XttsVoice | RvcVoice]
+_piper_out_ref: list = [None]   # [PiperVoice | OmniVoiceEngine]
 _piper_lock = threading.Lock()
 
 console = Console()
@@ -593,145 +593,6 @@ def load_whisper(model_name: str):
     return m
 
 
-def _patch_transformers_compat():
-    """Monkey-patch para transformers >= 5.x que removeu isin_mps_friendly.
-    Monkey-patch for transformers >= 5.x which removed isin_mps_friendly."""
-    try:
-        import torch
-        import transformers.pytorch_utils as _pu
-        if not hasattr(_pu, "isin_mps_friendly"):
-            _pu.isin_mps_friendly = torch.isin
-    except Exception:
-        pass
-
-
-class RvcVoice:
-    """Voz clonada via RVC — usa modelo .pth treinado + TTS intermediário para síntese.
-    Cloned voice via RVC — uses trained .pth model + intermediate TTS for synthesis.
-
-    Pipeline: texto → Piper TTS (voz genérica) → RVC (.pth) → áudio com voz do usuário
-    Pipeline: text → Piper TTS (generic voice) → RVC (.pth) → audio with user's voice
-    """
-
-    APPLIO_DIR = "/home/lab2/Documentos/praxis/applio/src"
-    PYTHON     = "/home/lab2/Documentos/praxis/applio/venv/bin/python"
-
-    def __init__(self, pth_path: str, sample_rate: int = 40000):
-        self._pth_path   = pth_path
-        self._index_path = str(Path(pth_path).with_suffix(".index")) if Path(
-            pth_path).with_suffix(".index").exists() else ""
-        self.config = type("cfg", (), {"sample_rate": sample_rate})()
-
-    def synthesize(self, text: str):
-        """Síntese em 2 etapas: TTS genérico → conversão de voz RVC.
-        Two-step synthesis: generic TTS → RVC voice conversion."""
-        import subprocess, tempfile, os, wave as _wave
-        import numpy as _np
-
-        # Passo 1: gera áudio com voz genérica usando edge-tts (rápido, sem GPU)
-        # Step 1: generate audio with generic voice using edge-tts (fast, no GPU)
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
-            tmp_mp3 = f.name
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            tmp_tts = f.name
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            tmp_out = f.name
-
-        try:
-            # Edge-TTS: gera voz genérica PT-BR / generates generic PT-BR voice
-            subprocess.run([
-                "edge-tts", "--voice", "pt-BR-AntonioNeural",
-                "--text", text, "--write-media", tmp_mp3
-            ], check=True, capture_output=True)
-
-            # Converte MP3 para WAV mono 40kHz / convert MP3 to WAV mono 40kHz
-            subprocess.run([
-                "ffmpeg", "-y", "-i", tmp_mp3,
-                "-ar", "40000", "-ac", "1", tmp_tts
-            ], check=True, capture_output=True)
-
-            # Passo 2: RVC — converte voz genérica para voz do usuário
-            # Step 2: RVC — convert generic voice to user's voice
-            infer_script = Path(self.APPLIO_DIR) / "rvc" / "infer" / "infer.py"
-            subprocess.run([
-                self.PYTHON, str(infer_script),
-                "0",              # pitch shift semitones
-                "0.75",           # index rate
-                "0",              # gpu index
-                "0.25",           # protect
-                "rmvpe",          # f0 method
-                tmp_tts,          # input wav
-                tmp_out,          # output wav
-                self._pth_path,   # model .pth
-                self._index_path if self._index_path else "",
-                "wav",            # export format
-                "contentvec",     # embedder model
-            ], check=True, capture_output=True, cwd=self.APPLIO_DIR)
-
-            # Lê o WAV gerado e devolve como chunk compatível com PiperVoice
-            # Read generated WAV and return as PiperVoice-compatible chunk
-            with _wave.open(tmp_out, "rb") as wf:
-                raw = wf.readframes(wf.getnframes())
-                self.config = type("cfg", (), {"sample_rate": wf.getframerate()})()
-            pcm = _np.frombuffer(raw, dtype=_np.int16)
-
-        finally:
-            for p in (tmp_mp3, tmp_tts, tmp_out):
-                try:
-                    os.unlink(p)
-                except Exception:
-                    pass
-
-        class _Chunk:
-            def __init__(self, data):
-                self.audio_int16_bytes = data.tobytes()
-
-        yield _Chunk(pcm)
-
-
-class XttsVoice:
-    """Wrapper que imita a interface do PiperVoice usando XTTS v2 (Coqui TTS).
-    Wrapper mimicking PiperVoice interface using XTTS v2 (Coqui TTS).
-    Usado como fallback quando o modelo RVC ainda não foi treinado.
-    Used as fallback when the RVC model hasn't been trained yet.
-    """
-
-    _MODEL_NAME = "tts_models/multilingual/multi-dataset/xtts_v2"
-
-    def __init__(self, wav_path: str, lang: str = "pt"):
-        _patch_transformers_compat()
-        from TTS.api import TTS
-        device = "cuda" if _has_cuda() else "cpu"
-        self._tts     = TTS(self._MODEL_NAME).to(device)
-        self._wav_path = wav_path
-        self._lang     = lang
-        self.config    = type("cfg", (), {"sample_rate": 24000})()
-
-    def synthesize(self, text: str):
-        """Gera áudio e retorna iterador de chunks com .audio_int16_bytes."""
-        import numpy as np, tempfile, os, wave as _wave
-        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-            tmp = f.name
-        try:
-            self._tts.tts_to_file(
-                text=text,
-                speaker_wav=self._wav_path,
-                language=self._lang,
-                file_path=tmp,
-            )
-            with _wave.open(tmp, "rb") as wf:
-                raw = wf.readframes(wf.getnframes())
-            pcm = np.frombuffer(raw, dtype=np.int16)
-        finally:
-            os.unlink(tmp)
-
-        class _Chunk:
-            def __init__(self, data):
-                self.audio_int16_bytes = data.tobytes()
-
-        yield _Chunk(pcm)
-
-
 class OmniVoiceEngine:
     """Wrapper zero-shot usando k2-fsa/OmniVoice — sem treino, só áudio de referência.
     Zero-shot wrapper using k2-fsa/OmniVoice — no training, just a reference audio clip.
@@ -808,30 +669,17 @@ def load_piper(path: str):
     Loads the correct voice engine based on the type field in the profile JSON.
 
     Tipos suportados / supported types:
-      xtts / chatterbox — XTTS v2 (zero-shot, sem treino)
-      rvc               — RVC + modelo .pth treinado (alta fidelidade)
-      (padrão)          — PiperVoice (.onnx, voz genérica)
+      omnivoice — OmniVoice zero-shot (referência WAV, sem treino)
+      (padrão)  — PiperVoice (.onnx, voz genérica)
     """
     if path.endswith(".wav"):
         jp = Path(path).with_suffix(".json")
         if jp.exists():
             meta = json.loads(jp.read_text())
-            voice_type = meta.get("type", "")
-            if voice_type == "rvc":
-                # Modelo RVC treinado — usa .pth gerado pelo pipeline de treino
-                # Trained RVC model — uses .pth generated by training pipeline
-                pth_path = str(Path(path).parent / meta.get("pth", ""))
-                if Path(pth_path).exists():
-                    return RvcVoice(pth_path)
-                # Fallback para XTTS se .pth não existe ainda
-                # Fallback to XTTS if .pth doesn't exist yet
-            if voice_type == "omnivoice":
+            if meta.get("type") == "omnivoice":
                 # OmniVoice zero-shot — usa o WAV do clone como referência fixa
                 # OmniVoice zero-shot — uses the clone WAV as fixed reference
                 return OmniVoiceEngine(path)
-            if voice_type in ("chatterbox", "xtts", "rvc"):
-                lang = meta.get("lang", "pt")
-                return XttsVoice(path, lang)
     from piper import PiperVoice
     return PiperVoice.load(path)
 

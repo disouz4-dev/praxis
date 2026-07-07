@@ -2236,8 +2236,6 @@ class ConfigWindow(ctk.CTk):
         """Constrói a aba de clonagem de voz com OmniVoice (zero-shot).
         Builds the voice cloning tab with OmniVoice (zero-shot)."""
         self.CLONES_DIR.mkdir(parents=True, exist_ok=True)
-        self._xtts_model   = None
-        self._xtts_latents = {}
         self._meter_stream = None
         self._testing      = False
 
@@ -3157,14 +3155,10 @@ class ConfigWindow(ctk.CTk):
                 meta = json.loads(jp.read_text())
             except Exception:
                 continue
-            name       = meta.get("name", jp.stem)
-            dur        = meta.get("duration_s", 0)
-            clone_type = meta.get("type", "xtts")
-            # Rótulo e cor do motor de clonagem / engine badge label and color
-            if clone_type == "omnivoice":
-                _engine_lbl, _engine_color = "OmniVoice", "#7C3AED"
-            else:
-                _engine_lbl, _engine_color = "RVC", "#0EA5E9"
+            name           = meta.get("name", jp.stem)
+            dur            = meta.get("duration_s", 0)
+            _engine_lbl    = "OmniVoice"
+            _engine_color  = "#7C3AED"
 
             row  = ctk.CTkFrame(self._clone_list_frame, fg_color=self.SEG_BG,
                                 corner_radius=8, border_width=1,
@@ -3389,20 +3383,20 @@ class ConfigWindow(ctk.CTk):
                     test_btn: ctk.CTkButton | None = None,
                     test_prog: ctk.CTkProgressBar | None = None,
                     test_status: ctk.CTkLabel | None = None) -> None:
-        """Testa clone via OmniVoice (zero-shot) ou XTTS v2 dependendo da disponibilidade.
-        Tests clone via OmniVoice (zero-shot) or XTTS v2 depending on availability."""
+        """Testa clone de voz via OmniVoice (único engine disponível).
+        Tests voice clone via OmniVoice (the only available engine)."""
         if self._testing:
             return
         self._testing = True
 
         lang_code = getattr(self, "_test_lang_var", ctk.StringVar(value="pt")).get()
         lang_code = lang_code.split(" ")[0] if " " in lang_code else lang_code
-        # Lê o texto da caixa do RVC se disponível; fallback para frases padrão
-        # Read text from RVC text box if available; fall back to default phrases
-        _rvc_txt = getattr(self, "_rvc_test_text", None)
-        if _rvc_txt:
+        # Lê texto da caixa de teste; fallback para frases padrão
+        # Read text from test box; fall back to default phrases
+        _txt_box = getattr(self, "_rvc_test_text", None)
+        if _txt_box:
             try:
-                phrase = _rvc_txt.get("1.0", "end").strip() or TEST_PHRASES.get(lang_code, "Teste de voz.")
+                phrase = _txt_box.get("1.0", "end").strip() or TEST_PHRASES.get(lang_code, "Teste de voz.")
             except Exception:
                 phrase = TEST_PHRASES.get(lang_code, TEST_PHRASES.get("en", "Hello, this is a voice test."))
         else:
@@ -3413,19 +3407,6 @@ class ConfigWindow(ctk.CTk):
                 test_btn.configure(state="disabled", text="…")
             except Exception:
                 pass
-
-        # Decide backend: OmniVoice se tipo omnivoice OU se XTTS não tiver arquivos baixados
-        # Decide backend: OmniVoice if clone type is omnivoice OR if XTTS model files are absent
-        _XTTS_DIR = Path.home() / ".local/share/tts/tts_models--multilingual--multi-dataset--xtts_v2"
-        _json_p = Path(wav_path).with_suffix(".json")
-        _clone_type = "xtts"
-        if _json_p.exists():
-            try:
-                _clone_type = json.loads(_json_p.read_text()).get("type", "xtts")
-            except Exception:
-                pass
-        _xtts_ready = any(_XTTS_DIR.glob("*.pth")) if _XTTS_DIR.exists() else False
-        _use_ov = (_clone_type == "omnivoice") or (not _xtts_ready)
 
         _anim_stop = threading.Event()
         _phase_range = [0.05, 0.50]
@@ -3544,82 +3525,10 @@ class ConfigWindow(ctk.CTk):
             finally:
                 _done()
 
-        def _worker_xtts():
-            # Backend XTTS v2: requer modelo baixado em ~/.local/share/tts/
-            # XTTS v2 backend: requires model downloaded to ~/.local/share/tts/
-            anim = threading.Thread(target=_animate, daemon=True)
-            anim.start()
-            try:
-                import torch, torchaudio
-                # Patch ANTES do import TTS para corrigir incompatibilidade de transformers
-                # Patch BEFORE importing TTS to fix transformers incompatibility
-                import transformers.pytorch_utils as _pu
-                if not hasattr(_pu, "isin_mps_friendly"):
-                    _pu.isin_mps_friendly = torch.isin
-                from TTS.tts.configs.xtts_config import XttsConfig
-                from TTS.tts.models.xtts import Xtts
-
-                device = "cuda" if torch.cuda.is_available() else "cpu"
-
-                if self._xtts_model is None:
-                    _update(f"1/3  Carregando XTTS v2 ({device}) — ~15s…",
-                            phase=(0.05, 0.48))
-                    cfg = XttsConfig()
-                    cfg.load_json(str(_XTTS_DIR / "config.json"))
-                    m = Xtts.init_from_config(cfg)
-                    m.load_checkpoint(cfg, checkpoint_dir=str(_XTTS_DIR), use_deepspeed=False)
-                    if device == "cuda":
-                        m.cuda()
-                    self._xtts_model = m
-                else:
-                    _update(f"1/3  Modelo em memória ({device})…", phase=(0.05, 0.12))
-
-                if wav_path not in self._xtts_latents:
-                    _update("2/3  Extraindo embedding de voz…", phase=(0.48, 0.62))
-                    gpt_lat, spk_emb = self._xtts_model.get_conditioning_latents(
-                        audio_path=[wav_path],
-                        gpt_cond_len=self._xtts_model.config.gpt_cond_len,
-                        max_ref_length=60,
-                        sound_norm_refs=True,
-                    )
-                    self._xtts_latents[wav_path] = (gpt_lat, spk_emb)
-                else:
-                    gpt_lat, spk_emb = self._xtts_latents[wav_path]
-
-                _update("2/3  Sintetizando — ~10s…", phase=(0.62, 0.90))
-                out = self._xtts_model.inference(
-                    text=phrase,
-                    language=lang_code,
-                    gpt_cond_latent=gpt_lat,
-                    speaker_embedding=spk_emb,
-                    temperature=0.65,
-                    top_p=0.85,
-                    repetition_penalty=5.0,
-                    enable_text_splitting=True,
-                )
-                _wav_tensor = torch.tensor(out["wav"])
-
-                _anim_stop.set()
-                _set_prog(0.94)
-                _update("3/3  Reproduzindo…")
-                import sounddevice as _sd
-                _sd.play(_wav_tensor.numpy(), 24000, blocking=True)
-                _set_prog(1.0)
-                if test_prog:
-                    self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
-                _update("✅ Concluído.", "#22C55E")
-
-            except Exception as e:
-                import traceback; traceback.print_exc()
-                _set_prog(0)
-                _update(f"❌ {e}", "#DC2626")
-            finally:
-                _done()
-
         if test_prog:
             self.after(0, lambda: test_prog.configure(progress_color="#60A5FA"))
         _set_prog(0.05)
-        threading.Thread(target=_worker_ov if _use_ov else _worker_xtts, daemon=True).start()
+        threading.Thread(target=_worker_ov, daemon=True).start()
 
     def _use_clone(self, wav_path: str, name: str) -> None:
         """Define a voz clonada como voz de saída e vai para aba Config."""

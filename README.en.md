@@ -4,7 +4,7 @@
 
 <div align="center">
 
-[🇧🇷 Português](README.md) · **[🇺🇸 English](README.en.md)** · [🇪🇸 Español](README.es.md) · [🇫🇷 Français](README.fr.md) · [🇩🇪 Deutsch](README.de.md) · [🇮🇹 Italiano](README.it.md)
+[🇧🇷 Português](README.md) · **[🇺🇸 English](README.en.md)** · [🇪🇸 Español](README.es.md) · [🇫🇷 Français](README.fr.md) · [🇩🇪 Deutsch](README.de.md) · [🇮🇹 Italiano](README.it.md) · [🇷🇺 Русский](README.ru.md) · [🇨🇳 中文](README.zh.md) · [🇳🇱 Nederlands](README.nl.md) · [🇵🇱 Polski](README.pl.md) · [🇺🇦 Українська](README.uk.md) · [🇹🇷 Türkçe](README.tr.md) · [🇸🇦 العربية](README.ar.md) · [🇮🇳 हिन्दी](README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
@@ -152,39 +152,34 @@ In your call app, select **Praxis_Microfone** as the audio input device.
 
 ---
 
-## Voice Cloning (RVC)
+## Voice Cloning (OmniVoice)
 
-The **"Clone my voice"** tab lets you train an RVC model with your own voice — no external tools needed. The entire pipeline runs inside Praxis.
+The **"Clone my voice"** tab lets you clone any voice in seconds — just record or import an audio clip of 5–15 seconds. No training needed.
 
 ### How to use
 
 1. Open the **🎙 Clone my voice** tab
 2. Enter a name for the profile (e.g. `Diego`)
-3. Read the reference text aloud (4 pages, ~1000 words)
-   - Use **← Previous** / **Next →** buttons to navigate between pages
-   - You can record in multiple short sessions — audio accumulates automatically
-4. With **3 minutes or more** recorded, the **🎙 Train Voice** button is unlocked
-5. Click **Train Voice** — the pipeline runs in 3 phases:
-   - **Phase 1** — Audio preprocessing (cut into 3s chunks)
-   - **Phase 2** — Feature extraction (HuBERT + RMVPE for F0)
-   - **Phase 3** — Model training (300 epochs, HiFi-GAN vocoder)
-6. After training (~10-30 min with GPU), click **Test** to hear the result
-7. Click **Use** to activate the cloned voice as the default output
+3. **Option A — Record:** click the microphone button and read a short generic text
+   **Option B — Import:** click "Import audio" and select any WAV/MP3/OGG/OPUS/M4A/FLAC/AAC file (including WhatsApp voice messages)
+4. Click **Test** to hear the cloned voice
+5. Click **Use** to activate the cloned voice as the default output
 
 ### Technology
 
-- **RVC** (Retrieval-based Voice Conversion)
-- **Applio** — training scripts used internally (no need to open the web UI)
-- **edge-tts** — intermediate TTS for synthesis before conversion
-- Model saved in `voices/clones/` as `.pth` (weights) + `.json` (metadata)
+- **OmniVoice** (k2-fsa/OmniVoice) — zero-shot voice cloning, no training needed
+- **faster-whisper** — automatic transcription of the reference audio
+- **ffmpeg** — internal format conversion (any format → WAV 24 kHz)
+- Clone saved in `voices/clones/` as `.wav` (reference) + `.json` (metadata)
 
-> Training audio accumulates automatically: you can record in multiple sessions and the total grows until it reaches the 3-minute minimum.
+> Reference audio is automatically trimmed to 15 seconds for best cloning quality.
 
 ---
 
 ## Roadmap
 
-- [x] Voice cloning with RVC (native training and inference in Praxis)
+- [x] Zero-shot voice cloning with OmniVoice (no training required)
+- [x] External audio import (WAV/MP3/OGG/OPUS/M4A and more)
 - [ ] Full bidirectional translation (hear the other person translated too)
 - [ ] Tray icon and global hotkey to pause/resume
 - [ ] Streaming speech-to-speech for even lower latency
