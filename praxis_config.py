@@ -3072,18 +3072,24 @@ class ConfigWindow(ctk.CTk):
             self._ov_gen_text.delete("1.0", "end")
             self._ov_gen_text.insert("1.0", phrase)
 
-        def _ov_quick_test() -> None:
-            """Preenche a frase e dispara geração imediatamente.
-            Fills phrase and triggers generation immediately."""
-            _ov_fill_test_phrase()
-            self._ov_generate()
+        # Botão para preencher frase do idioma sem sobrescrever texto personalizado
+        # Button to fill language phrase without overwriting custom text
+        ctk.CTkButton(
+            _lang_row, text="↺ Frase", width=72, height=28,
+            fg_color=self.SEG_BG, hover_color=self.HOVER,
+            text_color=self.TEXT, corner_radius=8,
+            font=ctk.CTkFont(size=12),
+            command=_ov_fill_test_phrase,
+        ).pack(side="left", padx=(0, 6))
 
+        # Testar gera o texto que JÁ ESTÁ no campo — não substitui
+        # Test generates with whatever is already in the text field — does not replace
         ctk.CTkButton(
             _lang_row, text="🔊 Testar", width=90, height=28,
             fg_color=self.ACCENT, hover_color=self.HOVER,
             text_color="#FFFFFF", corner_radius=8,
             font=ctk.CTkFont(size=12, weight="bold"),
-            command=_ov_quick_test,
+            command=self._ov_generate,
         ).pack(side="left")
 
         # Separador / divider
@@ -3350,14 +3356,15 @@ class ConfigWindow(ctk.CTk):
 
     @staticmethod
     def _transcribe_wav(wav_path: str) -> str:
-        """Transcreve WAV com faster-whisper local. Evita TorchCodec do OmniVoice.
-        Transcribes WAV with local faster-whisper. Avoids OmniVoice's TorchCodec."""
+        """Transcreve WAV com faster-whisper 'small' (mais preciso que 'base').
+        Transcribes WAV with faster-whisper 'small' (more accurate than 'base').
+        Evita TorchCodec do OmniVoice. Avoids OmniVoice's TorchCodec."""
         try:
             from faster_whisper import WhisperModel
             import torch as _t
             _dev   = "cuda" if _t.cuda.is_available() else "cpu"
             _ctype = "int8_float16" if _dev == "cuda" else "int8"
-            _wm    = WhisperModel("base", device=_dev, compute_type=_ctype)
+            _wm    = WhisperModel("small", device=_dev, compute_type=_ctype)
             segs, _ = _wm.transcribe(wav_path, task="transcribe")
             return " ".join(s.text.strip() for s in segs).strip()
         except Exception:
@@ -3405,7 +3412,7 @@ class ConfigWindow(ctk.CTk):
 
             # Apara para ≤8s: reduz pressão de memória no encoder DAC da GPU
             # Trim to ≤8s: reduces GPU memory pressure on DAC acoustic encoder
-            ref_path = self._trim_ref_wav(ref_path, max_s=8.0)
+            ref_path = self._trim_ref_wav(ref_path, max_s=5.0)
 
             # Libera cache CUDA antes da inferência para maximizar memória livre
             # Free CUDA cache before inference to maximize available memory
@@ -4221,7 +4228,7 @@ class ConfigWindow(ctk.CTk):
 
                 # Apara para ≤8s: reduz pressão no encoder DAC da GPU
                 # Trim to ≤8s: reduces GPU memory pressure on DAC acoustic encoder
-                trimmed = self._trim_ref_wav(wav_path, max_s=8.0)
+                trimmed = self._trim_ref_wav(wav_path, max_s=5.0)
 
                 # Libera cache CUDA antes da inferência
                 # Free CUDA cache before inference
