@@ -2828,26 +2828,59 @@ class ConfigWindow(ctk.CTk):
         # Update duration label if wav file already exists
         self._refresh_dur_label()
 
-        # ── Seletor de idioma para teste ───────────────────────────────────
-        lang_row = ctk.CTkFrame(_s, fg_color="transparent")
-        lang_row.pack(fill="x", padx=16, pady=(0, 8))
-        lang_row.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(lang_row, text="Testar em:",
-                     font=ctk.CTkFont(size=12), text_color=self.TEXT).grid(
-            row=0, column=0, sticky="w", padx=(0, 8))
+        # ── Card de texto para teste de voz clonada ────────────────────────
+        # Test text card — mesma UX do OmniVoice; texto alimenta os botões ▶ Testar
+        # Test text card — same UX as OmniVoice; text feeds into all ▶ Testar buttons
         _test_lang_options = [
             "pt — Português", "en — English", "es — Español",
             "fr — Français", "de — Deutsch", "it — Italiano",
             "ru — Русский", "zh — 中文",
         ]
         self._test_lang_var = ctk.StringVar(value="pt — Português")
+
+        _rvc_tcard = ctk.CTkFrame(_s, fg_color=self.INPUT,
+                                   border_color=self.IBORDER, border_width=1,
+                                   corner_radius=10)
+        _rvc_tcard.pack(fill="x", padx=16, pady=(0, 8))
+
+        _rvc_trow = ctk.CTkFrame(_rvc_tcard, fg_color="transparent")
+        _rvc_trow.pack(fill="x", padx=12, pady=(10, 4))
+
+        ctk.CTkLabel(_rvc_trow, text="Texto para teste:",
+                     font=ctk.CTkFont(size=11, weight="bold"),
+                     text_color=self.TEXT).pack(side="left")
+
         ctk.CTkOptionMenu(
-            lang_row, values=_test_lang_options, variable=self._test_lang_var,
-            fg_color=self.INPUT, button_color=self.IBORDER,
+            _rvc_trow, values=_test_lang_options, variable=self._test_lang_var,
+            fg_color=self.SEG_BG, button_color=self.IBORDER,
             button_hover_color=self.SEG_BG, text_color=self.TEXT,
             dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
             dropdown_hover_color=self.SEG_BG, font=ctk.CTkFont(size=12),
-        ).grid(row=0, column=1, sticky="ew")
+            width=160,
+        ).pack(side="left", padx=(8, 8))
+
+        def _rvc_fill_phrase() -> None:
+            """Preenche a caixa com a frase padrão do idioma selecionado.
+            Fills the box with the default phrase for the selected language."""
+            lang = self._test_lang_var.get().split(" ")[0]
+            self._rvc_test_text.delete("1.0", "end")
+            self._rvc_test_text.insert("1.0", TEST_PHRASES.get(lang, TEST_PHRASES["pt"]))
+
+        ctk.CTkButton(
+            _rvc_trow, text="↺ Frase", width=72, height=28,
+            fg_color=self.SEG_BG, hover_color=self.HOVER,
+            text_color=self.TEXT, corner_radius=8,
+            font=ctk.CTkFont(size=12),
+            command=_rvc_fill_phrase,
+        ).pack(side="left")
+
+        self._rvc_test_text = ctk.CTkTextbox(
+            _rvc_tcard, height=72, wrap="word",
+            fg_color=self.SEG_BG, border_color=self.IBORDER, border_width=1,
+            text_color=self.TEXT, font=ctk.CTkFont(size=12),
+        )
+        self._rvc_test_text.pack(fill="x", padx=12, pady=(0, 10))
+        self._rvc_test_text.insert("1.0", TEST_PHRASES["pt"])
 
         # ── Separador + lista de vozes clonadas ────────────────────────────
         ctk.CTkFrame(_s, height=1, fg_color=self.BORDER).pack(
@@ -4203,7 +4236,16 @@ class ConfigWindow(ctk.CTk):
 
         lang_code = getattr(self, "_test_lang_var", ctk.StringVar(value="pt")).get()
         lang_code = lang_code.split(" ")[0] if " " in lang_code else lang_code
-        phrase = TEST_PHRASES.get(lang_code, TEST_PHRASES.get("en", "Hello, this is a voice test."))
+        # Lê o texto da caixa do RVC se disponível; fallback para frases padrão
+        # Read text from RVC text box if available; fall back to default phrases
+        _rvc_txt = getattr(self, "_rvc_test_text", None)
+        if _rvc_txt:
+            try:
+                phrase = _rvc_txt.get("1.0", "end").strip() or TEST_PHRASES.get(lang_code, "Teste de voz.")
+            except Exception:
+                phrase = TEST_PHRASES.get(lang_code, TEST_PHRASES.get("en", "Hello, this is a voice test."))
+        else:
+            phrase = TEST_PHRASES.get(lang_code, TEST_PHRASES.get("en", "Hello, this is a voice test."))
 
         if test_btn:
             try:
