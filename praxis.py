@@ -529,7 +529,9 @@ def speech_length_scale(backlog_s: float) -> float:
 
 def _synthesize(voice, text: str, length_scale: float):
     """Voice synthesis at a given speed; voices without speed control
-    (OmniVoice, test doubles) fall back to their normal speed."""
+    (OmniVoice, test doubles) fall back to their normal speed. The voice's own
+    calibration (praxis_rate_scale, for slow voices) is applied on top."""
+    length_scale *= getattr(voice, "praxis_rate_scale", 1.0)
     if length_scale != 1.0:
         try:
             from piper.config import SynthesisConfig

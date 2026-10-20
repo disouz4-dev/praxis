@@ -303,8 +303,57 @@ def load_asr(model_name: str, backend: str, log=print):
     return m
 
 
+# Speaking-rate calibration: some Piper voices are very slow (measured: German
+# "MLS" 10.8 letters/s vs "Thorsten" 19.9), which makes translated speech last
+# longer than the original and the engine fall behind. Voices slower than the
+# target get a faster default speed, never beyond MIN_RATE_SCALE (still natural).
+CALIBRATION_TEXT = {
+    "pt": "O tempo passa depressa quando conversamos com amigos sobre a vida.",
+    "en": "Time goes by quickly when we talk with friends about our lives.",
+    "es": "El tiempo pasa rápido cuando hablamos con amigos sobre la vida.",
+    "fr": "Le temps passe vite quand on parle avec des amis de la vie.",
+    "de": "Die Zeit vergeht schnell, wenn wir mit Freunden über das Leben reden.",
+    "it": "Il tempo passa in fretta quando parliamo con gli amici della vita.",
+    "nl": "De tijd gaat snel als we met vrienden over het leven praten.",
+    "pl": "Czas płynie szybko, gdy rozmawiamy z przyjaciółmi o życiu.",
+    "ru": "Время летит быстро, когда мы говорим с друзьями о жизни.",
+    "uk": "Час минає швидко, коли ми говоримо з друзями про життя.",
+    "tr": "Arkadaşlarla hayat hakkında konuşurken zaman çabuk geçer.",
+}
+TARGET_LETTERS_PER_S = 15.0
+MIN_RATE_SCALE = 0.72
+
+
+def voice_rate_scale(voice, lang: str) -> float:
+    """length_scale that brings a slow voice up to TARGET_LETTERS_PER_S (1.0 = as is)."""
+    text = CALIBRATION_TEXT.get(lang)
+    if not text:
+        return 1.0                     # scripts without a comparable letters/s target
+    try:
+        pcm = b"".join(c.audio_int16_bytes for c in voice.synthesize(text))
+        seconds = len(pcm) / 2 / voice.config.sample_rate
+    except Exception:
+        return 1.0
+    letters = sum(ch.isalpha() for ch in text)
+    rate = letters / seconds if seconds else TARGET_LETTERS_PER_S
+    if rate >= TARGET_LETTERS_PER_S:
+        return 1.0
+    return max(MIN_RATE_SCALE, round(rate / TARGET_LETTERS_PER_S, 2))
+
+
+def _voice_lang(path: str) -> str:
+    return os.path.basename(str(path)).split("-")[0].split("_")[0].lower()
+
+
 def load_piper_accelerated(path: str, providers: list[str] | None = None):
-    """PiperVoice on the best ONNX Runtime provider (CUDA / DirectML / CoreML)."""
+    """PiperVoice on the best ONNX Runtime provider (CUDA / DirectML / CoreML),
+    with its speaking rate calibrated (see voice_rate_scale)."""
+    voice = _load_piper_provider(path, providers)
+    voice.praxis_rate_scale = voice_rate_scale(voice, _voice_lang(path))
+    return voice
+
+
+def _load_piper_provider(path: str, providers: list[str] | None = None):
     from piper import PiperVoice
     providers = choose_tts_providers() if providers is None else providers
     if "CUDAExecutionProvider" in providers:

@@ -32,9 +32,10 @@ def test_voice_lang_code_and_filter(cfg_module):
     assert [l for _, l in pc._voices_for_lang(voices, "pt")] == ["Faber", "🎙 Me"]
 
 
-def test_best_catalog_voice_prefers_medium(cfg_module):
+def test_best_catalog_voice_prefers_default_then_medium(cfg_module):
     pc = cfg_module
-    assert pc._best_catalog_voice("de")["quality"] == "medium"
+    assert pc._best_catalog_voice("de")["speaker"] == "thorsten"     # measured faster, "default"
+    assert pc._best_catalog_voice("it")["quality"] == "medium"
     assert pc._best_catalog_voice("xx") is None
 
 

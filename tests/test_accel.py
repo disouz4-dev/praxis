@@ -161,3 +161,48 @@ def test_ensure_cuda_libs_never_raises(tmp_path, monkeypatch):
     (tmp_path / "nvidia" / "cublas" / "lib" / "libcublas.so.12").write_bytes(b"not a real lib")
     assert isinstance(accel.ensure_cuda_libs(), list)       # bad .so is skipped, no crash
     accel.ensure_cuda_libs.cache_clear()
+
+
+# ── voice speaking-rate calibration ───────────────────────────────────────────
+
+class _RateVoice:
+    """Speaks `letters_per_s` letters per second."""
+    def __init__(self, letters_per_s):
+        self.lps = letters_per_s
+        self.config = types.SimpleNamespace(sample_rate=1000)
+
+    def synthesize(self, text):
+        letters = sum(ch.isalpha() for ch in text)
+        secs = letters / self.lps
+        yield types.SimpleNamespace(audio_int16_bytes=b"\0\0" * int(secs * 1000))
+
+
+@pytest.mark.parametrize("lps,expected", [(20.0, 1.0), (15.0, 1.0), (12.0, 0.8), (8.5, accel.MIN_RATE_SCALE)])
+def test_voice_rate_scale(lps, expected):
+    """Measured: German "MLS" speaks 10.8 letters/s, "Thorsten" 19.9 → slow
+    voices get a faster default speed, bounded so speech stays natural."""
+    assert accel.voice_rate_scale(_RateVoice(lps), "de") == pytest.approx(expected, abs=0.01)
+
+
+def test_voice_rate_scale_skips_languages_without_target():
+    assert accel.voice_rate_scale(_RateVoice(3.0), "zh") == 1.0
+
+
+def test_calibration_is_applied_on_top_of_adaptive_rate():
+    pytest.importorskip("piper")
+    import praxis
+    seen = []
+
+    class V(_RateVoice):
+        def synthesize(self, text, syn_config=None):
+            seen.append(None if syn_config is None else syn_config.length_scale)
+            yield from super().synthesize(text)
+    v = V(10.0)
+    v.praxis_rate_scale = 0.8
+    list(praxis._synthesize(v, "hallo welt", 1.0))
+    list(praxis._synthesize(v, "hallo welt", 0.87))
+    assert seen == [pytest.approx(0.8), pytest.approx(0.8 * 0.87)]
+
+
+def test_german_default_voice_is_the_fast_one(cfg_module):
+    assert cfg_module._best_catalog_voice("de")["speaker"] == "thorsten"

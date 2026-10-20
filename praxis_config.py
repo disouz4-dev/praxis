@@ -61,7 +61,7 @@ VOICE_CATALOG: list[dict] = [
     {"lang": "es", "locale": "es_MX", "speaker": "ald",      "quality": "medium", "gender": "M", "name": "ALD (MX)"},
     {"lang": "fr", "locale": "fr_FR", "speaker": "siwis",    "quality": "medium", "gender": "F", "name": "Siwis"},
     {"lang": "fr", "locale": "fr_FR", "speaker": "gilles",   "quality": "low",    "gender": "M", "name": "Gilles"},
-    {"lang": "de", "locale": "de_DE", "speaker": "thorsten", "quality": "high",   "gender": "M", "name": "Thorsten"},
+    {"lang": "de", "locale": "de_DE", "speaker": "thorsten", "quality": "high",   "gender": "M", "name": "Thorsten", "default": True},
     {"lang": "de", "locale": "de_DE", "speaker": "karlsson", "quality": "low",    "gender": "M", "name": "Karlsson"},
     {"lang": "de", "locale": "de_DE", "speaker": "mls",      "quality": "medium", "gender": "?", "name": "MLS"},
     {"lang": "it", "locale": "it_IT", "speaker": "paola",    "quality": "medium", "gender": "F", "name": "Paola"},
@@ -946,10 +946,15 @@ def _voices_for_lang(voices: list[tuple[str, str]], lang_code: str) -> list[tupl
 
 
 def _best_catalog_voice(lang_code: str) -> dict | None:
-    """Retorna a melhor voz do catálogo para o idioma (prefere qualidade média)."""
+    """Melhor voz do catálogo para o idioma: a marcada como padrão (escolhida por
+    medição — a alemã "MLS" fala a metade da velocidade da "Thorsten"), senão a
+    de qualidade média. Best voice: explicit default (measured), else medium."""
     candidates = [v for v in VOICE_CATALOG if v["lang"] == lang_code]
     if not candidates:
         return None
+    default = [v for v in candidates if v.get("default")]
+    if default:
+        return default[0]
     medium = [v for v in candidates if v["quality"] == "medium"]
     return medium[0] if medium else candidates[0]
 
