@@ -127,20 +127,34 @@ def live_segments(audio: np.ndarray, trailing_silence_s: float = 0.6) -> list[np
 
 
 def vad_tail_ms(audio: np.ndarray) -> float | None:
-    """How long after the last speech sample the VAD closes the segment
-    (the unavoidable 'wait for silence' part of the latency)."""
-    model, VADIterator = praxis.load_silero_vad()
-    vad = VADIterator(model, sampling_rate=praxis.SR, threshold=0.5,
-                      min_silence_duration_ms=praxis.SILENCE_MS)
-    import torch
+    """Time between the last chunk the VAD scores as speech and the moment it
+    emits "end" — the unavoidable 'wait for silence' part of the latency."""
+    vad = praxis.OnnxSileroVAD(threshold=0.5, sampling_rate=praxis.SR,
+                               min_silence_duration_ms=praxis.SILENCE_MS)
     chunk = praxis.VAD_CHUNK
     x = np.concatenate([audio, np.zeros(praxis.SR, np.float32)])
-    end_of_audio = len(audio) / praxis.SR
+    last_speech = None
+    end_at = None
     for i in range(0, len(x) - chunk + 1, chunk):
-        ev = vad(torch.from_numpy(x[i:i + chunk]), return_seconds=False)
-        if ev and "end" in ev and (i + chunk) / praxis.SR >= end_of_audio - 0.05:
-            return ((i + chunk) / praxis.SR - end_of_audio) * 1000
-    return None
+        piece = x[i:i + chunk]
+        p = vad.prob(piece)
+        if p >= vad.threshold:
+            last_speech = (i + chunk) / praxis.SR
+        # replay through the iterator logic without re-running the model
+        vad.current_sample += chunk
+        if p >= vad.threshold and vad.temp_end:
+            vad.temp_end = 0
+        if p >= vad.threshold and not vad.triggered:
+            vad.triggered = True
+        elif p < vad.threshold - 0.15 and vad.triggered:
+            if not vad.temp_end:
+                vad.temp_end = vad.current_sample
+            if vad.current_sample - vad.temp_end >= vad.min_silence:
+                vad.triggered, vad.temp_end = False, 0
+                end_at = (i + chunk) / praxis.SR
+    if last_speech is None or end_at is None or end_at < last_speech:
+        return None
+    return (end_at - last_speech) * 1000
 
 
 # ── ASR benchmark ─────────────────────────────────────────────────────────────
@@ -249,7 +263,10 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
             if not segs:
                 continue
             last = segs[-1].astype(np.float32) / 32768.0
-            tail = vad_tail_ms(a) or float(praxis.SILENCE_MS)
+            tail = vad_tail_ms(a)
+            if tail is None:
+                tail = float(praxis.SILENCE_MS)
+                print('  ! VAD tail not measurable, using SILENCE_MS', file=sys.stderr)
             t0 = time.perf_counter()
             text = praxis.transcribe_segment(whisper, last, src)
             t1 = time.perf_counter()

@@ -25,8 +25,9 @@ LANGS = ["pt", "en", "es"]
 MODEL = os.environ.get("PRAXIS_BENCH_MODEL", "small")
 
 # Max WER for the LIVE path (VAD segmentation + Whisper), per language.
-# Measured (small, CPU): see benchmarks/results/exp_C_preroll.md
-MAX_WER_LIVE = {"pt": 0.25, "en": 0.10, "es": 0.16}
+# Measured (small, CPU, default settings): pt 16.7% · en 5.3% · es 6.9%
+# (benchmarks/results/exp_E_smart6.md) — thresholds leave ~5 points of headroom.
+MAX_WER_LIVE = {"pt": 0.22, "en": 0.09, "es": 0.12}
 # The live path may not be much worse than transcribing the whole utterance
 MAX_LIVE_PENALTY = 0.08
 # End-of-speech → first translated audio ready (p50, CPU). Generous: CI runners are slow.
