@@ -1290,15 +1290,25 @@ class ConfigWindow(ctk.CTk):
 
         # Fecha splash e exibe janela principal após breve pausa
         # Close splash and show main window after brief pause
-        def _open_main() -> None:
-            try:
-                splash.destroy()
-            except Exception:
-                pass
-            self._show_splash()
-            self.after(1800, self.deiconify)
+        # Uma única janela de abertura: o splash de carregamento esmaece e a
+        # janela principal aparece. (Um 2º splash era desenhado como caixa cinza vazia no macOS.)
+        # Single opening window: the loading splash fades out, then the main window shows.
+        self.after(600, lambda: self._fade_out(splash, then=self.deiconify))
 
-        self.after(350, _open_main)
+    def _fade_out(self, win, then=None, alpha: float = 1.0) -> None:
+        """Fades a toplevel out (where the WM supports -alpha), destroys it, runs `then`."""
+        if alpha <= 0.0:
+            try:
+                win.destroy()
+            finally:
+                if then:
+                    then()
+            return
+        try:
+            win.attributes("-alpha", alpha)
+        except Exception:
+            alpha = 0.0
+        self.after(25, self._fade_out, win, then, round(alpha - 0.1, 2))
 
     def _toggle_theme(self) -> None:
         """Alterna entre light/dark mode: salva preferência e reconstrói a UI."""
@@ -1463,11 +1473,37 @@ class ConfigWindow(ctk.CTk):
 
     # ── Ícone e splash ────────────────────────────────────────────────────────
 
+    SPLASH_BG = "#01030F"   # matches the dark background of assets/praxis.png
+
+    def _load_logo(self, max_side: int) -> "tk.PhotoImage | None":
+        """Logo scaled to fit max_side × max_side WITHOUT changing its aspect
+        ratio (Pillow if available, else Tk's native PNG + integer subsample)."""
+        path = ASSETS_DIR / "praxis.png"
+        if not path.exists():
+            return None
+        try:
+            from PIL import Image, ImageTk
+            img = Image.open(path)
+            img.thumbnail((max_side, max_side), Image.LANCZOS)   # keeps proportions
+            return ImageTk.PhotoImage(img)
+        except Exception:
+            pass
+        try:
+            photo = tk.PhotoImage(file=str(path))
+            factor = max(1, -(-max(photo.width(), photo.height()) // max_side))  # ceil
+            return photo.subsample(factor, factor) if factor > 1 else photo
+        except Exception:
+            return None
+
     def _create_loading_splash(self) -> "tuple[tk.Toplevel, ctk.CTkProgressBar, ctk.CTkLabel]":
         """Cria e exibe a splash de carregamento com logo + barra de progresso.
         Creates and shows the loading splash with logo + progress bar."""
-        WIDTH, LOGO_H = 420, 280
         BAR_H = 6
+        logo = self._load_logo(380)
+        self._loading_photo = logo
+        LOGO_W = logo.width() if logo else 380
+        LOGO_H = logo.height() if logo else 120
+        WIDTH = max(LOGO_W, 320)
 
         ox, oy, sw, sh = _get_primary_monitor()
         if sw == 0:
@@ -1475,44 +1511,37 @@ class ConfigWindow(ctk.CTk):
             sh = self.winfo_screenheight()
             ox = oy = 0
 
-        total_h = LOGO_H + 64  # logo + padding + label + barra
+        total_h = LOGO_H + 64  # logo (tamanho real) + label + barra
         x = ox + (sw - WIDTH) // 2
         y = oy + max(0, (sh - total_h) // 2)
 
         sp = tk.Toplevel(self)
         sp.overrideredirect(True)
-        sp.configure(bg="#0D1117")
+        sp.configure(bg=self.SPLASH_BG)
         sp.geometry(f"{WIDTH}x{total_h}+{x}+{y}")
         sp.lift()
         sp.attributes("-topmost", True)
 
-        # Logo / imagem de topo
-        splash_path = ASSETS_DIR / "praxis.png"
-        logo_ok = False
-        if splash_path.exists():
-            try:
-                from PIL import Image, ImageTk  # optional (Pillow)
-                img = Image.open(splash_path).resize((WIDTH, LOGO_H), Image.LANCZOS)
-                self._loading_photo = ImageTk.PhotoImage(img)
-                tk.Label(sp, image=self._loading_photo, bg="#0D1117", bd=0).pack()
-                logo_ok = True
-            except Exception:
-                pass
-        if not logo_ok:
+        # Logo na proporção original; a janela é que se ajusta a ela
+        # Logo at its original aspect ratio — the window is sized around it
+        if logo:
+            tk.Label(sp, image=logo, bg=self.SPLASH_BG, bd=0,
+                     width=LOGO_W, height=LOGO_H).pack()
+        else:
             tk.Label(sp, text="Praxis", font=(_UI_FONT, 28, "bold"),
-                     fg="white", bg="#0D1117").pack(pady=(LOGO_H // 2 - 20, 0))
+                     fg="white", bg=self.SPLASH_BG).pack(pady=(LOGO_H // 2 - 20, 0))
 
         # Label de status / status label
         status_lbl = ctk.CTkLabel(
             sp, text="Iniciando…",
             font=ctk.CTkFont(size=12), text_color="#A1A1AA",
-            fg_color="#0D1117"
+            fg_color=self.SPLASH_BG
         )
         status_lbl.pack(pady=(8, 4))
 
         # Barra de progresso / progress bar
         prog = ctk.CTkProgressBar(
-            sp, width=WIDTH - 48, height=BAR_H,
+            sp, width=min(WIDTH, LOGO_W) - 48, height=BAR_H,
             progress_color="#7C3AED", fg_color="#27272A",
             corner_radius=3
         )
@@ -1535,50 +1564,6 @@ class ConfigWindow(ctk.CTk):
             self.wm_iconphoto(True, self._taskbar_icon)
         except Exception:
             pass
-
-    def _show_splash(self) -> None:
-        """Exibe splash screen centralizada com praxis.png, fecha após 2.4s."""
-        try:
-            from PIL import Image, ImageTk
-        except ImportError:
-            return
-
-        splash_path = ASSETS_DIR / "praxis.png"
-        if not splash_path.exists():
-            return
-
-        SIZE = 380
-        ox, oy, sw, sh = _get_primary_monitor()
-        if sw == 0:
-            sw = self.winfo_screenwidth()
-            sh = self.winfo_screenheight()
-            ox = oy = 0
-        x = ox + (sw - SIZE) // 2
-        y = oy + max(0, (sh - SIZE) // 2)
-
-        splash = tk.Toplevel(self)
-        splash.overrideredirect(True)           # sem borda/barra de título
-        splash.configure(bg="#0D1117")
-        splash.geometry(f"{SIZE}x{SIZE}+{x}+{y}")
-        splash.lift()
-        splash.attributes("-topmost", True)
-
-        img = Image.open(splash_path).resize((SIZE, SIZE), Image.LANCZOS)
-        self._splash_photo = ImageTk.PhotoImage(img)
-        tk.Label(splash, image=self._splash_photo, bg="#0D1117", bd=0).pack()
-
-        # Fade leve: reduz opacidade antes de fechar
-        def _fade(alpha: float = 1.0) -> None:
-            if alpha <= 0.0:
-                splash.destroy()
-                return
-            try:
-                splash.attributes("-alpha", alpha)
-                splash.after(30, _fade, round(alpha - 0.08, 2))
-            except Exception:
-                pass
-
-        splash.after(1900, _fade)   # começa o fade em 1.9s, fecha ~2.4s
 
     # ── Construção da UI ──────────────────────────────────────────────────────
 
@@ -1650,8 +1635,11 @@ class ConfigWindow(ctk.CTk):
             if not _logo_path.exists():
                 _logo_path = ASSETS_DIR / "praxis_logo.png"
             _logo_pil = Image.open(_logo_path).convert("RGBA")
+            _lw, _lh = _logo_pil.size          # mantém a proporção / keep aspect ratio
+            _scale = 110 / max(_lw, _lh)
             self._logo_img = ctk.CTkImage(
-                light_image=_logo_pil, dark_image=_logo_pil, size=(110, 110))
+                light_image=_logo_pil, dark_image=_logo_pil,
+                size=(round(_lw * _scale), round(_lh * _scale)))
             ctk.CTkLabel(_hdr_center, image=self._logo_img, text="").pack()
         except Exception:
             pass

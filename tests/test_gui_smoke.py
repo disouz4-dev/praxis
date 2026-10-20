@@ -118,3 +118,37 @@ def test_launch_without_voice_shows_error(app, monkeypatch):
     w.voice_var.set("(nenhuma voz)")
     w._launch()
     assert shown and w._engine_proc is None
+
+
+@pytest.mark.parametrize("pillow", [True, False])
+def test_logo_keeps_aspect_ratio(app, monkeypatch, pillow):
+    """The splash logo must never be stretched: window adapts to the logo."""
+    w, errors = app
+    import praxis_config as pc
+    if not pillow:
+        monkeypatch.setitem(sys.modules, "PIL", None)
+    src = tk_png_size(pc.ASSETS_DIR / "praxis.png")
+    logo = w._load_logo(380)
+    assert logo is not None
+    assert max(logo.width(), logo.height()) <= 380
+    assert abs(logo.width() / logo.height() - src[0] / src[1]) < 0.02
+
+
+def test_loading_splash_is_built_around_logo(app):
+    w, errors = app
+    sp, prog, lbl = w._create_loading_splash()
+    try:
+        sp.update_idletasks()
+        logo = w._loading_photo
+        assert sp.winfo_reqwidth() >= logo.width()
+        img_lbl = next(c for c in sp.winfo_children() if str(c.cget("image")) == str(logo))
+        assert (img_lbl.winfo_reqwidth(), img_lbl.winfo_reqheight()) >= (logo.width(), logo.height())
+    finally:
+        sp.destroy()
+
+
+def tk_png_size(path):
+    import struct
+    with open(path, "rb") as f:
+        head = f.read(24)
+    return struct.unpack(">II", head[16:24])
