@@ -931,6 +931,21 @@ def place_window(win, want_w: int, want_h: int, *, over=None, keep_position: boo
     win.geometry(f"{round(w / scale)}x{round(h / scale)}+{x}+{y}")
 
 
+def _ptt_key_to_str(key) -> str | None:
+    """Converte a tecla recebida do pynput no texto salvo na configuração.
+
+    Teclas especiais têm nome ("keyboard:ctrl_r"); teclas de letra/número só têm
+    o caractere ("keyboard:a"). Devolve None quando não dá para salvar a tecla
+    (por exemplo, um caractere de controle gerado com Ctrl apertado)."""
+    name = getattr(key, "name", None)
+    if name:
+        return f"keyboard:{name}"
+    char = getattr(key, "char", None)
+    if char and char.isprintable() and not char.isspace():
+        return f"keyboard:{char.lower()}"
+    return None
+
+
 def _voice_lang_code(path: str) -> str:
     """Extrai código de idioma do arquivo de voz (ex: it_IT-paola-medium.onnx → 'it')."""
     stem = Path(path).stem          # it_IT-paola-medium
@@ -1040,6 +1055,12 @@ def _pa_defaults() -> tuple[str, str]:
 
 def load_cfg() -> dict:
     cfg = dict(DEFAULT_CFG)
+    # Primeira execução: interface, "você fala" e "traduzir para" herdam o idioma
+    # do sistema operacional. Depois disso vale o que o usuário salvou.
+    try:
+        cfg.update(plat.default_languages(list(UI_STRINGS), [c for c, _ in SRC_LANGS]))
+    except Exception:
+        pass
     if CONFIG_FILE.exists():
         try:
             loaded = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
@@ -2475,12 +2496,16 @@ class ConfigWindow(ctk.CTk):
         self._ptt_key_lbl.configure(text="Pressione qualquer tecla ou botão do mouse…")
         captured = []
 
+        def _apply(key_str: str) -> None:
+            # Roda na thread principal do Tk
+            self._ptt_key = key_str
+            self._ptt_key_lbl.configure(text=key_str)
+
         def _done(key_str: str) -> None:
             if captured:
                 return
             captured.append(key_str)
-            self._ptt_key = key_str
-            self.after(0, lambda: self._ptt_key_lbl.configure(text=key_str))
+            self.after(0, _apply, key_str)
             # Inicia o ouvinte de retorno logo após configurar a tecla
             self.after(0, lambda: self._start_ptt_config_listener(key_str))
             try: kl.stop()
@@ -2491,10 +2516,10 @@ class ConfigWindow(ctk.CTk):
         from pynput import keyboard as _kb, mouse as _ms
 
         def _on_key(key):
-            try:
-                _done(f"keyboard:{key.name}")
-            except AttributeError:
-                pass
+            key_str = _ptt_key_to_str(key)
+            if key_str is None:
+                return None   # tecla que não dá para salvar: continua esperando
+            _done(key_str)
             return False
 
         def _on_click(x, y, button, pressed):
@@ -3035,13 +3060,21 @@ class ConfigWindow(ctk.CTk):
 
     # Texto completo concatenado — usado como ref_text no JSON do perfil.
     CLONE_TEXT = " ".join(CLONE_PAGES)
-    CLONES_DIR = VOICES_DIR / "clones"
+    @property
+    def CLONES_DIR(self) -> Path:   # noqa: N802 — nome mantido por compatibilidade
+        """Pasta dos clones; lida na hora para acompanhar VOICES_DIR (igual a get_voices)."""
+        return VOICES_DIR / "clones"
 
     def _build_clone_tab(self, parent: ctk.CTkFrame) -> None:
         """Constrói a aba de clonagem de voz com OmniVoice (zero-shot)."""
         self.CLONES_DIR.mkdir(parents=True, exist_ok=True)
         self._meter_stream = None
         self._testing      = False
+        # Uma só tarefa OmniVoice por vez ("Gerar voz" ou "Testar"): duas cargas do
+        # modelo ao mesmo tempo estouram a memória da placa de vídeo
+        self._ov_lock         = threading.Lock()
+        self._ov_gen_running  = False
+        self._clone_test_btns: list = []
 
         scroll = ctk.CTkScrollableFrame(
             parent, fg_color="transparent",
@@ -3538,7 +3571,20 @@ class ConfigWindow(ctk.CTk):
                                        text_color="#DC2626")
         self._ov_rec_prog.set(0)
         self._ov_rec_timer = 0
+        # Cancela um tique antigo ainda pendente (parar e regravar em menos de 1 s
+        # deixava duas cadeias de tiques e o cronômetro corria em dobro)
+        self._ov_cancel_rec_tick()
         self._ov_rec_tick()
+
+    def _ov_cancel_rec_tick(self) -> None:
+        """Cancela o próximo tique agendado do cronômetro da gravação, se houver."""
+        after_id = getattr(self, "_ov_rec_after_id", None)
+        self._ov_rec_after_id = None
+        if after_id is not None:
+            try:
+                self.after_cancel(after_id)
+            except Exception:
+                pass
 
     def _ov_rec_tick(self) -> None:
         """Dispara a cada segundo durante a gravação de referência OmniVoice."""
@@ -3552,11 +3598,12 @@ class ConfigWindow(ctk.CTk):
         if self._ov_rec_timer >= self._OV_REF_MAX_S:
             self._ov_stop_recording()
             return
-        self.after(1000, self._ov_rec_tick)
+        self._ov_rec_after_id = self.after(1000, self._ov_rec_tick)
 
     def _ov_stop_recording(self) -> None:
         """Para a gravação de referência, salva o WAV e transcreve com o Whisper."""
         self._ov_rec_active = False
+        self._ov_cancel_rec_tick()
         self._ov_rec_btn.configure(text=self._t("btn_rec_ref"),
                                     fg_color="#DC2626", hover_color="#B91C1C")
         frames = list(self._ov_rec_frames)
@@ -3733,8 +3780,15 @@ class ConfigWindow(ctk.CTk):
                 text="❌ Digite o texto a gerar", text_color="#EF4444")
             return
 
+        if self._ov_gen_running or self._testing:
+            self._ov_status_lbl.configure(
+                text="⏳ Aguarde a tarefa atual terminar", text_color=self.MUTED)
+            return
+
         lang_code = getattr(self, "_ov_lang_code", "pt")
-        self._ov_gen_btn.configure(state="disabled", text="Gerando…")
+        self._ov_gen_running = True
+        self._ov_set_busy(True)
+        self._ov_gen_btn.configure(text="Gerando…")
         self._ov_play_btn.configure(state="disabled")
         self._ov_status_lbl.configure(text="Carregando modelo…", text_color=self.MUTED)
         threading.Thread(
@@ -3742,6 +3796,33 @@ class ConfigWindow(ctk.CTk):
             args=(ref_path, ref_text, gen_text, lang_code),
             daemon=True,
         ).start()
+
+    def _ov_set_busy(self, busy: bool) -> None:
+        """Desliga (busy=True) ou religa os botões "Gerar voz" e "Testar" do OmniVoice.
+        Chamar só na thread principal do Tk."""
+        state = "disabled" if busy else "normal"
+        btn = getattr(self, "_ov_gen_btn", None)
+        if btn is not None:
+            try:
+                if busy:
+                    btn.configure(state=state)
+                else:
+                    btn.configure(state=state, text="🤖 Gerar voz")
+            except Exception:
+                pass
+        for tb in getattr(self, "_clone_test_btns", []):
+            try:
+                if busy:
+                    tb.configure(state=state)
+                else:
+                    tb.configure(state=state, text=self._t("btn_test"))
+            except Exception:
+                pass   # botão já destruído (lista de clones recarregada)
+
+    def _ov_finish_generate(self) -> None:
+        """Fim da geração (thread principal): libera a vez e religa os botões."""
+        self._ov_gen_running = False
+        self._ov_set_busy(False)
 
     @staticmethod
     def _transcribe_wav(wav_path: str) -> str:
@@ -3863,6 +3944,7 @@ class ConfigWindow(ctk.CTk):
             self.after(0, lambda: self._ov_status_lbl.configure(
                 text=msg, **({"text_color": color} if color else {})))
 
+        self._ov_lock.acquire()
         try:
             _st("Carregando OmniVoice…")
             from omnivoice import OmniVoice
@@ -3921,8 +4003,8 @@ class ConfigWindow(ctk.CTk):
             import traceback; traceback.print_exc()
             _st("❌ Erro na geração — veja o terminal", "#EF4444")
         finally:
-            self.after(0, lambda: self._ov_gen_btn.configure(
-                state="normal", text="🤖 Gerar voz"))
+            self._ov_lock.release()
+            self.after(0, self._ov_finish_generate)
 
     def _ov_play_result(self) -> None:
         """Reproduz o WAV de resultado do OmniVoice (/tmp/ov_result.wav)."""
@@ -3944,6 +4026,7 @@ class ConfigWindow(ctk.CTk):
         """Atualiza a lista de clones existentes na aba de clonagem."""
         for w in self._clone_list_frame.winfo_children():
             w.destroy()
+        self._clone_test_btns = []
         profiles = sorted(self.CLONES_DIR.glob("*.json"))
         if not profiles:
             ctk.CTkLabel(self._clone_list_frame,
@@ -3990,6 +4073,9 @@ class ConfigWindow(ctk.CTk):
                 font=ctk.CTkFont(size=11),
             )
             _tbtn.pack(side="left", padx=(0, 4))
+            self._clone_test_btns.append(_tbtn)
+            if self._testing or self._ov_gen_running:
+                _tbtn.configure(state="disabled")
             ctk.CTkButton(
                 btn_frame, text=self._t("btn_use"), width=60, height=26,
                 fg_color=self.ACCENT, hover_color=self.HOVER,
@@ -4237,9 +4323,10 @@ class ConfigWindow(ctk.CTk):
                     test_prog: ctk.CTkProgressBar | None = None,
                     test_status: ctk.CTkLabel | None = None) -> None:
         """Testa o clone de voz via OmniVoice (único motor disponível)."""
-        if self._testing:
+        if self._testing or self._ov_gen_running:
             return
         self._testing = True
+        self._ov_set_busy(True)
 
         lang_code = getattr(self, "_test_lang_var", ctk.StringVar(value="pt")).get()
         lang_code = lang_code.split(" ")[0] if " " in lang_code else lang_code
@@ -4270,11 +4357,11 @@ class ConfigWindow(ctk.CTk):
             import time
             if test_prog:
                 self.after(0, test_prog.grid)   # exibe a barra de progresso no cartão
+            cur = 0.05   # valor local: ler test_prog.get() fora da thread principal não é seguro
             while not _anim_stop.is_set():
                 lo, hi = _phase_range
-                cur = test_prog.get() if test_prog else 0
-                nxt = cur + 0.012 if cur < hi - 0.04 else lo
-                _set_prog(nxt)
+                cur = cur + 0.012 if cur < hi - 0.04 else lo
+                _set_prog(cur)
                 time.sleep(0.18)
 
         def _update(msg, color=None, phase=None):
@@ -4286,21 +4373,21 @@ class ConfigWindow(ctk.CTk):
             if phase:
                 _phase_range[0], _phase_range[1] = phase
 
+        def _finish_main() -> None:
+            # Thread principal: libera a vez e religa "Gerar voz" e todos os "Testar"
+            self._testing = False
+            self._ov_set_busy(False)
+
         def _done():
             _anim_stop.set()
-            self._testing = False
-            if test_btn:
-                try:
-                    self.after(0, lambda: test_btn.configure(
-                        state="normal", text=self._t("btn_test")))
-                except Exception:
-                    pass
+            self.after(0, _finish_main)
 
         def _worker_ov():
             # Backend OmniVoice: usa create_voice_clone_prompt(ref_text=None) para
             # transcrição automática interna — elimina ruído quando texto e áudio não batem.
             anim = threading.Thread(target=_animate, daemon=True)
             anim.start()
+            self._ov_lock.acquire()
             try:
                 from omnivoice import OmniVoice
                 import torch, soundfile as sf
@@ -4367,6 +4454,7 @@ class ConfigWindow(ctk.CTk):
                 _set_prog(0)
                 _update(f"❌ {e}", "#DC2626")
             finally:
+                self._ov_lock.release()
                 _done()
 
         if test_prog:
@@ -4394,16 +4482,41 @@ class ConfigWindow(ctk.CTk):
         self._on_tab_change(self._t("tab_config"))
 
     def _delete_clone(self, json_path: Path) -> None:
-        """Remove um clone de voz: apaga o JSON, o WAV e os .pth associados."""
+        """Remove um clone de voz (JSON + WAV) depois de pedir confirmação.
+        Se o clone apagado era a voz de saída escolhida, a escolha é refeita."""
         try:
             meta = json.loads(json_path.read_text())
-            wav  = self.CLONES_DIR / meta.get("wav", "")
+        except Exception:
+            meta = {}
+        name = meta.get("name", json_path.stem)
+        if not messagebox.askyesno(
+                "Apagar clone",
+                f"Apagar o clone \"{name}\"?\n\nO áudio de referência será removido "
+                "e não dá para desfazer.",
+                parent=self):
+            return
+        wav = self.CLONES_DIR / meta.get("wav", f"{json_path.stem}.wav")
+        try:
             if wav.exists():
                 wav.unlink()
             json_path.unlink()
         except Exception:
             pass
+        self._forget_voice(str(wav))
         self._refresh_clone_list()
+
+    def _forget_voice(self, path: str) -> None:
+        """Tira uma voz apagada da lista interna e dos menus; se ela estava
+        escolhida, escolhe outra (ou o aviso de lista vazia)."""
+        if getattr(self, "_clone_voice_path", None) == path:
+            self._clone_voice_path = None
+            self._clone_voice_name = None
+        if hasattr(self, "_voices"):
+            self._voices = [(p, lbl) for p, lbl in self._voices if p != path]
+        if hasattr(self, "_voice_menu"):
+            self._on_tgt_change()   # recalcula as opções e troca a escolha se sumiu
+        if hasattr(self, "_voice_in_menu"):
+            self._on_src_change()   # a voz bilateral também pode ser o clone apagado
 
     # ── Liga/desliga do monitor ───────────────────────────────────────────────
 

@@ -502,6 +502,7 @@ def test_instala_pacote_de_traducao_sem_stanza(tmp_path, monkeypatch):
     """Encontrado no teste de velocidade: a 1ª instalação de japonês/coreano
     falhava com "No module named 'stanza'" (o Praxis não instala o PyTorch)."""
     import zipfile
+    pytest.importorskip("argostranslate")
     import argostranslate.settings
     monkeypatch.setattr(argostranslate.settings, "package_data_dir", tmp_path / "pacotes")
     monkeypatch.setitem(sys.modules, "stanza", None)        # simula o stanza ausente

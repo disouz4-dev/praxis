@@ -143,3 +143,21 @@ def test_sem_chamadas_fixas_exclusivas_do_linux():
     for bad in ('"aplay"', '"xrandr"', '"/tmp/', "'/tmp/", '".local/share/praxis/venv',
                 '["parec"', '["pacat"', '"pw-metadata"'):
         assert bad not in src, f"Chamada exclusiva do Linux esquecida na interface/motor: {bad}"
+
+
+
+def test_primeira_execucao_herda_o_idioma_do_sistema(cfg_module, monkeypatch):
+    import praxis_platform as plat
+    pc = cfg_module
+    monkeypatch.setattr(plat, "system_language", lambda: "de")
+    cfg = pc.load_cfg()                                   # ainda não existe configuração salva
+    assert (cfg["ui_lang"], cfg["src"], cfg["tgt"]) == ("de", "de", "en")
+
+
+def test_escolha_salva_vale_mais_que_o_idioma_do_sistema(cfg_module, monkeypatch):
+    import praxis_platform as plat
+    pc = cfg_module
+    monkeypatch.setattr(plat, "system_language", lambda: "de")
+    pc.save_cfg(dict(pc.DEFAULT_CFG, ui_lang="pt", src="pt", tgt="es"))
+    cfg = pc.load_cfg()
+    assert (cfg["ui_lang"], cfg["src"], cfg["tgt"]) == ("pt", "pt", "es")

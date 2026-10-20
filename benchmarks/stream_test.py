@@ -73,13 +73,17 @@ class TimedBackend:
     """Grava o áudio traduzido; bloqueia pela duração real, como um alto-falante faria."""
     name = "stream-test"
 
-    def __init__(self, clock) -> None:
+    def __init__(self, clock, on_play=None) -> None:
         self.clock = clock
+        self.on_play = on_play                         # simula a caixa de som vazando no microfone
         self.played: list[tuple[float, float]] = []      # (início, duração)
 
     def play_pcm_multi(self, pcm, rate, devices):
         dur = len(pcm) / 2 / rate
-        self.played.append((self.clock(), dur))
+        start = self.clock()
+        self.played.append((start, dur))
+        if self.on_play:
+            self.on_play(pcm, rate, start)
         time.sleep(dur)
 
     def teardown(self):
@@ -167,6 +171,10 @@ def findings(r: dict) -> list[str]:
     return f
 
 
+ECHO_DB: float | None = None      # eco: volume (dB) com que a tradução tocada volta pelo microfone
+ECHO_DELAY_S = 0.1
+
+
 def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict:
     meta = json.loads((DATA / f"{src}.json").read_text(encoding="utf-8"))
     audio, sr = sf.read(str(DATA / f"{src}.wav"), dtype="float32")
@@ -174,14 +182,28 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
     chunk = praxis.VAD_CHUNK
     n_chunks = len(audio) // chunk
     stream = audio[: n_chunks * chunk]
-    tail = np.zeros(int(3 * praxis.SR) // chunk * chunk, np.float32)   # falante para: 3 s de silêncio
+    silent_ref = not meta["text"].strip()               # silêncio/ruído: nada deveria ser traduzido
+    tail_s = 8 if (ECHO_DB is not None or silent_ref) else 3
+    tail = np.zeros(int(tail_s * praxis.SR) // chunk * chunk, np.float32)   # falante para
     feed = np.concatenate([stream, tail])
 
-    # bloco → índice no fluxo, para localizar exatamente cada trecho emitido
-    i16 = (feed * 32767).clip(-32768, 32767).astype(np.int16)
+    # eco: o áudio traduzido volta pelo microfone (atenuado e um pouco atrasado)
+    echo = np.zeros(len(feed) + 60 * praxis.SR, np.float32)
+    echo_lock = threading.Lock()
+
+    def on_play(pcm, rate, start):
+        x = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768
+        x = plat.resample(x, rate, praxis.SR) * (10 ** (ECHO_DB / 20))
+        i = int((start + ECHO_DELAY_S) * praxis.SR)
+        with echo_lock:
+            j = min(len(echo), i + len(x))
+            if i < j:
+                echo[i:j] += x[:j - i]
+
+    # bloco → índice no fluxo, montado conforme os blocos são entregues (com eco o
+    # áudio entregue não é igual ao original), para localizar cada trecho emitido
+    i16 = np.zeros(len(feed), np.int16)
     index: dict[bytes, list[int]] = {}
-    for k in range(len(feed) // chunk):
-        index.setdefault(i16[k * chunk:(k + 1) * chunk].tobytes(), []).append(k)
     fed = {"k": -1}                                      # último bloco entregue ao detector de fala
 
     def locate(item: np.ndarray) -> int | None:
@@ -198,7 +220,7 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
 
     t0 = [0.0]
     clock = lambda: time.perf_counter() - t0[0]           # noqa: E731
-    backend = TimedBackend(clock)
+    backend = TimedBackend(clock, on_play if ECHO_DB is not None else None)
     old = (praxis._backend, praxis._vmic, praxis._stop, praxis._emit,
            praxis.transcribe_segment, praxis.do_translate)
     praxis._backend = backend
@@ -229,11 +251,11 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
     seg_q = SegQueue()
     cur = {"i": -1}
 
-    def transcribe(w, a, lang):
+    def transcribe(w, a, lang, **kw):
         cur["i"] += 1
         s = segs[cur["i"]]
         s["asr_start"] = clock()
-        text = real_transcribe(w, a, lang)
+        text = real_transcribe(w, a, lang, **kw)
         s["asr_end"] = clock()
         s["text"] = text
         s["n_audio_before"] = len(backend.played)
@@ -287,8 +309,15 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
             delay = target - clock()
             if delay > 0:
                 time.sleep(delay)
+            piece = feed[k * chunk:(k + 1) * chunk].copy()
+            if ECHO_DB is not None:
+                with echo_lock:
+                    piece = np.clip(piece + echo[k * chunk:(k + 1) * chunk], -1, 1)
+            q16 = (piece * 32767).clip(-32768, 32767).astype(np.int16)
+            i16[k * chunk:(k + 1) * chunk] = q16
+            index.setdefault(q16.tobytes(), []).append(k)
             fed["k"] = k
-            audio_q.put(feed[k * chunk:(k + 1) * chunk].copy())
+            audio_q.put(piece)
         speech_over = len(stream) / praxis.SR
         # espera a fila pendente esvaziar (máx. 120 s)
         deadline = time.perf_counter() + 120
@@ -331,6 +360,19 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
         s["forced_cut"] = s["dur"] >= praxis.MAX_SEG_S - 0.05                       # cortado no meio da fala pelo limite
 
     hyp = " ".join(s.get("text", "") for s in segs if s.get("text"))
+    after_speech = [s for s in segs if s.get("text") and s.get("start_s") is not None
+                    and s["start_s"] >= speech_over - 0.2]
+    if silent_ref:
+        # Sem fala: tudo o que foi transcrito é inventado (ruído, silêncio, falatório)
+        res = {"pair": f"{src}->{tgt}", "kind": "sem_fala", "speech_s": round(speech_over, 1),
+               "segments": len(segs), "invented_words": len(hyp.split()),
+               "invented_text": hyp, "translation": " ".join(s.get("translation", "") for s in segs),
+               "timeline": [{k: (round(v, 3) if isinstance(v, float) else v) for k, v in s.items()}
+                            for s in segs]}
+        if verbose:
+            print(f"  {res['pair']} (sem fala): {res['invented_words']} palavras inventadas: "
+                  f"{hyp[:120]!r}", file=sys.stderr)
+        return res
     wer, cer = rb.wer_cer([meta["text"]], [hyp])
     errors = word_errors(meta["text"], hyp, src)
     tr_hyp = " ".join(s.get("translation", "") for s in segs if s.get("translation"))
@@ -356,6 +398,8 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
         "forced_cuts": sum(1 for s in segs if s["forced_cut"]),
         "empty_segments": sum(1 for s in segs if "text" in s and not s["text"]),
         "sped_up_sentences": sum(s.get("sped_up", 0) for s in segs),
+        "echo_segments": len(after_speech) if ECHO_DB is not None else None,
+        "echo_words": sum(len(s["text"].split()) for s in after_speech) if ECHO_DB is not None else None,
         "translation_chrf": round(chrf(tr_hyp, tr_ref), 1),
         "latency_audio_ms": {"p50": round(statistics.median(lats), 0) if lats else None,
                              "p95": round(rb.pct(lats, 0.95), 0) if lats else None,
@@ -392,6 +436,8 @@ def to_markdown(rep: dict) -> str:
            "Pior caso comum (1 em 20) | Crescimento do atraso (2ª vs 1ª metade) | "
            "Tradução pendente quando o falante para | Fala traduzida / original | Acompanha |",
            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
+    sem_fala = [r for r in rep["results"] if r.get("kind") == "sem_fala"]
+    rep = dict(rep, results=[r for r in rep["results"] if r.get("kind") != "sem_fala"])
     for r in rep["results"]:
         if "error" in r and "latency_audio_ms" not in r:
             out.append(f"| {r['pair']} | — | — | — | — | — | — | — | — | — | ⚠️ {ERROR_NAMES.get(r['error'], r['error'])} |")
@@ -403,6 +449,17 @@ def to_markdown(rep: dict) -> str:
                    f"{(la['p50'] or 0) / 1000:.1f} s | {(la['p95'] or 0) / 1000:.1f} s | "
                    f"{r.get('lag_trend_ms', 0) / 1000:+.1f} s | {r['drain_s']:.1f} s | "
                    f"{r['translated_speech_ratio']:.0%} | {'✅' if r['keeps_up'] else '❌'} |")
+    if sem_fala:
+        out += ["", "### Sem fala (silêncio, ruído, falatório): nada deveria ser traduzido", "",
+                "| Caso | Duração | Palavras inventadas | Texto inventado |", "|---|---:|---:|---|"]
+        for r in sem_fala:
+            out.append(f"| {r['pair']} | {r['speech_s']:.0f}s | {r['invented_words']} | {r['invented_text'][:80]} |")
+    echo_rows = [r for r in rep["results"] if r.get("echo_segments") is not None]
+    if echo_rows:
+        out += ["", "### Eco (a tradução tocada volta pelo microfone)", "",
+                "| Par | Trechos traduzidos depois que o falante parou | Palavras nesses trechos |", "|---|---:|---:|"]
+        for r in echo_rows:
+            out.append(f"| {r['pair']} | {r['echo_segments']} | {r['echo_words']} |")
     out += ["", "### Para onde vai o tempo (típico, por trecho)", "",
             "| Par | Espera na fila | Transcrição | Tradução | Voz (1ª frase) | Espera pela fala anterior |",
             "|---|---:|---:|---:|---:|---:|"]
@@ -433,13 +490,19 @@ def main() -> None:
                     help="lista origem:destino; padrão = cada idioma de entrada → en (en → pt)")
     ap.add_argument("--output-langs", action="store_true",
                     help="testa en → cada idioma de saída (tradução + voz de cada idioma)")
+    ap.add_argument("--eco", type=float, default=None, metavar="DB",
+                    help="simula eco: a tradução tocada volta pelo microfone com este volume (ex.: -12)")
+    ap.add_argument("--contexto", action="store_true",
+                    help="liga o contexto entre trechos (o fim do que já foi dito vai como dica ao Whisper)")
     ap.add_argument("--data-dir", default=None,
                     help="pasta com <idioma>.wav/.json (padrão: benchmarks/data/continuous)")
     ap.add_argument("--name", default=None)
     a = ap.parse_args()
-    global DATA
+    global DATA, ECHO_DB
     if a.data_dir:
         DATA = Path(a.data_dir)
+    ECHO_DB = a.eco
+    praxis.USE_CONTEXT = bool(a.contexto)
     whisper = praxis.load_whisper(a.model, a.device)
     backend = getattr(whisper, "backend", a.device)
     rep = {"kind": "stream", "model": a.model, "backend": backend,

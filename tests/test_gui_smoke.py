@@ -14,6 +14,11 @@ pytestmark = pytest.mark.gui
 
 
 def _has_display():
+    # Estes testes abrem a janela de verdade. Para não pipocarem janelas na tela de
+    # quem está trabalhando, só rodam no CI (o GitHub define CI=true) ou quando
+    # pedidos com PRAXIS_TESTES_TELA=1 (ex.: num Linux com tela virtual, xvfb-run).
+    if not (os.environ.get("CI") or os.environ.get("PRAXIS_TESTES_TELA") == "1"):
+        return False
     # Nunca crie uma janela raiz Tk descartável só para testar: no macOS o Tk
     # trava quando uma segunda raiz é criada no mesmo processo. Uma janela por módulo.
     if sys.platform.startswith("linux"):
@@ -24,7 +29,7 @@ def _has_display():
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):
     if not _has_display():
-        pytest.skip("sem tela")
+        pytest.skip("teste com janela: rode com PRAXIS_TESTES_TELA=1 (o CI roda sempre)")
     monkeypatch = pytest.MonkeyPatch()
     import praxis_config as pc
     tmp = tmp_path_factory.mktemp("gui")

@@ -295,6 +295,7 @@ class MLXWhisper:
             no_speech_threshold=opts.get("no_speech_threshold", 0.5),
             logprob_threshold=opts.get("log_prob_threshold", -1.0),
             compression_ratio_threshold=opts.get("compression_ratio_threshold", 2.4),
+            initial_prompt=opts.get("initial_prompt"),
             verbose=None)
         segs = [_Seg(s.get("text", ""), float(s.get("no_speech_prob", 0.0)),
                      float(s.get("avg_logprob", 0.0)))
@@ -314,8 +315,9 @@ class WhisperCpp:
                            no_context=True, single_segment=False)
 
     def transcribe(self, audio, language=None, **opts):
+        extra = {"initial_prompt": opts["initial_prompt"]} if opts.get("initial_prompt") else {}
         segs = self.model.transcribe(audio, language=language or "auto",
-                                     temperature=float(opts.get("temperature", 0) or 0))
+                                     temperature=float(opts.get("temperature", 0) or 0), **extra)
         return iter([_Seg(s.text, 0.0) for s in segs]), {"language": language}
 
 

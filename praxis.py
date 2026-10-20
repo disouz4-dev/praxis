@@ -502,11 +502,20 @@ def _to_simplified(text: str) -> str:
         return text
 
 
-def transcribe_segment(whisper, audio_f32: np.ndarray, lang: str) -> str:
+# Contexto entre trechos: o fim do que já foi transcrito vai como "dica" para o
+# Whisper (nomes, assunto, grafia). Desligado até a medição provar que ajuda.
+USE_CONTEXT = os.environ.get("PRAXIS_CONTEXTO", "") == "1"
+CONTEXT_CHARS = 200
+
+
+def transcribe_segment(whisper, audio_f32: np.ndarray, lang: str, prompt: str | None = None) -> str:
     """Reconhecimento de fala de um trecho (float32, 16 kHz) → texto ('' = sem fala).
 
     Compartilhado pelo pipeline ao vivo e pelos benchmarks, para que ambos meçam o mesmo código."""
-    segs, _info = whisper.transcribe(audio_f32, language=lang, **WHISPER_OPTS)
+    opts = dict(WHISPER_OPTS)
+    if prompt:
+        opts["initial_prompt"] = prompt[-CONTEXT_CHARS:]
+    segs, _info = whisper.transcribe(audio_f32, language=lang, **opts)
     # Descarta um trecho só quando o Whisper acha que não é fala E está inseguro
     # do texto (a regra do próprio Whisper). Filtrar só por no_speech_prob jogava
     # fora fala transcrita corretamente (medido: 0,53–0,59 em frases reais).
@@ -602,6 +611,7 @@ def pipeline_worker(
     player = threading.Thread(target=_player, daemon=True)
     player.start()
 
+    context = ""                                   # o que já foi dito nesta direção
     while not _stop.is_set():
         try:
             segment = seg_q.get(timeout=0.2)
@@ -610,7 +620,12 @@ def pipeline_worker(
 
         audio_f32 = segment.astype(np.float32) / 32768.0
         try:
-            text = transcribe_segment(whisper, audio_f32, src)
+            if USE_CONTEXT:
+                text = transcribe_segment(whisper, audio_f32, src, prompt=context or None)
+                if text:
+                    context = (context + " " + text)[-CONTEXT_CHARS * 2:]
+            else:
+                text = transcribe_segment(whisper, audio_f32, src)
             if not text:
                 continue
             translated = do_translate(text, src, tgt)

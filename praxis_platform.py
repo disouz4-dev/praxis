@@ -307,6 +307,72 @@ def parse_xrandr(out: str) -> tuple[int, int, int, int]:
     return 0, 0, 0, 0
 
 
+# ── Idioma do sistema ────────────────────────────────────────────────────────
+
+def _lang_code(tag: str | None) -> str:
+    """'pt-BR', 'pt_BR.UTF-8', 'zh-Hans-CN' → 'pt', 'zh'. Vazio se não for idioma."""
+    if not tag:
+        return ""
+    code = tag.replace("-", "_").split(".")[0].split("@")[0].split("_")[0].strip().lower()
+    return "" if code in ("", "c", "posix") else code
+
+
+def system_language() -> str:
+    """Idioma do sistema operacional, em 2 letras ('pt', 'en'…); '' se não der para saber.
+
+    macOS: lista de idiomas preferidos do usuário (aplicativos abertos pelo Dock não
+    recebem a variável LANG). Windows: idioma da interface do usuário. Linux: as
+    variáveis LANGUAGE, LC_ALL, LC_MESSAGES e LANG, nessa ordem."""
+    if IS_MAC:
+        try:
+            from Foundation import NSLocale          # pyobjc, instalado no macOS
+            langs = NSLocale.preferredLanguages()
+            if langs and _lang_code(str(langs[0])):
+                return _lang_code(str(langs[0]))
+        except Exception:
+            pass
+        try:
+            out = subprocess.check_output(["defaults", "read", "-g", "AppleLanguages"],
+                                          text=True, timeout=3, stderr=subprocess.DEVNULL)
+            for line in out.splitlines():
+                code = _lang_code(line.strip().strip('(),"'))
+                if code:
+                    return code
+        except Exception:
+            pass
+    if IS_WIN:
+        try:
+            import ctypes
+            import locale
+            lcid = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+            code = _lang_code(locale.windows_locale.get(lcid, ""))
+            if code:
+                return code
+        except Exception:
+            pass
+    for var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        for part in os.environ.get(var, "").split(":"):
+            code = _lang_code(part)
+            if code:
+                return code
+    try:
+        import locale
+        return _lang_code(locale.getlocale()[0])
+    except Exception:
+        return ""
+
+
+def default_languages(ui_supported, src_supported, fallback: str = "en") -> dict:
+    """Escolhas iniciais a partir do idioma do sistema (só na primeira execução):
+    interface e "você fala" no idioma do sistema (inglês se a interface não tiver
+    esse idioma); "traduzir para" em inglês, ou espanhol se o sistema já for inglês."""
+    lang = system_language()
+    ui = lang if lang in ui_supported else fallback
+    src = lang if lang in src_supported else ui
+    tgt = "es" if src == "en" else "en"
+    return {"ui_lang": ui, "src": src, "tgt": tgt}
+
+
 # ── Funções de áudio ──────────────────────────────────────────────────────────
 
 def split_channel(device: str | None) -> tuple[str | None, int | None]:

@@ -240,3 +240,42 @@ def test_area_de_trabalho_linux_sem_gerenciador_de_janelas(monkeypatch):
     root = types.SimpleNamespace(winfo_screenwidth=lambda: 1920, winfo_screenheight=lambda: 1080,
                                  wm_maxsize=lambda: (560, 1048575))
     assert plat.work_area(root) == (0, 0, 1920, 1080)
+
+
+
+# ── idioma do sistema ─────────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("tag,code", [("pt-BR", "pt"), ("pt_BR.UTF-8", "pt"), ("zh-Hans-CN", "zh"),
+                                      ("en_US@euro", "en"), ("C", ""), ("POSIX", ""), ("", "")])
+def test_codigo_de_idioma(tag, code):
+    assert plat._lang_code(tag) == code
+
+
+def test_idioma_do_sistema_no_linux_pelas_variaveis(monkeypatch):
+    monkeypatch.setattr(plat, "IS_MAC", False)
+    monkeypatch.setattr(plat, "IS_WIN", False)
+    for v in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        monkeypatch.delenv(v, raising=False)
+    monkeypatch.setenv("LANG", "de_DE.UTF-8")
+    assert plat.system_language() == "de"
+    monkeypatch.setenv("LANGUAGE", "fr_FR:en_US")      # LANGUAGE tem prioridade
+    assert plat.system_language() == "fr"
+
+
+@pytest.mark.parametrize("sistema,esperado", [
+    ("pt", {"ui_lang": "pt", "src": "pt", "tgt": "en"}),
+    ("en", {"ui_lang": "en", "src": "en", "tgt": "es"}),
+    ("ja", {"ui_lang": "en", "src": "ja", "tgt": "en"}),     # interface sem japonês → inglês
+    ("sv", {"ui_lang": "en", "src": "en", "tgt": "es"}),     # idioma que o Praxis não tem
+    ("", {"ui_lang": "en", "src": "en", "tgt": "es"}),       # não deu para saber
+])
+def test_escolhas_iniciais_herdam_o_idioma_do_sistema(monkeypatch, sistema, esperado):
+    monkeypatch.setattr(plat, "system_language", lambda: sistema)
+    ui = ["pt", "en", "es", "fr", "de", "it", "ru", "zh", "nl", "pl", "uk", "tr", "ar", "hi"]
+    assert plat.default_languages(ui, ui + ["ja", "ko"]) == esperado
+
+
+def test_idioma_do_sistema_neste_computador():
+    """Só confere que a detecção roda e devolve um código de 2 letras ou vazio."""
+    code = plat.system_language()
+    assert code == "" or (len(code) in (2, 3) and code.isalpha())
