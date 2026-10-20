@@ -28,7 +28,8 @@ import praxis_platform as plat
 SR         = 16000          # taxa de amostragem Whisper / Whisper sample rate
 VAD_CHUNK  = 512            # ~32 ms @ 16 kHz — janela do VAD / VAD window size
 SILENCE_MS = 200            # silêncio para cortar segmento / silence to cut segment
-MAX_SEG_S  = 4.0            # força corte em falas longas / max segment length
+MAX_SEG_S  = 6.0            # corte em falas longas sem pausa / max segment length
+                            # (benchmarked: 4 s → pt 20.5% WER, 6 s → 16.7%, 8 s → 14.3%)
 PREROLL_S  = 0.25           # áudio antes do "start" do VAD / audio kept before VAD start (onset)
 SMART_CUT_WINDOW_S = 1.5    # corte longo no ponto mais silencioso / long-segment cut searches this tail
 SINK_OUT   = plat.SINK_OUT  # null sink → microfone virtual de saída / outbound virtual mic
@@ -906,6 +907,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Lista dispositivos de áudio e sai")
     parser.add_argument("--check", action="store_true",
                         help="Verifica dependências/áudio (JSON) e sai")
+    parser.add_argument("--max-segment", type=float, default=None, dest="max_segment",
+                        help=f"Duração máxima de fala sem pausa antes do corte (s, padrão {MAX_SEG_S:g})")
     parser.add_argument("--device", default=None,
                         choices=["auto", "cpu", "cuda", "mlx", "whispercpp"],
                         help="Aceleração do Whisper (padrão: auto / PRAXIS_DEVICE)")
@@ -933,6 +936,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--voice-out é obrigatório / --voice-out is required")
     if not 0.0 <= args.gate_threshold <= 1.0:
         parser.error("--gate-threshold deve estar entre 0 e 1")
+    if args.max_segment is not None:
+        if not 2.0 <= args.max_segment <= 30.0:
+            parser.error("--max-segment deve estar entre 2 e 30 s")
+        global MAX_SEG_S
+        MAX_SEG_S = args.max_segment
 
     global _json_out, console
     _json_out = args.json_out
