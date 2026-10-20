@@ -36,13 +36,36 @@ def test_transcribe_segment_filters_noise_and_nonspeech():
     assert w.calls[0][1] == "pt" and w.calls[0][2]["beam_size"] == 1
 
 
-def test_transcribe_segment_drops_high_no_speech_prob():
+def test_transcribe_segment_drops_only_unsure_nonspeech():
+    """Whisper's own rule: drop only when it thinks it is not speech AND the
+    text is low-confidence. no_speech_prob alone (0.53–0.59) threw away real
+    phrases in the streaming test."""
     from conftest import FakeSeg
+    noise = FakeSeg("ruído", 0.9); noise.avg_logprob = -1.6
+    unsure_but_real = FakeSeg("estático errante", 0.59); unsure_but_real.avg_logprob = -0.4
+    speech = FakeSeg("fala", 0.1); speech.avg_logprob = -0.2
 
     class W:
         def transcribe(self, a, language=None, **kw):
-            return iter([FakeSeg("ruído", 0.9), FakeSeg("fala", 0.1)]), None
-    assert praxis.transcribe_segment(W(), np.zeros(10, np.float32), "pt") == "fala"
+            return iter([noise, unsure_but_real, speech]), None
+    assert praxis.transcribe_segment(W(), np.zeros(10, np.float32), "pt") == "estático errante fala"
+
+
+def test_short_leftover_joins_next_segment():
+    """A tiny piece left after a cut is glued to the next segment instead of
+    being sent alone (Whisper returns nothing for it and the syllable is lost)."""
+    tiny = _speech(int(0.4 / (praxis.VAD_CHUNK / praxis.SR)))
+    longer = _speech(40)
+    segs = _run_vad(tiny + _silence(4) + longer + _silence(5))
+    assert len(segs) == 1
+    assert len(segs[0]) >= (len(tiny) + len(longer)) * praxis.VAD_CHUNK
+
+
+def test_short_utterance_alone_is_still_sent_after_silence():
+    """"Sim." followed by silence must not stay stuck waiting for more speech."""
+    tiny = _speech(int(0.4 / (praxis.VAD_CHUNK / praxis.SR)))
+    segs = _run_vad(tiny + _silence(int(1.5 / (praxis.VAD_CHUNK / praxis.SR))))
+    assert len(segs) == 1
 
 
 def test_translation_pivots_through_english(monkeypatch):
@@ -209,7 +232,7 @@ def _silence(n):
 
 
 def test_vad_emits_one_segment_per_utterance():
-    segs = _run_vad(_silence(3) + _speech(10) + _silence(5) + _speech(6) + _silence(5))
+    segs = _run_vad(_silence(3) + _speech(30) + _silence(5) + _speech(30) + _silence(5))
     assert len(segs) == 2
     assert segs[0].dtype == np.int16
 
@@ -225,7 +248,7 @@ def test_vad_forces_cut_at_max_segment_length():
 def test_gate_mode_ignores_quiet_speech():
     quiet = [np.full(praxis.VAD_CHUNK, 0.06, np.float32) for _ in range(10)]
     assert _run_vad(quiet + _silence(5), mode="gate", gate=0.2) == []
-    assert len(_run_vad(_speech(10) + _silence(5), mode="gate", gate=0.2)) == 1
+    assert len(_run_vad(_speech(30) + _silence(5), mode="gate", gate=0.2)) == 1
 
 
 def test_ptt_release_flushes_and_deactivates():

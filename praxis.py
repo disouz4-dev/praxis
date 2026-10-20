@@ -31,6 +31,8 @@ SILENCE_MS = 200            # silêncio para cortar segmento / silence to cut se
 MAX_SEG_S  = 6.0            # corte em falas longas sem pausa / max segment length
                             # (benchmarked: 4 s → pt 20.5% WER, 6 s → 16.7%, 8 s → 14.3%)
 PREROLL_S  = 0.25           # áudio antes do "start" do VAD / audio kept before VAD start (onset)
+MIN_SEG_S  = 0.8            # pedaços menores entram no próximo trecho / shorter pieces join the next one
+CARRY_MAX_WAIT_S = 1.0      # …mas saem sozinhos após 1 s de silêncio ("Sim." não fica preso)
 SMART_CUT_WINDOW_S = 1.5    # corte longo no ponto mais silencioso / long-segment cut searches this tail
 SINK_OUT   = plat.SINK_OUT  # null sink → microfone virtual de saída / outbound virtual mic
 SRC_MIC    = plat.SRC_MIC   # nome da fonte de áudio virtual / virtual audio source name
@@ -351,13 +353,29 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
             seg, rest = buf[:j + 1], buf[j + 1:]
         else:
             seg, rest = buf, []
-        seg_q.put(np.concatenate(seg))
+        _emit_seg(seg)
         buf, buf_dur = rest, len(rest) * chunk_s
 
-    def _flush_buf() -> None:
+    carry: list[np.ndarray] = []       # tiny leftover after a cut, glued to the next segment
+    carry_age = 0                      # silent chunks since the leftover was kept
+
+    def _emit_seg(chunks: list[np.ndarray], force: bool = False) -> None:
+        nonlocal carry, carry_age
+        chunks = carry + chunks
+        carry, carry_age = [], 0
+        if not chunks:
+            return
+        if not force and len(chunks) * chunk_s < MIN_SEG_S:
+            # Too short for Whisper on its own (it returns nothing and the
+            # syllable is lost) — keep it for the next segment instead.
+            carry = chunks
+            return
+        seg_q.put(np.concatenate(chunks))
+
+    def _flush_buf(force: bool = False) -> None:
         nonlocal buf, buf_dur, speaking
-        if buf:
-            seg_q.put(np.concatenate(buf))
+        if buf or (force and carry):
+            _emit_seg(buf, force=force)
         buf, buf_dur, speaking = [], 0.0, False
         vad.reset_states()
 
@@ -365,7 +383,7 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
         # PTT flush: botão solto → envia buffer atual e desativa
         if ptt_mode and ptt_flush.is_set():
             ptt_flush.clear()
-            _flush_buf()
+            _flush_buf(force=True)             # button released: send everything now
             active.clear()
 
         if not active.is_set():
@@ -411,6 +429,10 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
             buf_dur += chunk_s
         else:
             preroll.append(i16)
+            if carry:
+                carry_age += 1
+                if carry_age * chunk_s >= CARRY_MAX_WAIT_S:
+                    _emit_seg([], force=True)   # short utterance followed by silence
 
         if ev and "end" in ev and speaking:
             _flush_buf()
@@ -432,6 +454,8 @@ WHISPER_OPTS: dict = dict(
     vad_parameters={"min_silence_duration_ms": 300},
 )
 _NOISE_ONLY = {"", ".", ",", "...", "!", "?", "…"}
+NO_SPEECH_DROP = 0.6       # Whisper's default no_speech_threshold
+LOGPROB_DROP = -1.0        # … combined with low confidence in the decoded text
 
 
 def collapse_repetitions(text: str, max_repeats: int = 2) -> str:
@@ -471,8 +495,12 @@ def transcribe_segment(whisper, audio_f32: np.ndarray, lang: str) -> str:
 
     Shared by the live pipeline and the benchmarks so both measure the same code."""
     segs, _info = whisper.transcribe(audio_f32, language=lang, **WHISPER_OPTS)
-    # Filtra segmentos com alta probabilidade de não-fala / drop likely non-speech
-    text = " ".join(s.text for s in segs if s.no_speech_prob < 0.5).strip()
+    # Drop a segment only when Whisper both thinks it is not speech AND is unsure
+    # of the text (Whisper's own rule). Filtering on no_speech_prob alone threw
+    # away correctly transcribed speech (measured: 0.53–0.59 on real phrases).
+    text = " ".join(s.text for s in segs
+                    if not (s.no_speech_prob > NO_SPEECH_DROP
+                            and getattr(s, "avg_logprob", 0.0) < LOGPROB_DROP)).strip()
     text = collapse_repetitions(text)
     return "" if text in _NOISE_ONLY else text
 
