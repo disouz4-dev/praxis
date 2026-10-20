@@ -177,3 +177,51 @@ def tk_png_size(path):
     with open(path, "rb") as f:
         head = f.read(24)
     return struct.unpack(">II", head[16:24])
+
+
+def _assert_on_screen(win):
+    import praxis_platform as plat
+    win.update()
+    x, y = win.winfo_rootx(), win.winfo_rooty()
+    w, h = win.winfo_width(), win.winfo_height()
+    wx, wy, ww, wh = plat.work_area(win, point=(x + w // 2, y + h // 2))
+    if not ww:
+        pytest.skip("work area unknown on this display")
+    assert wx <= x and x + w <= wx + ww, f"horizontal overflow {x}+{w} vs {wx}+{ww}"
+    assert y + h <= wy + wh, f"vertical overflow {y}+{h} vs {wy}+{wh}"
+
+
+def test_main_window_fits_usable_screen(app):
+    w, errors = app
+    w.deiconify()
+    _assert_on_screen(w)
+
+
+@pytest.mark.parametrize("scale", [1.0, 1.5])
+def test_windows_fit_screen_at_any_display_scale(app, scale):
+    """Main window, engine panel expansion (1120 px) and dialogs stay on screen."""
+    w, errors = app
+    import customtkinter as ctk
+    import praxis_config as pc
+    try:
+        ctk.set_window_scaling(scale)
+        w.deiconify()
+        pc.place_window(w, 560, 900)
+        _assert_on_screen(w)
+        y0 = w.winfo_rooty()
+        pc.place_window(w, 1120, 900, keep_position=True)     # engine started
+        _assert_on_screen(w)
+        for _ in range(3):                                    # start/stop must not drift
+            pc.place_window(w, 560, 900, keep_position=True)
+            pc.place_window(w, 1120, 900, keep_position=True)
+        w.update()
+        assert abs(w.winfo_rooty() - y0) <= 2, "window drifts on start/stop"
+        dlg = ctk.CTkToplevel(w)
+        pc.place_window(dlg, 480, 540, over=w)
+        _assert_on_screen(dlg)
+        dlg.destroy()
+        pc.place_window(w, 3000, 3000)                        # absurd request
+        _assert_on_screen(w)
+    finally:
+        ctk.set_window_scaling(1.0)
+        pc.place_window(w, 560, 900)

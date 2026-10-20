@@ -889,6 +889,48 @@ TEST_PHRASES: dict[str, str] = {
 }
 
 
+def _window_scaling(win) -> float:
+    try:
+        return float(ctk.ScalingTracker.get_window_scaling(win)) or 1.0
+    except Exception:
+        return 1.0
+
+
+def place_window(win, want_w: int, want_h: int, *, over=None, keep_position: bool = False) -> None:
+    """Sizes and positions a window so it NEVER leaves the usable area of the
+    monitor it is on (or the monitor of `over`), on every OS and display scale.
+
+    want_w/want_h are logical (unscaled) sizes; CTk windows multiply width and
+    height by the display scaling but not x/y, so the maths is done in real
+    pixels and converted back."""
+    win.update_idletasks()
+    scale = _window_scaling(win) if isinstance(win, (ctk.CTk, ctk.CTkToplevel)) else 1.0
+    ref = over if over is not None else win
+    try:
+        cx = ref.winfo_rootx() + ref.winfo_width() // 2
+        cy = ref.winfo_rooty() + ref.winfo_height() // 2
+        point = (cx, cy) if ref.winfo_ismapped() else None
+    except Exception:
+        point = None
+    work = plat.work_area(win, point=point)
+    if not work[2]:
+        work = (0, 0, win.winfo_screenwidth(), win.winfo_screenheight() - 80)
+    prefer = None
+    if keep_position and win.winfo_ismapped():
+        # outer position (title bar included) — the same thing geometry("+x+y") sets
+        try:
+            _, ox, oy = win.wm_geometry().split("+")[:3] if win.wm_geometry().count("+") >= 2 \
+                else (None, win.winfo_x(), win.winfo_y())
+            prefer = (int(ox), int(oy))
+        except Exception:
+            prefer = (win.winfo_x(), win.winfo_y())
+    elif over is not None and point is not None:
+        prefer = (point[0] - int(want_w * scale) // 2, point[1] - int(want_h * scale) // 2)
+    w, h, x, y = plat.fit_window(work, int(want_w * scale), int(want_h * scale),
+                                 titlebar=int(32 * scale), prefer=prefer)
+    win.geometry(f"{round(w / scale)}x{round(h / scale)}+{x}+{y}")
+
+
 def _voice_lang_code(path: str) -> str:
     """Extrai código de idioma do arquivo de voz (ex: it_IT-paola-medium.onnx → 'it')."""
     stem = Path(path).stem          # it_IT-paola-medium
@@ -1084,7 +1126,7 @@ class VoiceDownloadDialog(ctk.CTkToplevel):
     def __init__(self, parent: ctk.CTk, on_downloaded=None) -> None:
         super().__init__(parent)
         self.title("Baixar Vozes Piper")
-        self.geometry("480x540")
+        place_window(self, 480, 540, over=parent)
         self.resizable(False, False)
         ctk.set_appearance_mode("light")
         self.configure(fg_color=self.BG)
@@ -1244,17 +1286,11 @@ class ConfigWindow(ctk.CTk):
         self.resizable(True, True)
         self.configure(fg_color=self.BG)
 
-        # Centraliza na tela do monitor primário
-        ox, oy, sw, sh = _get_primary_monitor()
-        if sw == 0:
-            sw = self.winfo_screenwidth()
-            sh = self.winfo_screenheight()
-            ox = oy = 0
-        win_h = max(min(680, sh - 40), sh - 80)   # quase toda a tela / nearly full height
-        self.minsize(560, min(640, sh - 40))
-        x = ox + (sw - 560) // 2
-        y = oy + max(0, (sh - win_h) // 2)
-        self.geometry(f"560x{win_h}+{x}+{y}")
+        # Cabe SEMPRE na área útil do monitor (sem passar por baixo do Dock/menu do
+        # macOS, da barra de tarefas do Windows ou de painéis do Linux).
+        # Always fits the monitor's usable area (title bar included), any DPI.
+        self.minsize(420, 480)
+        place_window(self, 560, 900)
 
         self.withdraw()  # oculta a janela principal durante o carregamento / hide main window during load
 
@@ -1495,6 +1531,12 @@ class ConfigWindow(ctk.CTk):
         except Exception:
             return None
 
+    def _logical_height(self) -> int:
+        try:
+            return int(self.winfo_height() / _window_scaling(self))
+        except Exception:
+            return 900
+
     def _ui_scaling(self) -> float:
         """Display scaling CustomTkinter applies (Windows 125/150%, HiDPI Linux)."""
         try:
@@ -1513,7 +1555,11 @@ class ConfigWindow(ctk.CTk):
         Rule (every OS): the window is sized from its content, never the logo
         from the window; no fixed pixel geometry, so display scaling is safe."""
         BAR_H = 6
-        logo = self._load_logo(int(380 * self._ui_scaling()))
+        ox, oy, sw, sh = plat.work_area(self)
+        if sw == 0:
+            ox, oy, sw, sh = 0, 0, self.winfo_screenwidth(), self.winfo_screenheight()
+        side = min(int(380 * self._ui_scaling()), sw - 48, sh - 140)   # never bigger than the screen
+        logo = self._load_logo(max(120, side))
         self._loading_photo = logo
 
         sp = tk.Toplevel(self)
@@ -1549,10 +1595,6 @@ class ConfigWindow(ctk.CTk):
         # Mede o conteúdo e centraliza no monitor principal
         sp.update_idletasks()
         w, h = sp.winfo_reqwidth(), sp.winfo_reqheight()
-        ox, oy, sw, sh = _get_primary_monitor()
-        if sw == 0:
-            sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
-            ox = oy = 0
         sp.geometry(f"+{ox + max(0, (sw - w) // 2)}+{oy + max(0, (sh - h) // 2)}")
         sp.deiconify()
         sp.lift()
@@ -4698,6 +4740,9 @@ class ConfigWindow(ctk.CTk):
         # Show monitoring panel on the right — _left shrinks, _right takes 560px
         self._left.pack_configure(expand=False)
         self._right.pack(side="left", fill="y")
+        # Abre espaço para o painel sem vazar do monitor atual
+        # Grow to fit the panel without leaving the current monitor
+        place_window(self, 1120, self._logical_height(), keep_position=True)
         self._iniciar_btn.configure(state="disabled", text="Rodando…")
         if hasattr(self, "_theme_btn"):
             self._theme_btn.configure(state="disabled")
@@ -4714,6 +4759,7 @@ class ConfigWindow(ctk.CTk):
         if collapse:
             self._right.pack_forget()
             self._left.pack_configure(expand=True)  # restaura expansão total
+            place_window(self, 560, self._logical_height(), keep_position=True)
             self._iniciar_btn.configure(state="normal", text=self._t("btn_start"))
             self._mon_set_status("Parado", "#EF4444")
         if hasattr(self, "_theme_btn"):

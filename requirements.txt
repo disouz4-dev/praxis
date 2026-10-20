@@ -20,3 +20,4 @@ sentencepiece>=0.2
 sacremoses>=0.1
 requests>=2.31
 packaging>=23
+pyobjc-framework-Cocoa>=10; sys_platform == "darwin"   # usable screen area, Dock name

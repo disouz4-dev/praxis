@@ -162,6 +162,123 @@ def primary_monitor_geometry() -> tuple[int, int, int, int]:
     return parse_xrandr(out)
 
 
+def _contains(rect: tuple[int, int, int, int], px: int, py: int) -> bool:
+    x, y, w, h = rect
+    return x <= px < x + w and y <= py < y + h
+
+
+def work_area(tk_root=None, point: tuple[int, int] | None = None) -> tuple[int, int, int, int]:
+    """(x, y, w, h) of the USABLE area of the monitor containing `point`
+    (default: the primary monitor), in Tk's top-left screen coordinates —
+    excluding the macOS menu bar/Dock, the Windows taskbar and Linux panels.
+
+    Falls back to Tk's wm_maxsize() (already excludes system bars on Aqua and
+    Windows) and finally to zeros (caller uses the full screen)."""
+    try:
+        if IS_MAC:
+            from AppKit import NSScreen  # pyobjc
+            screens = list(NSScreen.screens())
+            main_h = screens[0].frame().size.height        # Cocoa y=0 is the bottom of screen 0
+            areas = []
+            for scr in screens:
+                f, v = scr.frame(), scr.visibleFrame()
+                full = (int(f.origin.x), int(main_h - f.origin.y - f.size.height),
+                        int(f.size.width), int(f.size.height))
+                vis = (int(v.origin.x), int(main_h - v.origin.y - v.size.height),
+                       int(v.size.width), int(v.size.height))
+                areas.append((full, vis))
+            if point:
+                for full, vis in areas:
+                    if _contains(full, *point):
+                        return vis
+            return areas[0][1]
+        if IS_WIN:
+            import ctypes
+            from ctypes import wintypes
+
+            class MONITORINFO(ctypes.Structure):
+                _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
+                            ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
+            px, py = point or (0, 0)
+            hmon = ctypes.windll.user32.MonitorFromPoint(wintypes.POINT(px, py), 1)  # NEAREST
+            mi = MONITORINFO()
+            mi.cbSize = ctypes.sizeof(MONITORINFO)
+            if ctypes.windll.user32.GetMonitorInfoW(hmon, ctypes.byref(mi)):
+                r = mi.rcWork
+                return r.left, r.top, r.right - r.left, r.bottom - r.top
+        if IS_LINUX:
+            mon = monitor_at(point) if point else primary_monitor_geometry()
+            wa = _net_workarea()
+            if mon[2] and wa:
+                x0, y0 = max(wa[0], mon[0]), max(wa[1], mon[1])
+                x1 = min(wa[0] + wa[2], mon[0] + mon[2])
+                y1 = min(wa[1] + wa[3], mon[1] + mon[3])
+                if x1 > x0 and y1 > y0:
+                    return x0, y0, x1 - x0, y1 - y0
+            if mon[2]:
+                return mon
+            if wa:
+                return wa
+    except Exception:
+        pass
+    if tk_root is not None:
+        try:
+            mw, mh = tk_root.wm_maxsize()
+            return 0, 0, int(mw), int(mh)
+        except Exception:
+            pass
+    return 0, 0, 0, 0
+
+
+def _net_workarea() -> tuple[int, int, int, int] | None:
+    if not shutil.which("xprop"):
+        return None
+    try:
+        out = subprocess.check_output(["xprop", "-root", "_NET_WORKAREA"], text=True,
+                                      timeout=3, stderr=subprocess.DEVNULL)
+        nums = [int(n) for n in out.split("=", 1)[1].replace(",", " ").split()[:4]]
+        return tuple(nums) if len(nums) == 4 and nums[2] > 0 else None  # type: ignore[return-value]
+    except Exception:
+        return None
+
+
+def monitor_at(point: tuple[int, int]) -> tuple[int, int, int, int]:
+    """Linux/X11: geometry of the monitor containing `point` (xrandr)."""
+    if not shutil.which("xrandr"):
+        return 0, 0, 0, 0
+    try:
+        out = subprocess.check_output(["xrandr"], text=True, stderr=subprocess.DEVNULL, timeout=3)
+    except Exception:
+        return 0, 0, 0, 0
+    import re
+    for line in out.splitlines():
+        if " connected" in line:
+            m = re.search(r"(\d+)x(\d+)\+(\d+)\+(\d+)", line)
+            if m:
+                w, h, x, y = map(int, m.groups())
+                if _contains((x, y, w, h), *point):
+                    return x, y, w, h
+    return primary_monitor_geometry()
+
+
+def fit_window(work: tuple[int, int, int, int], width: int, max_height: int,
+               titlebar: int = 32, margin: int = 12,
+               prefer: tuple[int, int] | None = None) -> tuple[int, int, int, int]:
+    """(w, h, x, y) for a window of `width` × up to `max_height` (client area)
+    such that it — title bar included — lies fully inside `work`.
+    `prefer` keeps a current position when possible (clamped into `work`)."""
+    wx, wy, ww, wh = work
+    w = min(width, max(200, ww - 2 * margin))
+    h = min(max_height, max(200, wh - titlebar - 2 * margin))
+    if prefer is None:
+        x = wx + max(0, (ww - w) // 2)
+        y = wy + max(0, (wh - h - titlebar) // 2)
+    else:
+        x = min(max(prefer[0], wx), wx + ww - w)
+        y = min(max(prefer[1], wy), wy + wh - h - titlebar)
+    return w, h, x, y
+
+
 def parse_xrandr(out: str) -> tuple[int, int, int, int]:
     import re
     rx = re.compile(r"(\d+)x(\d+)\+(\d+)\+(\d+)")

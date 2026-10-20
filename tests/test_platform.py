@@ -173,3 +173,43 @@ def test_player_stop_and_wait():
     assert not p.done
     p.stop()
     assert p.wait(0.1) and p.done
+
+
+# ── windows must never leave the usable screen area ───────────────────────────
+
+MAC_WORK = (0, 30, 1792, 1004)       # 16" MacBook: menu bar 30 px, Dock 86 px
+SMALL = (0, 0, 1366, 728)            # 1366×768 laptop with a 40 px taskbar
+SECOND = (1920, 0, 1280, 984)        # secondary monitor to the right
+
+
+def _inside(work, w, h, x, y, titlebar):
+    wx, wy, ww, wh = work
+    return wx <= x and x + w <= wx + ww and wy <= y and y + h + titlebar <= wy + wh
+
+
+@pytest.mark.parametrize("work", [MAC_WORK, SMALL, SECOND, (0, 0, 800, 600)])
+@pytest.mark.parametrize("want", [(560, 900), (1120, 1040), (480, 540), (3000, 3000)])
+def test_fit_window_always_inside(work, want):
+    w, h, x, y = plat.fit_window(work, *want, titlebar=32)
+    assert _inside(work, w, h, x, y, 32), (work, want, (w, h, x, y))
+    assert w <= want[0] and h <= want[1]
+
+
+def test_fit_window_regression_v010_overflow():
+    """v0.1.0 asked for screen_h - 80 = 1040 px (+ title bar) on a 1120 px Mac
+    screen whose usable height is 1004 px → the bottom went under the Dock."""
+    w, h, x, y = plat.fit_window(MAC_WORK, 560, 1040, titlebar=28)
+    assert y + h + 28 <= 30 + 1004
+
+
+@pytest.mark.parametrize("prefer", [(-500, -500), (5000, 5000), (100, 100)])
+def test_fit_window_clamps_preferred_position(prefer):
+    w, h, x, y = plat.fit_window(SMALL, 1120, 700, titlebar=32, prefer=prefer)
+    assert _inside(SMALL, w, h, x, y, 32)
+
+
+def test_work_area_returns_usable_rect():
+    x, y, w, h = plat.work_area()
+    if w == 0:
+        pytest.skip("no display / work-area API on this runner")
+    assert w > 0 and h > 0
