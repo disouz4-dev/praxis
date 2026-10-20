@@ -1,4 +1,4 @@
-"""Shared fixtures. Fast tests never load ML models or touch real audio devices."""
+"""Fixtures compartilhadas. Os testes rápidos nunca carregam modelos de IA nem mexem em dispositivos de áudio reais."""
 from __future__ import annotations
 
 import sys
@@ -15,8 +15,8 @@ BENCH_DATA = ROOT / "benchmarks" / "data" / "speech"
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "slow: needs real models / downloads (opt-in: -m slow)")
-    config.addinivalue_line("markers", "gui: needs a display")
+    config.addinivalue_line("markers", "slow: precisa de modelos reais / downloads (rodar só sob pedido: -m slow)")
+    config.addinivalue_line("markers", "gui: precisa de uma tela (display)")
 
 
 class FakeSeg:
@@ -26,7 +26,7 @@ class FakeSeg:
 
 
 class FakeWhisper:
-    """Returns a fixed transcript; records calls."""
+    """Devolve uma transcrição fixa; registra as chamadas."""
 
     def __init__(self, text: str = "olá mundo. tudo bem?", delay: float = 0.0) -> None:
         self.text, self.delay, self.calls = text, delay, []
@@ -45,7 +45,7 @@ class FakeChunk:
 
 
 class FakeVoice:
-    """Piper-compatible: synthesize(text) yields chunks with audio_int16_bytes."""
+    """Compatível com o Piper: synthesize(text) gera pedaços com audio_int16_bytes."""
 
     def __init__(self, rate: int = 22050, delay: float = 0.0) -> None:
         self.config = types.SimpleNamespace(sample_rate=rate)
@@ -61,7 +61,7 @@ class FakeVoice:
 
 
 class FakeBackend:
-    """Audio backend that records playback instead of producing sound."""
+    """Backend de áudio que registra a reprodução em vez de tocar som."""
     name = "fake"
     can_create_virtual_devices = True
 
@@ -98,7 +98,7 @@ class FakeBackend:
 
 @pytest.fixture
 def engine(monkeypatch):
-    """Fresh praxis engine module state with fake audio + no-op translation."""
+    """Estado limpo do módulo do motor praxis, com áudio falso + tradução que não faz nada."""
     import praxis
     fb = FakeBackend()
     monkeypatch.setattr(praxis, "_backend", fb)
@@ -115,7 +115,7 @@ def engine(monkeypatch):
 
 @pytest.fixture
 def cfg_module(tmp_path, monkeypatch):
-    """praxis_config with config + voices redirected to tmp."""
+    """praxis_config com a configuração e as vozes redirecionadas para uma pasta temporária."""
     import praxis_config as pc
     monkeypatch.setattr(pc, "CONFIG_FILE", tmp_path / "cfg" / "config.json")
     monkeypatch.setattr(pc, "VOICES_DIR", tmp_path / "voices")

@@ -1,9 +1,9 @@
-"""Quality and latency gates on REAL human speech (opt-in: pytest -m slow).
+"""Limites de qualidade e de atraso com fala humana REAL (rodar só sob pedido: pytest -m slow).
 
-Needs the speech corpus (benchmarks/fetch_speech_corpus.py), faster-whisper,
-Argos packages and a Piper voice (downloaded on first run). Thresholds come
-from benchmarks/results/ (CPU, Whisper `small`) with headroom so they catch
-regressions — not hardware differences.
+Precisa do corpus de fala (benchmarks/fetch_speech_corpus.py), do faster-whisper,
+dos pacotes do Argos e de uma voz do Piper (baixada na primeira execução). Os
+limites vêm de benchmarks/results/ (CPU, Whisper `small`) com folga, para pegar
+regressões — e não diferenças de hardware.
 """
 from __future__ import annotations
 
@@ -24,13 +24,14 @@ sys.path.insert(0, str(ROOT / "benchmarks"))
 LANGS = ["pt", "en", "es"]
 MODEL = os.environ.get("PRAXIS_BENCH_MODEL", "small")
 
-# Max WER for the LIVE path (VAD segmentation + Whisper), per language.
-# Measured (small, CPU, default settings): pt 16.7% · en 5.3% · es 6.9%
-# (benchmarks/results/exp_E_smart6.md) — thresholds leave ~5 points of headroom.
+# Taxa máxima de erro de palavras (WER) no caminho AO VIVO (divisão em trechos
+# pela detecção de voz + Whisper), por idioma.
+# Medido (small, CPU, configuração padrão): pt 16.7% · en 5.3% · es 6.9%
+# (benchmarks/results/exp_E_smart6.md) — os limites deixam ~5 pontos de folga.
 MAX_WER_LIVE = {"pt": 0.22, "en": 0.09, "es": 0.12}
-# The live path may not be much worse than transcribing the whole utterance
+# O caminho ao vivo não pode ser muito pior do que transcrever a fala inteira de uma vez
 MAX_LIVE_PENALTY = 0.08
-# End-of-speech → first translated audio ready (p50, CPU). Generous: CI runners are slow.
+# Fim da fala → primeiro áudio traduzido pronto (mediana/p50, CPU). Generoso: as máquinas da CI são lentas.
 MAX_LATENCY_P50_MS = float(os.environ.get("PRAXIS_MAX_LATENCY_MS", "2500"))
 
 
@@ -40,7 +41,7 @@ def rb():
     pytest.importorskip("jiwer")
     import run_benchmarks
     if not any(run_benchmarks.load_corpus(lang) for lang in LANGS):
-        pytest.skip("speech corpus missing — python benchmarks/fetch_speech_corpus.py")
+        pytest.skip("corpus de fala ausente — python benchmarks/fetch_speech_corpus.py")
     return run_benchmarks
 
 
@@ -50,10 +51,10 @@ def whisper(rb):
 
 
 @pytest.mark.parametrize("lang", LANGS)
-def test_live_transcription_quality(rb, whisper, lang):
+def test_qualidade_da_transcricao_ao_vivo(rb, whisper, lang):
     corpus = rb.load_corpus(lang)
     if not corpus:
-        pytest.skip(f"no corpus for {lang}")
+        pytest.skip(f"sem corpus para {lang}")
     p = rb.praxis
     refs, full, live = [], [], []
     for it in corpus:
@@ -65,14 +66,14 @@ def test_live_transcription_quality(rb, whisper, lang):
             p.transcribe_segment(whisper, s.astype(np.float32) / 32768.0, lang) for s in segs))))
     wer_full, _ = rb.wer_cer(refs, full)
     wer_live, _ = rb.wer_cer(refs, live)
-    print(f"\n{lang}: WER full {wer_full:.1%}  live {wer_live:.1%}  ({len(corpus)} speakers)")
-    assert wer_live <= MAX_WER_LIVE[lang], f"{lang} live WER {wer_live:.1%}"
+    print(f"\n{lang}: taxa de erro de palavras inteira {wer_full:.1%}  ao vivo {wer_live:.1%}  ({len(corpus)} falantes)")
+    assert wer_live <= MAX_WER_LIVE[lang], f"{lang}: taxa de erro de palavras ao vivo {wer_live:.1%}"
     assert wer_live - wer_full <= MAX_LIVE_PENALTY, \
-        f"{lang}: live segmentation costs {wer_live - wer_full:+.1%} WER"
+        f"{lang}: a divisão ao vivo custa {wer_live - wer_full:+.1%} na taxa de erro de palavras"
 
 
-def test_no_hallucination_loops(rb, whisper):
-    """No transcript may contain a phrase repeated 3+ times in a row."""
+def test_sem_loops_de_alucinacao(rb, whisper):
+    """Nenhuma transcrição pode ter uma frase repetida 3 ou mais vezes seguidas."""
     import re
     p = rb.praxis
     for lang in LANGS:
@@ -81,28 +82,29 @@ def test_no_hallucination_loops(rb, whisper):
             for s in rb.live_segments(a):
                 t = p.transcribe_segment(whisper, s.astype(np.float32) / 32768.0, lang)
                 assert not re.search(r"\b((?:\w+\W+){1,6}?)\1{2,}", t.lower() + " "), \
-                    f"{it['file']}: loop in {t!r}"
+                    f"{it['file']}: loop em {t!r}"
 
 
 @pytest.mark.parametrize("src,tgt", [("pt", "en"), ("en", "pt"), ("es", "en"), ("es", "pt")])
-def test_translation_sanity(rb, src, tgt):
-    """Translates the human reference transcripts: output must be non-empty,
-    of plausible length and free of degenerate loops (caught the int8 es→en bug)."""
+def test_sanidade_da_traducao(rb, src, tgt):
+    """Traduz as transcrições de referência feitas por humanos: a saída não pode
+    ser vazia, precisa ter tamanho plausível e não pode ter repetições em loop
+    (isso pegou o bug do int8 em espanhol→inglês)."""
     p = rb.praxis
     p.setup_argos(src, tgt)
     corpus = rb.load_corpus(src)[:6]
     if not corpus:
-        pytest.skip(f"no corpus for {src}")
+        pytest.skip(f"sem corpus para {src}")
     for it in corpus:
         out = p.do_translate(it["text"], src, tgt)
         ratio = len(out) / max(1, len(it["text"]))
         assert out.strip(), it["file"]
-        assert 0.4 < ratio < 2.5, f"{src}->{tgt} {it['file']}: length ratio {ratio:.2f}: {out[:120]!r}"
+        assert 0.4 < ratio < 2.5, f"{src}->{tgt} {it['file']}: proporção de tamanho {ratio:.2f}: {out[:120]!r}"
         assert p.collapse_repetitions(out) == out, f"loop: {out[:120]!r}"
 
 
-def test_end_to_end_latency(rb, whisper):
-    """End of speech → first translated audio ready, on real utterances."""
+def test_atraso_de_ponta_a_ponta(rb, whisper):
+    """Fim da fala → primeiro áudio traduzido pronto, com falas reais."""
     p = rb.praxis
     p.setup_argos("pt", "en")
     voice = p.load_piper(rb.ensure_piper_voice("en"))
@@ -122,5 +124,5 @@ def test_end_to_end_latency(rb, whisper):
             next(iter(voice.synthesize(p._split_sentences(tr)[0])))
         totals.append((time.perf_counter() - t0) * 1000 + p.SILENCE_MS)
     p50 = statistics.median(totals)
-    print(f"\nlatency p50 {p50:.0f} ms  max {max(totals):.0f} ms")
+    print(f"\natraso mediano (p50) {p50:.0f} ms  máximo {max(totals):.0f} ms")
     assert p50 <= MAX_LATENCY_P50_MS

@@ -1,11 +1,11 @@
-# Praxis runtime (all platforms). Install with:
+# Dependências do Praxis para rodar (todos os sistemas). Instale com:
 #   pip install -r requirements.txt
-#   pip install --no-deps argostranslate     # see note below
+#   pip install --no-deps argostranslate     # veja a nota abaixo
 #
-# argostranslate is installed WITHOUT dependencies on purpose: its stanza
-# dependency drags in PyTorch (~550 MB) only for sentence splitting, which
-# Praxis does itself. PyTorch + CTranslate2 in the same process also crash
-# Whisper on macOS (duplicate OpenMP runtimes).
+# O argostranslate é instalado SEM dependências de propósito: a dependência
+# stanza puxa o PyTorch (~550 MB) só para dividir frases, coisa que o próprio
+# Praxis já faz. PyTorch + CTranslate2 no mesmo processo também derrubam o
+# Whisper no macOS (duas cópias do OpenMP, a biblioteca de paralelismo).
 numpy>=1.24
 rich>=13
 sounddevice>=0.4.6
@@ -20,4 +20,5 @@ sentencepiece>=0.2
 sacremoses>=0.1
 requests>=2.31
 packaging>=23
-pyobjc-framework-Cocoa>=10; sys_platform == "darwin"   # usable screen area, Dock name
+pyobjc-framework-Cocoa>=10; sys_platform == "darwin"   # área útil da tela, nome no Dock
+opencc-python-reimplemented>=0.1.7   # chinês: converte caracteres tradicionais em simplificados

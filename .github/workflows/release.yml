@@ -1,4 +1,4 @@
-name: Release
+name: Publicar versão
 
 on:
   push:
@@ -12,12 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build source bundles
+      - name: Gerar pacotes do código-fonte
         run: |
           name="praxis-${GITHUB_REF_NAME}"
           git archive --format=tar.gz --prefix="${name}/" -o "${name}.tar.gz" HEAD
           git archive --format=zip --prefix="${name}/" -o "${name}.zip" HEAD
-      - name: Publish release
+      - name: Publicar a versão
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

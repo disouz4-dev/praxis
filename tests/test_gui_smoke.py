@@ -1,6 +1,8 @@
-"""GUI smoke: build the real ConfigWindow, switch tabs, toggle theme, close.
+"""Teste de fumaça da interface gráfica: monta a ConfigWindow real, troca de aba,
+alterna o tema e fecha.
 
-Runs on any machine with a display (CI Linux uses xvfb). Audio is faked."""
+Roda em qualquer máquina com tela (o Linux da integração contínua usa xvfb, uma
+tela virtual). O áudio é simulado."""
 import os
 import sys
 import time
@@ -12,8 +14,8 @@ pytestmark = pytest.mark.gui
 
 
 def _has_display():
-    # Never create a throwaway Tk root to probe: Tk on macOS crashes when a
-    # second root is created in the same process. One window per module.
+    # Nunca crie uma janela raiz Tk descartável só para testar: no macOS o Tk
+    # trava quando uma segunda raiz é criada no mesmo processo. Uma janela por módulo.
     if sys.platform.startswith("linux"):
         return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
     return True
@@ -22,7 +24,7 @@ def _has_display():
 @pytest.fixture(scope="module")
 def app(tmp_path_factory):
     if not _has_display():
-        pytest.skip("no display")
+        pytest.skip("sem tela")
     monkeypatch = pytest.MonkeyPatch()
     import praxis_config as pc
     tmp = tmp_path_factory.mktemp("gui")
@@ -70,14 +72,14 @@ def _pump(w, n=10):
         time.sleep(0.02)
 
 
-def test_window_builds_with_devices(app):
+def test_janela_monta_com_dispositivos(app):
     w, errors = app
     assert w._inputs == [("mic1", "Mic 1")]
     assert w._outputs == [("spk1", "Speakers")]
     assert not errors, errors[0]
 
 
-def test_tab_switch_round_trip_in_every_ui_language(app):
+def test_troca_de_aba_ida_e_volta_em_todo_idioma_da_interface(app):
     w, errors = app
     import praxis_config as pc
     for lang in list(pc.UI_STRINGS)[:4]:
@@ -86,12 +88,12 @@ def test_tab_switch_round_trip_in_every_ui_language(app):
         _pump(w, 2)
         w._on_tab_change(w._t("tab_config"))
         _pump(w, 2)
-        assert w._config_frame_outer.winfo_manager() == "pack", f"Config tab lost in ui_lang={lang}"
+        assert w._config_frame_outer.winfo_manager() == "pack", f"Aba de configuração sumiu com ui_lang={lang}"
         assert w._clone_frame_outer.winfo_manager() == ""
     assert not errors, errors[0]
 
 
-def test_theme_toggle_rebuilds_without_errors(app):
+def test_alternar_tema_reconstroi_sem_erros(app):
     w, errors = app
     before = w.cfg.get("theme", "light")
     w._toggle_theme()
@@ -100,7 +102,7 @@ def test_theme_toggle_rebuilds_without_errors(app):
     assert not errors, errors[0]
 
 
-def test_collect_and_save_persist_ui_lang(app, monkeypatch):
+def test_coletar_e_salvar_guardam_ui_lang(app, monkeypatch):
     w, errors = app
     import praxis_config as pc
     monkeypatch.setattr(pc.messagebox, "showinfo", lambda *a, **k: None)
@@ -110,7 +112,7 @@ def test_collect_and_save_persist_ui_lang(app, monkeypatch):
     assert set(w._collect()) >= {"src", "tgt", "voice_out", "mic", "mode", "ui_lang", "theme"}
 
 
-def test_launch_without_voice_shows_error(app, monkeypatch):
+def test_iniciar_sem_voz_mostra_erro(app, monkeypatch):
     w, errors = app
     import praxis_config as pc
     shown = []
@@ -121,8 +123,8 @@ def test_launch_without_voice_shows_error(app, monkeypatch):
 
 
 @pytest.mark.parametrize("pillow", [True, False])
-def test_logo_keeps_aspect_ratio(app, monkeypatch, pillow):
-    """The splash logo must never be stretched: window adapts to the logo."""
+def test_logo_mantem_proporcao(app, monkeypatch, pillow):
+    """O logo da tela de abertura nunca pode ser esticado: a janela se adapta ao logo."""
     w, errors = app
     import praxis_config as pc
     if not pillow:
@@ -134,7 +136,7 @@ def test_logo_keeps_aspect_ratio(app, monkeypatch, pillow):
     assert abs(logo.width() / logo.height() - src[0] / src[1]) < 0.02
 
 
-def test_loading_splash_is_built_around_logo(app):
+def test_tela_de_carregamento_e_montada_em_volta_do_logo(app):
     w, errors = app
     sp, prog, lbl = w._create_loading_splash()
     try:
@@ -143,7 +145,7 @@ def test_loading_splash_is_built_around_logo(app):
         assert sp.winfo_reqwidth() >= logo.width()
         img_lbl = next(c for c in sp.winfo_children() if str(c.cget("image")) == str(logo))
         assert (img_lbl.winfo_reqwidth(), img_lbl.winfo_reqheight()) >= (logo.width(), logo.height())
-        # no fixed geometry: the window wraps its content on every OS / DPI scale
+        # sem tamanho fixo: a janela envolve o conteúdo em todo sistema / escala de DPI
         sp.update()
         assert sp.winfo_width() >= max(c.winfo_reqwidth() for c in sp.winfo_children())
         assert sp.winfo_height() >= sum(c.winfo_reqheight() for c in sp.winfo_children())
@@ -151,9 +153,9 @@ def test_loading_splash_is_built_around_logo(app):
         sp.destroy()
 
 
-def test_splash_wraps_content_under_display_scaling(app):
-    """Windows 150% / HiDPI: scaled widgets must not be cropped and the logo
-    must keep its aspect ratio."""
+def test_tela_de_abertura_envolve_conteudo_com_escala_de_tela(app):
+    """Windows em 150% / telas de alta densidade (HiDPI): elementos ampliados não
+    podem ser cortados e o logo precisa manter a proporção."""
     w, errors = app
     import customtkinter as ctk
     old = ctk.ScalingTracker.window_scaling
@@ -186,19 +188,19 @@ def _assert_on_screen(win):
     w, h = win.winfo_width(), win.winfo_height()
     wx, wy, ww, wh = plat.work_area(win, point=(x + w // 2, y + h // 2))
     if not ww:
-        pytest.skip("work area unknown on this display")
-    assert wx <= x and x + w <= wx + ww, f"horizontal overflow {x}+{w} vs {wx}+{ww}"
-    assert y + h <= wy + wh, f"vertical overflow {y}+{h} vs {wy}+{wh}"
+        pytest.skip("área de trabalho desconhecida nesta tela")
+    assert wx <= x and x + w <= wx + ww, f"estouro horizontal {x}+{w} vs {wx}+{ww}"
+    assert y + h <= wy + wh, f"estouro vertical {y}+{h} vs {wy}+{wh}"
 
 
-def test_main_window_fits_usable_screen(app):
+def test_janela_principal_cabe_na_area_util_da_tela(app):
     w, errors = app
     w.deiconify()
     _assert_on_screen(w)
 
 
-def test_main_window_is_mid_screen_not_stretched(app):
-    """Medium, centred window — not stretched to the screen height."""
+def test_janela_principal_fica_no_meio_sem_esticar(app):
+    """Janela média e centralizada — não esticada até a altura da tela."""
     w, errors = app
     import praxis_config as pc
     import praxis_platform as plat
@@ -207,17 +209,17 @@ def test_main_window_is_mid_screen_not_stretched(app):
     w.update()
     wx, wy, ww, wh = plat.work_area(w)
     if not ww:
-        pytest.skip("work area unknown")
+        pytest.skip("área de trabalho desconhecida")
     assert w.winfo_height() <= pc.ConfigWindow.WIN_H + 2
     assert w.winfo_width() <= pc.ConfigWindow.WIN_W + 2
-    if wh > pc.ConfigWindow.WIN_H + 100:          # room to spare → visibly centred
+    if wh > pc.ConfigWindow.WIN_H + 100:          # sobra espaço → visivelmente centralizada
         cy = w.winfo_rooty() + w.winfo_height() // 2
-        assert abs(cy - (wy + wh // 2)) < 60, "window not centred vertically"
+        assert abs(cy - (wy + wh // 2)) < 60, "janela não centralizada na vertical"
 
 
 @pytest.mark.parametrize("scale", [1.0, 1.5])
-def test_windows_fit_screen_at_any_display_scale(app, scale):
-    """Main window, engine panel expansion (1120 px) and dialogs stay on screen."""
+def test_janelas_cabem_na_tela_em_qualquer_escala(app, scale):
+    """A janela principal, a expansão do painel do motor (1120 px) e as caixas de diálogo ficam dentro da tela."""
     w, errors = app
     import customtkinter as ctk
     import praxis_config as pc
@@ -227,18 +229,18 @@ def test_windows_fit_screen_at_any_display_scale(app, scale):
         pc.place_window(w, 560, 720)
         _assert_on_screen(w)
         y0 = w.winfo_rooty()
-        pc.place_window(w, 1120, 720, keep_position=True)     # engine started
+        pc.place_window(w, 1120, 720, keep_position=True)     # motor iniciado
         _assert_on_screen(w)
-        for _ in range(3):                                    # start/stop must not drift
+        for _ in range(3):                                    # iniciar/parar não pode fazer a janela se deslocar
             pc.place_window(w, 560, 720, keep_position=True)
             pc.place_window(w, 1120, 720, keep_position=True)
         w.update()
-        assert abs(w.winfo_rooty() - y0) <= 2, "window drifts on start/stop"
+        assert abs(w.winfo_rooty() - y0) <= 2, "a janela se desloca ao iniciar/parar"
         dlg = ctk.CTkToplevel(w)
         pc.place_window(dlg, 480, 540, over=w)
         _assert_on_screen(dlg)
         dlg.destroy()
-        pc.place_window(w, 3000, 3000)                        # absurd request
+        pc.place_window(w, 3000, 3000)                        # pedido absurdo
         _assert_on_screen(w)
     finally:
         ctk.set_window_scaling(1.0)

@@ -482,7 +482,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.9 s"
-      ]
+      ],
+      "letter_error_rate": 0.0219
     },
     {
       "pair": "en->pt",
@@ -883,7 +884,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.8 s"
-      ]
+      ],
+      "letter_error_rate": 0.0261
     },
     {
       "pair": "es->en",
@@ -1397,7 +1399,8 @@
         }
       ],
       "lag_trend_ms": 117.0,
-      "findings": []
+      "findings": [],
+      "letter_error_rate": 0.0096
     },
     {
       "pair": "fr->en",
@@ -1798,7 +1801,8 @@
       "lag_trend_ms": 784.0,
       "findings": [
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.5 s"
-      ]
+      ],
+      "letter_error_rate": 0.103
     },
     {
       "pair": "de->en",
@@ -2284,7 +2288,8 @@
       "findings": [
         "2 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.1 s"
-      ]
+      ],
+      "letter_error_rate": 0.0526
     },
     {
       "pair": "it->en",
@@ -2803,7 +2808,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.1 s"
-      ]
+      ],
+      "letter_error_rate": 0.0414
     },
     {
       "pair": "ru->en",
@@ -3134,7 +3140,8 @@
       "lag_trend_ms": -62.0,
       "findings": [
         "picos de atraso: 1 em cada 20 trechos demora mais de 5.5 s"
-      ]
+      ],
+      "letter_error_rate": 0.0748
     },
     {
       "pair": "zh->en",
@@ -3144,7 +3151,7 @@
       "segments": 12,
       "wer": 0.7857,
       "cer": 0.1216,
-      "error_rate": 0.1216,
+      "error_rate": 0.0564,
       "error_metric": "characters",
       "errors": {
         "reference_units": 195,
@@ -3459,7 +3466,8 @@
       "lag_trend_ms": -282.0,
       "findings": [
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.0 s"
-      ]
+      ],
+      "letter_error_rate": 0.0564
     },
     {
       "pair": "nl->en",
@@ -3836,7 +3844,8 @@
       "lag_trend_ms": -63.0,
       "findings": [
         "2 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
-      ]
+      ],
+      "letter_error_rate": 0.049
     },
     {
       "pair": "pl->en",
@@ -4281,7 +4290,8 @@
         }
       ],
       "lag_trend_ms": 197.0,
-      "findings": []
+      "findings": [],
+      "letter_error_rate": 0.0
     },
     {
       "pair": "uk->en",
@@ -4720,7 +4730,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "1 trecho(s) com fala viraram texto vazio",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.7 s"
-      ]
+      ],
+      "letter_error_rate": 0.0327
     },
     {
       "pair": "tr->en",
@@ -5072,7 +5083,8 @@
       "lag_trend_ms": -1241.0,
       "findings": [
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.2 s"
-      ]
+      ],
+      "letter_error_rate": 0.0331
     },
     {
       "pair": "ar->en",
@@ -5472,7 +5484,8 @@
       "lag_trend_ms": 37.0,
       "findings": [
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.0 s"
-      ]
+      ],
+      "letter_error_rate": 0.0659
     },
     {
       "pair": "hi->en",
@@ -5965,7 +5978,8 @@
       "findings": [
         "transcrição ruim: 26% das palavras erradas",
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.4 s"
-      ]
+      ],
+      "letter_error_rate": 0.1264
     },
     {
       "pair": "ja->en",
@@ -5975,7 +5989,7 @@
       "segments": 9,
       "wer": 0.9375,
       "cer": 0.1358,
-      "error_rate": 0.1358,
+      "error_rate": 0.116,
       "error_metric": "characters",
       "errors": {
         "reference_units": 250,
@@ -6226,7 +6240,8 @@
       "lag_trend_ms": -997.0,
       "findings": [
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.8 s"
-      ]
+      ],
+      "letter_error_rate": 0.116
     },
     {
       "pair": "ko->en",
@@ -6236,13 +6251,13 @@
       "segments": 11,
       "wer": 0.2442,
       "cer": 0.0819,
-      "error_rate": 0.2442,
-      "error_metric": "words",
+      "error_rate": 0.0706,
+      "error_metric": "characters",
       "errors": {
-        "reference_units": 86,
-        "substituted": 11,
-        "skipped": 6,
-        "invented": 4,
+        "reference_units": 269,
+        "substituted": 8,
+        "skipped": 1,
+        "invented": 10,
         "longest_skipped_run": 1,
         "dropped_phrases": []
       },
@@ -6534,10 +6549,10 @@
       ],
       "lag_trend_ms": 462.0,
       "findings": [
-        "transcrição ruim: 24% das palavras erradas",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.3 s"
-      ]
+      ],
+      "letter_error_rate": 0.0706
     }
   ]
 }

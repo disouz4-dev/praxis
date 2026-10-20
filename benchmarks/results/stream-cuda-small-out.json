@@ -410,7 +410,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -475.0
+      "lag_trend_ms": -475.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->es",
@@ -812,7 +813,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -530.0
+      "lag_trend_ms": -530.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->fr",
@@ -1213,7 +1215,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -474.0
+      "lag_trend_ms": -474.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->de",
@@ -1616,7 +1619,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -395.0
+      "lag_trend_ms": -395.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->it",
@@ -2017,7 +2021,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -456.0
+      "lag_trend_ms": -456.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->ru",
@@ -2417,7 +2422,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -530.0
+      "lag_trend_ms": -530.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->zh",
@@ -2818,7 +2824,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.0 s"
       ],
-      "lag_trend_ms": -528.0
+      "lag_trend_ms": -528.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->nl",
@@ -3226,7 +3233,8 @@
         "a fala traduzida dura 111% da original — quase não sobra folga para acompanhar",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": 3067.0
+      "lag_trend_ms": 3067.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->pl",
@@ -3632,7 +3640,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.2 s"
       ],
-      "lag_trend_ms": -596.0
+      "lag_trend_ms": -596.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->uk",
@@ -4035,7 +4044,8 @@
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -154.0
+      "lag_trend_ms": -154.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->tr",
@@ -4436,7 +4446,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.3 s"
       ],
-      "lag_trend_ms": -546.0
+      "lag_trend_ms": -546.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->ar",
@@ -4843,7 +4854,8 @@
         "a fala traduzida dura 105% da original — quase não sobra folga para acompanhar",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": 781.0
+      "lag_trend_ms": 781.0,
+      "letter_error_rate": 0.0068
     },
     {
       "pair": "en->hi",
@@ -5249,7 +5261,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 6.0 s"
       ],
-      "lag_trend_ms": -1763.0
+      "lag_trend_ms": -1763.0,
+      "letter_error_rate": 0.0068
     }
   ]
 }

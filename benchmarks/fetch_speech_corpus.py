@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Downloads a small multi-speaker corpus of real human speech with reference
-transcripts, used by the ASR-quality and latency benchmarks.
+"""Baixa um pequeno corpus de fala humana real, com vários falantes e
+transcrições de referência, usado nos benchmarks de qualidade da transcrição
+e de atraso.
 
-Sources (all CC BY 4.0, read speech from volunteer speakers):
+Fontes (todas CC BY 4.0, leitura em voz alta por falantes voluntários):
   en          openslr/librispeech_asr        (test-clean)
   pt es fr de it nl pl
               facebook/multilingual_librispeech (test)
 
-Files land in benchmarks/data/speech/<lang>/ with a manifest.json:
+Os arquivos vão para benchmarks/data/speech/<idioma>/ com um manifest.json:
   [{"file", "text", "speaker", "duration", "source", "license"}]
 
-Usage:  python benchmarks/fetch_speech_corpus.py [--langs pt en es] [--per-lang 12]
+Uso:  python benchmarks/fetch_speech_corpus.py [--langs pt en es] [--per-lang 12]
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ MLS_CONFIG = {"pt": "portuguese", "es": "spanish", "fr": "french", "de": "german
 
 
 def _get(url: str, tries: int = 7) -> bytes:
-    """GET with exponential backoff (the datasets-server rate-limits with 429)."""
+    """GET com espera exponencial entre tentativas (o datasets-server limita a taxa com 429)."""
     for i in range(tries):
         try:
             with urllib.request.urlopen(url, timeout=120) as r:
@@ -39,7 +40,7 @@ def _get(url: str, tries: int = 7) -> bytes:
             if i == tries - 1:
                 raise
             time.sleep(min(60, 3 * 2 ** i))
-    raise RuntimeError("unreachable")
+    raise RuntimeError("inalcançável")
 
 
 def _get_json(url: str) -> dict:
@@ -47,7 +48,7 @@ def _get_json(url: str) -> dict:
 
 
 def _save_wav16k(blob: bytes, dest: Path) -> None:
-    """Decodes whatever the API serves (WAV/FLAC/Opus) → 16 kHz mono PCM WAV."""
+    """Decodifica o que a API entregar (WAV/FLAC/Opus) → WAV PCM mono 16 kHz."""
     import io
 
     import numpy as np
@@ -61,7 +62,7 @@ def _save_wav16k(blob: bytes, dest: Path) -> None:
 
 
 def _source(lang: str) -> tuple[str, str, str, str]:
-    """(dataset, config, split, text_field)"""
+    """(conjunto de dados, configuração, partição, campo de texto)"""
     if lang == "en":
         return "openslr/librispeech_asr", "clean", "test", "text"
     return "facebook/multilingual_librispeech", MLS_CONFIG[lang], "test", "transcript"
@@ -81,7 +82,7 @@ def fetch_lang(lang: str, per_lang: int, max_dur: float = 12.0) -> list[dict]:
     items = [it for it in items if (out_dir / it["file"]).exists()]
     speakers: set[str] = {it["speaker"] for it in items}
     done_files = {it["file"] for it in items}
-    # Walk the split at evenly spaced offsets → many different speakers
+    # Percorre a partição em posições espaçadas por igual → muitos falantes diferentes
     stride = max(1, n_rows // (per_lang * 3))
     offset = 0
     while len(items) < per_lang and offset < n_rows:
@@ -101,17 +102,17 @@ def fetch_lang(lang: str, per_lang: int, max_dur: float = 12.0) -> list[dict]:
             manifest.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
             print(f"  {lang} {len(items):2d}/{per_lang}  spk={spk}  {r[text_field][:60]}",
                   file=sys.stderr)
-            break   # one per page → spread across speakers
+            break   # um por página → espalha entre falantes
         offset += stride
-        time.sleep(0.5)   # be polite to the API
+        time.sleep(0.5)   # não sobrecarregar a API
     manifest.write_text(json.dumps(items, indent=2, ensure_ascii=False), encoding="utf-8")
     return items
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--langs", nargs="+", default=["pt", "en", "es"])
-    ap.add_argument("--per-lang", type=int, default=12)
+    ap.add_argument("--langs", nargs="+", default=["pt", "en", "es"], help="idiomas a baixar")
+    ap.add_argument("--per-lang", type=int, default=12, help="gravações por idioma (um falante cada)")
     a = ap.parse_args()
     for lang in a.langs:
         print(f"[{lang}]", file=sys.stderr)

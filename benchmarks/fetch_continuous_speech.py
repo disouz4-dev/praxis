@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-"""Builds ~60 s of CONTINUOUS real speech per language — one speaker reading
-on, with the exact reference text and the time each sentence is spoken.
+"""Monta ~60 s de fala real CONTÍNUA por idioma — um falante lendo sem
+parar, com o texto de referência exato e o momento em que cada frase é dita.
 
-  pt, es  Multilingual LibriSpeech (test): consecutive segments of the same
-          audiobook file, ordered by their original begin_time; the real
-          pause between segments (end → next begin) is kept.
-  en      LibriSpeech test-clean: consecutive utterance ids of one chapter
-          joined with a 0.4 s pause (utterances were cut at pauses).
+  pt, es  Multilingual LibriSpeech (test): trechos consecutivos do mesmo
+          arquivo de audiolivro, ordenados pelo begin_time original; a pausa
+          real entre os trechos (fim → início do próximo) é mantida.
+  en      LibriSpeech test-clean: ids de falas consecutivas de um capítulo,
+          unidos com uma pausa de 0,4 s (as falas foram cortadas nas pausas).
   ru zh uk tr ar hi ja ko
-          FLEURS (test): real read sentences, one recording per sentence,
-          joined with a 0.4 s pause. Speakers alternate between sentences
-          (FLEURS has no long single-speaker readings for these languages).
-          Only the first few MB of each language archive are streamed.
+          FLEURS (test): frases reais lidas, uma gravação por frase, unidas
+          com uma pausa de 0,4 s. Os falantes se alternam entre as frases
+          (o FLEURS não tem leituras longas de um só falante nesses idiomas).
+          Só os primeiros MB do arquivo de cada idioma são baixados.
 
-All CC BY 4.0. Output: benchmarks/data/continuous/<lang>.wav (16 kHz mono) and
-<lang>.json = {text, speaker, source, license, duration, segments:[{start, end, text}]}
+Tudo CC BY 4.0. Saída: benchmarks/data/continuous/<idioma>.wav (16 kHz mono) e
+<idioma>.json = {text, speaker, source, license, duration, segments:[{start, end, text}]}
 
-Usage: python benchmarks/fetch_continuous_speech.py [--langs pt en es] [--seconds 60]
+Uso: python benchmarks/fetch_continuous_speech.py [--langs pt en es] [--seconds 60]
 """
 from __future__ import annotations
 
@@ -73,11 +73,11 @@ def _audio(row: dict) -> np.ndarray:
 
 
 def _mls_chain(lang: str, seconds: float, max_gap: float = 1.2, scan_rows: int = 600):
-    """Longest run of consecutive segments (same book file) ≥ `seconds`."""
+    """Maior sequência de trechos consecutivos (mesmo arquivo do livro) ≥ `seconds`."""
     by_file: dict[str, list[dict]] = defaultdict(list)
     for off in range(0, scan_rows, 100):
         for r in _rows("facebook/multilingual_librispeech", MLS[lang], off):
-            # keep the signed audio URL: rows are re-fetched only if it expires
+            # guarda a URL assinada do áudio: as linhas só são buscadas de novo se ela expirar
             by_file[r["original_path"]].append(r)
         time.sleep(0.5)
     best: list[dict] = []
@@ -96,13 +96,13 @@ def _mls_chain(lang: str, seconds: float, max_gap: float = 1.2, scan_rows: int =
         if best:
             break
     if not best:
-        raise RuntimeError(f"no continuous {seconds}s run found for {lang}; raise --scan")
+        raise RuntimeError(f"nenhuma sequência contínua de {seconds}s encontrada para {lang}; aumente --scan")
     return best
 
 
 def _fleurs(lang: str, seconds: float):
-    """Streams the FLEURS test archive and stops as soon as `seconds` of
-    distinct sentences were collected (downloads only a prefix)."""
+    """Lê o arquivo de teste do FLEURS em fluxo e para assim que `seconds` de
+    frases distintas forem coletados (baixa só o começo)."""
     import csv
     import tarfile
     cfg = FLEURS[lang]
@@ -110,7 +110,7 @@ def _fleurs(lang: str, seconds: float):
     meta = {}
     for row in csv.reader(io.StringIO(tsv), delimiter="\t", quoting=csv.QUOTE_NONE):
         if len(row) >= 4:
-            meta[row[1]] = (row[0], row[2], row[3])          # file → (sentence id, raw, normalized)
+            meta[row[1]] = (row[0], row[2], row[3])          # arquivo → (id da frase, bruto, normalizado)
     out, used, total = [], set(), 0.0
     with urllib.request.urlopen(f"{FLEURS_BASE}/{cfg}/audio/test.tar.gz", timeout=300) as resp, \
             tarfile.open(fileobj=resp, mode="r|gz") as tar:
@@ -182,24 +182,24 @@ def build(lang: str, seconds: float) -> dict:
     meta = {"lang": lang, "text": " ".join(texts), "speaker": speaker, "source": source,
             "license": "CC BY 4.0", "duration": round(len(audio) / SR, 2), "segments": segments}
     (OUT / f"{lang}.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"{lang}: {meta['duration']:.1f}s, speaker {speaker}, {len(segments)} segments, "
-          f"{len(meta['text'].split())} words", file=sys.stderr)
+    print(f"{lang}: {meta['duration']:.1f}s, falante {speaker}, {len(segments)} trechos, "
+          f"{len(meta['text'].split())} palavras", file=sys.stderr)
     return meta
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--langs", nargs="+", default=ALL_LANGS)
-    ap.add_argument("--seconds", type=float, default=60.0)
+    ap.add_argument("--langs", nargs="+", default=ALL_LANGS, help="idiomas a montar")
+    ap.add_argument("--seconds", type=float, default=60.0, help="duração mínima de fala por idioma, em s")
     a = ap.parse_args()
     for lang in a.langs:
         if (OUT / f"{lang}.json").exists():
-            print(f"{lang}: already built", file=sys.stderr)
+            print(f"{lang}: já montado", file=sys.stderr)
             continue
         try:
             build(lang, a.seconds)
         except Exception as e:
-            print(f"{lang}: FAILED {type(e).__name__}: {e}", file=sys.stderr)
+            print(f"{lang}: FALHOU {type(e).__name__}: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

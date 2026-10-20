@@ -1,30 +1,31 @@
 #!/usr/bin/env python3
-"""Praxis — platform abstraction layer.
+"""Praxis — camada que isola as diferenças entre sistemas operacionais.
 
-Everything that differs between Linux, macOS and Windows lives here so the
-engine (praxis.py) and the UI (praxis_config.py) stay platform-agnostic:
+Tudo o que muda entre Linux, macOS e Windows fica aqui, para que o motor
+(praxis.py) e a interface (praxis_config.py) não precisem saber em qual
+sistema estão rodando:
 
-  * per-user config / data / temp directories
-  * the interpreter of the installed venv
-  * audio device enumeration, capture and playback
-  * the "virtual microphone" the call app listens to
+  * pastas de configuração / dados / arquivos temporários de cada usuário
+  * o interpretador Python do ambiente virtual (venv) instalado
+  * listagem, captura e reprodução dos dispositivos de áudio
+  * o "microfone virtual" que o app de chamada escuta
 
-Two audio backends are provided:
+Há dois "backends" (implementações) de áudio:
 
-  PulseBackend        Linux with PulseAudio/PipeWire (pactl/parec/pacat).
-                      Creates real virtual devices on demand (null sink +
-                      remap source) — no driver install needed.
-  SoundDeviceBackend  macOS, Windows, and Linux without pactl. Uses PortAudio
-                      via `sounddevice`. The virtual microphone is an
-                      already-installed loopback driver:
+  PulseBackend        Linux com PulseAudio/PipeWire (pactl/parec/pacat).
+                      Cria dispositivos virtuais de verdade na hora (uma saída
+                      "muda" + uma entrada remapeada) — sem instalar driver.
+  SoundDeviceBackend  macOS, Windows e Linux sem pactl. Usa o PortAudio
+                      através do `sounddevice`. O microfone virtual é um
+                      driver de loopback (cabo de áudio virtual) já instalado:
                         macOS   → BlackHole  (brew install blackhole-2ch)
                         Windows → VB-Audio Virtual Cable
-                      Praxis plays into the driver's *output* side and the
-                      call app selects its *input* side as the microphone.
+                      O Praxis toca no lado de *saída* do driver e o app de
+                      chamada escolhe o lado de *entrada* como microfone.
 
-Device ids are plain strings in both backends. A ":left" / ":right" suffix
-selects one channel of a stereo input (used by audio interfaces where each
-channel is a separate mic).
+Os ids de dispositivo são textos simples nos dois backends. O sufixo
+":left" / ":right" escolhe um canal de uma entrada estéreo (usado em
+interfaces de áudio em que cada canal é um microfone separado).
 """
 
 from __future__ import annotations
@@ -50,10 +51,10 @@ IS_WIN   = SYSTEM == "Windows"
 APP = "praxis"
 
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Caminhos ──────────────────────────────────────────────────────────────────
 
 def config_dir() -> Path:
-    """Per-user config directory (config.json lives here)."""
+    """Pasta de configuração do usuário (onde fica o config.json)."""
     if IS_WIN:
         return Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming")) / "Praxis"
     if IS_MAC:
@@ -62,7 +63,7 @@ def config_dir() -> Path:
 
 
 def data_dir() -> Path:
-    """Per-user install/data directory (venv, installed app copy)."""
+    """Pasta de instalação/dados do usuário (venv e cópia instalada do app)."""
     if IS_WIN:
         return Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "Praxis"
     if IS_MAC:
@@ -71,14 +72,14 @@ def data_dir() -> Path:
 
 
 def venv_python(venv: Path) -> Path:
-    """Interpreter path inside a venv for the current OS."""
+    """Caminho do interpretador dentro de um venv, conforme o sistema atual."""
     if IS_WIN:
         return venv / "Scripts" / "python.exe"
     return venv / "bin" / "python3"
 
 
 def installed_python() -> Path | None:
-    """Interpreter of the venv created by the installer, if present."""
+    """Interpretador do venv criado pelo instalador, se existir."""
     p = venv_python(data_dir() / "venv")
     return p if p.exists() else None
 
@@ -87,7 +88,8 @@ _TMP_LOCK = threading.Lock()
 
 
 def temp_dir() -> Path:
-    """Private per-user temp dir (avoids predictable shared /tmp paths)."""
+    """Pasta temporária privada do usuário (evita caminhos previsíveis e
+    compartilhados em /tmp)."""
     with _TMP_LOCK:
         uid = os.getuid() if hasattr(os, "getuid") else os.environ.get("USERNAME", "user")
         d = Path(tempfile.gettempdir()) / f"praxis-{uid}"
@@ -96,12 +98,13 @@ def temp_dir() -> Path:
 
 
 def temp_path(name: str) -> str:
-    """Stable named file in the private temp dir (e.g. 'ov_ref.wav')."""
+    """Arquivo de nome fixo na pasta temporária privada (ex.: 'ov_ref.wav')."""
     return str(temp_dir() / name)
 
 
 def new_temp_file(suffix: str = "") -> str:
-    """Unique temp file path (closed, so it can be reopened on Windows)."""
+    """Caminho de arquivo temporário único (já fechado, para poder ser reaberto
+    no Windows)."""
     fd, path = tempfile.mkstemp(suffix=suffix, dir=temp_dir())
     os.close(fd)
     return path
@@ -112,7 +115,8 @@ def log_path() -> str:
 
 
 def ffmpeg_exe() -> str | None:
-    """ffmpeg on PATH, else the binary bundled by imageio-ffmpeg if installed."""
+    """ffmpeg do PATH; se não houver, o binário que vem com o imageio-ffmpeg
+    (se estiver instalado)."""
     exe = shutil.which("ffmpeg")
     if exe:
         return exe
@@ -124,14 +128,15 @@ def ffmpeg_exe() -> str | None:
 
 
 def cuda_env(env: dict[str, str]) -> dict[str, str]:
-    """Adds known extra CUDA library dirs to the loader path (Linux only).
+    """Acrescenta pastas conhecidas de bibliotecas CUDA (placa de vídeo NVIDIA)
+    ao caminho de busca de bibliotecas do sistema.
 
-    Override/extend with PRAXIS_CUDA_LIB (os.pathsep-separated)."""
+    Para trocar/ampliar, use PRAXIS_CUDA_LIB (pastas separadas por os.pathsep)."""
     env = dict(env)
     extra = [p for p in os.environ.get("PRAXIS_CUDA_LIB", "").split(os.pathsep) if p]
     if IS_LINUX:
         extra.append("/usr/local/lib/ollama/cuda_v12")
-    # cuBLAS/cuDNN installed from PyPI (nvidia-cublas-cu12, nvidia-cudnn-cu12)
+    # cuBLAS/cuDNN instalados pelo PyPI (nvidia-cublas-cu12, nvidia-cudnn-cu12)
     import site
     import sys
     for sp in [*site.getsitepackages(), site.getusersitepackages(), *sys.path]:
@@ -149,10 +154,10 @@ def cuda_env(env: dict[str, str]) -> dict[str, str]:
 
 
 def primary_monitor_geometry() -> tuple[int, int, int, int]:
-    """(x, y, w, h) of the primary monitor, or zeros if unknown.
+    """(x, y, w, h) do monitor principal, ou zeros se não der para saber.
 
-    Uses xrandr on X11 Linux (multi-monitor aware); callers fall back to
-    Tk's winfo_screenwidth/height elsewhere."""
+    Usa o xrandr no Linux com X11 (entende vários monitores); nos outros
+    casos quem chama usa o winfo_screenwidth/height do Tk."""
     if not IS_LINUX or not shutil.which("xrandr"):
         return 0, 0, 0, 0
     try:
@@ -168,17 +173,19 @@ def _contains(rect: tuple[int, int, int, int], px: int, py: int) -> bool:
 
 
 def work_area(tk_root=None, point: tuple[int, int] | None = None) -> tuple[int, int, int, int]:
-    """(x, y, w, h) of the USABLE area of the monitor containing `point`
-    (default: the primary monitor), in Tk's top-left screen coordinates —
-    excluding the macOS menu bar/Dock, the Windows taskbar and Linux panels.
+    """(x, y, w, h) da área útil da tela (o espaço livre para janelas) no
+    monitor que contém `point` (padrão: o monitor principal), em coordenadas
+    do Tk a partir do canto superior esquerdo — sem contar a barra de menus/
+    Dock do macOS, a barra de tarefas do Windows e os painéis do Linux.
 
-    Falls back to Tk's wm_maxsize() (already excludes system bars on Aqua and
-    Windows) and finally to zeros (caller uses the full screen)."""
+    Se não conseguir, usa o wm_maxsize() do Tk (que já desconta as barras do
+    sistema no macOS e no Windows) e, por último, zeros (quem chama usa a
+    tela inteira)."""
     try:
         if IS_MAC:
             from AppKit import NSScreen  # pyobjc
             screens = list(NSScreen.screens())
-            main_h = screens[0].frame().size.height        # Cocoa y=0 is the bottom of screen 0
+            main_h = screens[0].frame().size.height        # no Cocoa, y=0 é a base da tela 0
             areas = []
             for scr in screens:
                 f, v = scr.frame(), scr.visibleFrame()
@@ -200,7 +207,7 @@ def work_area(tk_root=None, point: tuple[int, int] | None = None) -> tuple[int, 
                 _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT),
                             ("rcWork", wintypes.RECT), ("dwFlags", wintypes.DWORD)]
             px, py = point or (0, 0)
-            hmon = ctypes.windll.user32.MonitorFromPoint(wintypes.POINT(px, py), 1)  # NEAREST
+            hmon = ctypes.windll.user32.MonitorFromPoint(wintypes.POINT(px, py), 1)  # monitor mais próximo
             mi = MONITORINFO()
             mi.cbSize = ctypes.sizeof(MONITORINFO)
             if ctypes.windll.user32.GetMonitorInfoW(hmon, ctypes.byref(mi)):
@@ -224,10 +231,10 @@ def work_area(tk_root=None, point: tuple[int, int] | None = None) -> tuple[int, 
     if tk_root is not None:
         try:
             if IS_LINUX:
-                # Without a window manager (minimal desktops, CI) wm_maxsize() is
-                # meaningless (seen: 560 × 1048575); the whole screen is safe.
+                # Sem gerenciador de janelas (desktops mínimos, CI) o wm_maxsize()
+                # não faz sentido (já visto: 560 × 1048575); a tela inteira é segura.
                 return 0, 0, int(tk_root.winfo_screenwidth()), int(tk_root.winfo_screenheight())
-            mw, mh = tk_root.wm_maxsize()       # excludes Dock/taskbar on Aqua/Windows
+            mw, mh = tk_root.wm_maxsize()       # já desconta Dock/barra de tarefas no macOS/Windows
             return 0, 0, int(mw), int(mh)
         except Exception:
             pass
@@ -247,7 +254,7 @@ def _net_workarea() -> tuple[int, int, int, int] | None:
 
 
 def monitor_at(point: tuple[int, int]) -> tuple[int, int, int, int]:
-    """Linux/X11: geometry of the monitor containing `point` (xrandr)."""
+    """Linux/X11: posição e tamanho do monitor que contém `point` (xrandr)."""
     if not shutil.which("xrandr"):
         return 0, 0, 0, 0
     try:
@@ -268,9 +275,10 @@ def monitor_at(point: tuple[int, int]) -> tuple[int, int, int, int]:
 def fit_window(work: tuple[int, int, int, int], width: int, max_height: int,
                titlebar: int = 32, margin: int = 12,
                prefer: tuple[int, int] | None = None) -> tuple[int, int, int, int]:
-    """(w, h, x, y) for a window of `width` × up to `max_height` (client area)
-    such that it — title bar included — lies fully inside `work`.
-    `prefer` keeps a current position when possible (clamped into `work`)."""
+    """(w, h, x, y) para uma janela de `width` × até `max_height` (área interna)
+    de modo que ela — com a barra de título — caiba inteira dentro de `work`.
+    `prefer` mantém a posição atual quando possível (ajustada para dentro de
+    `work`)."""
     wx, wy, ww, wh = work
     w = min(width, max(200, ww - 2 * margin))
     h = min(max_height, max(200, wh - titlebar - 2 * margin))
@@ -299,7 +307,7 @@ def parse_xrandr(out: str) -> tuple[int, int, int, int]:
     return 0, 0, 0, 0
 
 
-# ── Audio helpers ─────────────────────────────────────────────────────────────
+# ── Funções de áudio ──────────────────────────────────────────────────────────
 
 def split_channel(device: str | None) -> tuple[str | None, int | None]:
     """'dev:left' → ('dev', 0), 'dev:right' → ('dev', 1), 'dev' → ('dev', None)."""
@@ -313,7 +321,8 @@ def split_channel(device: str | None) -> tuple[str | None, int | None]:
 
 
 def resample(x: np.ndarray, src_rate: int, dst_rate: int) -> np.ndarray:
-    """Linear-interpolation resampler — good enough for speech/meters."""
+    """Muda a taxa de amostragem por interpolação linear — suficiente para fala
+    e medidores de volume."""
     if src_rate == dst_rate or len(x) == 0:
         return x
     n_out = max(1, int(round(len(x) * dst_rate / src_rate)))
@@ -326,12 +335,13 @@ def resample(x: np.ndarray, src_rate: int, dst_rate: int) -> np.ndarray:
 
 @dataclass
 class VirtualMic:
-    """Result of setting up the outbound virtual microphone.
+    """Resultado da preparação do microfone virtual de saída.
 
-    target       device id Praxis plays translated speech into
-    mic_label    what the user must select as microphone in the call app
-    peer_capture device id to capture the peer's audio from (bilateral) or None
-    peer_label   what the user must route the call app's output to, or ""
+    target       id do dispositivo onde o Praxis toca a fala traduzida
+    mic_label    o que o usuário deve escolher como microfone no app de chamada
+    peer_capture id do dispositivo de onde vem o áudio da outra pessoa
+                 (modo bilateral) ou None
+    peer_label   para onde o usuário deve mandar a saída do app de chamada, ou ""
     """
     target: str | None
     mic_label: str
@@ -340,7 +350,7 @@ class VirtualMic:
 
 
 class CaptureStream:
-    """Blocking reader of mono int16 chunks of fixed size."""
+    """Leitor que espera e entrega blocos mono int16 de tamanho fixo."""
 
     def read(self) -> bytes | None:          # pragma: no cover - interface
         raise NotImplementedError
@@ -356,7 +366,7 @@ class CaptureStream:
 
 
 class Player:
-    """Handle to a WAV/PCM playback started in the background."""
+    """Controle de uma reprodução WAV/PCM iniciada em segundo plano."""
 
     def __init__(self) -> None:
         self._done = threading.Event()
@@ -380,7 +390,7 @@ class AudioBackend:
     name = "base"
     can_create_virtual_devices = False
 
-    # enumeration -------------------------------------------------------------
+    # listagem ----------------------------------------------------------------
     def list_inputs(self) -> list[tuple[str, str]]:
         raise NotImplementedError
 
@@ -390,7 +400,7 @@ class AudioBackend:
     def defaults(self) -> tuple[str, str]:
         return "", ""
 
-    # engine ------------------------------------------------------------------
+    # motor -------------------------------------------------------------------
     def setup_virtual_mic(self, bilateral: bool) -> VirtualMic:
         raise NotImplementedError
 
@@ -407,7 +417,7 @@ class AudioBackend:
         raise NotImplementedError
 
     def play_pcm_multi(self, pcm: bytes, rate: int, devices: Iterable[str | None]) -> None:
-        targets = list(dict.fromkeys(devices))  # dedupe, keep order
+        targets = list(dict.fromkeys(devices))  # tira repetidos, mantém a ordem
         if len(targets) <= 1:
             self.play_pcm(pcm, rate, targets[0] if targets else None)
             return
@@ -418,9 +428,9 @@ class AudioBackend:
         for t in ts:
             t.join()
 
-    # UI ----------------------------------------------------------------------
+    # interface ---------------------------------------------------------------
     def play_file(self, path: str, device: str | None = None) -> Player:
-        """Plays a WAV file in the background; returns a stoppable handle."""
+        """Toca um arquivo WAV em segundo plano; devolve um controle que pode parar."""
         import soundfile as sf
         data, rate = sf.read(path, dtype="int16", always_2d=True)
         mono = data.mean(axis=1).astype(np.int16) if data.shape[1] > 1 else data[:, 0]
@@ -442,7 +452,7 @@ class AudioBackend:
         return player
 
     def force_rate(self, rate: int) -> None:
-        """Optional system-wide sample rate pin (PipeWire only)."""
+        """Fixa, opcionalmente, a taxa de amostragem do sistema todo (só PipeWire)."""
 
     def restore_rate(self) -> None:
         pass
@@ -461,7 +471,7 @@ SINK_IN_DESC = "Praxis_Entrada"
 
 
 def parse_pactl_list(raw: str, exclude: Iterable[str] = ()) -> list[tuple[str, str, str]]:
-    """Parses `LANG=C pactl list sources|sinks` → [(name, description, channel_map)]."""
+    """Lê a saída de `LANG=C pactl list sources|sinks` → [(nome, descrição, mapa_de_canais)]."""
     exclude = list(exclude)
     result: list[tuple[str, str, str]] = []
     name = desc = ""
@@ -494,8 +504,8 @@ def expand_stereo_inputs(devs: list[tuple[str, str, str]]) -> list[tuple[str, st
     out: list[tuple[str, str]] = []
     for name, desc, chmap in devs:
         if len([c for c in chmap.split(",") if c.strip()]) == 2:
-            out.append((f"{name}:left",  f"{desc}  —  Input 1 (L)"))
-            out.append((f"{name}:right", f"{desc}  —  Input 2 (R)"))
+            out.append((f"{name}:left",  f"{desc}  —  Entrada 1 (esquerda)"))
+            out.append((f"{name}:right", f"{desc}  —  Entrada 2 (direita)"))
         else:
             out.append((name, desc))
     return out
@@ -590,7 +600,7 @@ class PulseBackend(AudioBackend):
                 pass
 
     def resolve_mic(self, mic: str | None) -> str | None:
-        """Turns 'dev:left'/'dev:right' into a mono remap source."""
+        """Transforma 'dev:left'/'dev:right' numa entrada mono remapeada."""
         master, ch = split_channel(mic)
         if ch is None:
             return master
@@ -627,10 +637,11 @@ class PulseBackend(AudioBackend):
         self.force_rate(0)
 
 
-# ── PortAudio (sounddevice) — macOS / Windows / fallback ──────────────────────
+# ── PortAudio (sounddevice) — macOS / Windows / alternativa ─────────────────────
 
-# Loopback drivers, in priority order. Each entry: (output-side name fragment
-# Praxis plays into, input-side name fragment the call app records from).
+# Drivers de loopback (cabos de áudio virtuais), em ordem de prioridade. Cada
+# item: (trecho do nome do lado de saída, onde o Praxis toca; trecho do nome do
+# lado de entrada, que o app de chamada grava).
 LOOPBACK_DRIVERS: list[tuple[str, str]] = [
     ("BlackHole 2ch",   "BlackHole 2ch"),
     ("BlackHole",       "BlackHole"),
@@ -639,7 +650,7 @@ LOOPBACK_DRIVERS: list[tuple[str, str]] = [
     ("Loopback Audio",  "Loopback Audio"),
     ("Soundflower (2ch)", "Soundflower (2ch)"),
 ]
-# Second loopback for bilateral mode (call app output → Praxis).
+# Segundo loopback para o modo bilateral (saída do app de chamada → Praxis).
 PEER_LOOPBACK_DRIVERS: list[tuple[str, str]] = [
     ("BlackHole 16ch",  "BlackHole 16ch"),
     ("CABLE-A Input",   "CABLE-A Output"),
@@ -654,8 +665,9 @@ def _is_loopback(name: str) -> bool:
 
 def find_loopback(devices: list[dict], table: list[tuple[str, str]],
                   avoid: Iterable[str] = ()) -> tuple[str, str] | None:
-    """Returns (output device name, input device name) of the first loopback
-    driver in `table` present in `devices` (sounddevice.query_devices())."""
+    """Devolve (nome do dispositivo de saída, nome do dispositivo de entrada) do
+    primeiro driver de loopback de `table` presente em `devices`
+    (sounddevice.query_devices())."""
     avoid = set(avoid)
     outs = [d["name"] for d in devices if d.get("max_output_channels", 0) > 0]
     ins  = [d["name"] for d in devices if d.get("max_input_channels", 0) > 0]
@@ -680,7 +692,7 @@ class _SDCapture(CaptureStream):
         channels = 2 if (channel is not None and info["max_input_channels"] >= 2) else 1
         self._channel = channel if channels == 2 else None
 
-        def _cb(indata, frames, time_info, status):  # PortAudio thread
+        def _cb(indata, frames, time_info, status):  # roda na thread do PortAudio
             x = indata[:, self._channel] if self._channel is not None else indata[:, 0]
             x = x.copy()
             if self._dev_rate != self._rate:
@@ -690,11 +702,12 @@ class _SDCapture(CaptureStream):
             except queue.Full:
                 pass
 
-        # Prefer the engine rate; fall back to the device rate + resampling
-        # (WASAPI shared mode and many USB devices refuse 16 kHz).
+        # Prefere a taxa do motor; se falhar, usa a taxa do dispositivo e converte
+        # (o modo compartilhado do WASAPI e muitos dispositivos USB recusam 16 kHz).
         last_err: Exception | None = None
-        # Native device rate first (CoreAudio/WASAPI reject many rates and
-        # PortAudio logs noisy errors); resample to the engine rate in the callback.
+        # Primeiro a taxa nativa do dispositivo (CoreAudio/WASAPI recusam muitas
+        # taxas e o PortAudio enche o log de erros); a conversão para a taxa do
+        # motor é feita no callback.
         for r in dict.fromkeys((int(info["default_samplerate"]), rate)):
             try:
                 self._dev_rate = r
@@ -706,7 +719,7 @@ class _SDCapture(CaptureStream):
             except Exception as e:  # noqa: PERF203
                 last_err = e
         else:
-            raise RuntimeError(f"Cannot open input device: {last_err}")
+            raise RuntimeError(f"Não foi possível abrir o dispositivo de entrada: {last_err}")
 
     def read(self) -> bytes | None:
         while len(self._buf) < self._chunk:
@@ -751,8 +764,9 @@ class SoundDeviceBackend(AudioBackend):
             return []
 
     def _hostapi_ok(self, d: dict) -> bool:
-        # On Windows the same device appears once per host API (MME, DirectSound,
-        # WASAPI, WDM-KS). Keep only the default host API to avoid duplicates.
+        # No Windows o mesmo dispositivo aparece uma vez para cada "host API"
+        # (MME, DirectSound, WASAPI, WDM-KS — as interfaces de áudio do sistema).
+        # Mantém só a padrão para não repetir dispositivos.
         if not IS_WIN:
             return True
         try:
@@ -783,8 +797,8 @@ class SoundDeviceBackend(AudioBackend):
                 continue
             n = d["name"]
             if d["max_input_channels"] == 2:
-                out.append((f"{n}:left",  f"{n}  —  Input 1 (L)"))
-                out.append((f"{n}:right", f"{n}  —  Input 2 (R)"))
+                out.append((f"{n}:left",  f"{n}  —  Entrada 1 (esquerda)"))
+                out.append((f"{n}:right", f"{n}  —  Entrada 2 (direita)"))
             else:
                 out.append((n, n))
         return out
@@ -808,13 +822,13 @@ class SoundDeviceBackend(AudioBackend):
         lb = find_loopback(devs, LOOPBACK_DRIVERS)
         if not lb:
             raise RuntimeError(
-                "No virtual audio cable found. " + self.setup_hint())
+                "Nenhum cabo de áudio virtual encontrado. " + self.setup_hint())
         vm = VirtualMic(target=lb[0], mic_label=lb[1])
         if bilateral:
             peer = find_loopback(devs, PEER_LOOPBACK_DRIVERS, avoid=lb)
             if not peer:
                 raise RuntimeError(
-                    "Bilateral mode needs a second virtual cable. " + self.setup_hint(bilateral=True))
+                    "O modo bilateral precisa de um segundo cabo virtual. " + self.setup_hint(bilateral=True))
             vm.peer_capture, vm.peer_label = peer[1], peer[0]
         return vm
 
@@ -844,25 +858,25 @@ class SoundDeviceBackend(AudioBackend):
 
     def setup_hint(self, bilateral: bool = False) -> str:
         if IS_MAC:
-            return ("Install BlackHole: `brew install blackhole-2ch`"
-                    + (" and `brew install blackhole-16ch`" if bilateral else "")
-                    + ", then select 'BlackHole 2ch' as the microphone in your call app.")
+            return ("Instale o BlackHole: `brew install blackhole-2ch`"
+                    + (" e `brew install blackhole-16ch`" if bilateral else "")
+                    + "; depois escolha 'BlackHole 2ch' como microfone no seu app de chamada.")
         if IS_WIN:
-            return ("Install VB-Audio Virtual Cable (https://vb-audio.com/Cable/)"
-                    + (" and VB-Cable A+B for bilateral mode" if bilateral else "")
-                    + ", then select 'CABLE Output' as the microphone in your call app.")
-        return ("Install pulseaudio-utils (pactl/parec/pacat) so Praxis can create "
-                "its virtual microphone, or load snd-aloop and select it.")
+            return ("Instale o VB-Audio Virtual Cable (https://vb-audio.com/Cable/)"
+                    + (" e o VB-Cable A+B para o modo bilateral" if bilateral else "")
+                    + "; depois escolha 'CABLE Output' como microfone no seu app de chamada.")
+        return ("Instale o pulseaudio-utils (pactl/parec/pacat) para o Praxis poder criar "
+                "o microfone virtual, ou carregue o snd-aloop e escolha esse dispositivo.")
 
 
-# ── Factory ───────────────────────────────────────────────────────────────────
+# ── Fábrica ───────────────────────────────────────────────────────────────────
 
 _backend: AudioBackend | None = None
 _backend_lock = threading.Lock()
 
 
 def get_backend(force: str | None = None) -> AudioBackend:
-    """Picks the audio backend. Override with PRAXIS_AUDIO=pulse|sounddevice."""
+    """Escolhe o backend de áudio. Para forçar, use PRAXIS_AUDIO=pulse|sounddevice."""
     global _backend
     with _backend_lock:
         choice = force or os.environ.get("PRAXIS_AUDIO", "")

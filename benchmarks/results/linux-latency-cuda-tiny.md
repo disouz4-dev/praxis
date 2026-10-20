@@ -1,11 +1,11 @@
-_Machine: Linux-7.0.0-31-generic-x86_64-with-glibc2.39 · x86_64 · 16 cores · Python 3.12.3 · CUDA True_
+_Máquina: Linux-7.0.0-31-generic-x86_64-with-glibc2.39 · processador x86_64 · 16 núcleos · Python 3.12.3 · placa de vídeo CUDA: sim_
 
-Whisper model: `tiny` · backend: `cuda`
+Modelo Whisper: `tiny` · roda em: placa de vídeo (CUDA)
 
-| Pair | N | VAD tail | ASR | MT | TTS 1st | **Total p50** | **Total p95** |
+| Par | Gravações | Espera pelo silêncio | Transcrição | Tradução | Voz (1ª frase) | **Total, atraso típico** | **Total, pior caso comum (1 em 20)** |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | pt->en | 10 | 288 | 39 | 33 | 50 | **392 ms** | **472 ms** |
 | en->pt | 10 | 272 | 35 | 25 | 61 | **400 ms** | **480 ms** |
 | es->en | 10 | 256 | 42 | 41 | 58 | **396 ms** | **472 ms** |
 
-Stage values are p50 in ms. Total = end of speech → first translated audio sample ready (playback start).
+Valores por etapa em ms, atraso típico (mediana: metade das gravações é mais rápida). Pior caso comum = 1 em cada 20 gravações demora mais que isso. Espera pelo silêncio = quanto o detector de fala aguarda para ter certeza de que a frase acabou. Total = do fim da fala até a primeira amostra de áudio traduzido pronta (início da reprodução).

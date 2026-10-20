@@ -1,4 +1,4 @@
-"""praxis_platform: parsers, paths, resampling, loopback detection."""
+"""praxis_platform: leitura de saídas de comandos, caminhos, reamostragem e detecção de dispositivos de loopback (áudio virtual)."""
 import os
 from pathlib import Path
 
@@ -28,22 +28,22 @@ Source #4
 """
 
 
-def test_parse_pactl_list_excludes_monitors_and_praxis():
+def test_leitura_pactl_list_exclui_monitores_e_praxis():
     devs = plat.parse_pactl_list(PACTL_SOURCES, (".monitor", "Praxis"))
     assert [d[0] for d in devs] == ["alsa_input.usb-Focusrite_Scarlett-00.analog-stereo",
                                     "alsa_input.pci.analog-mono"]
     assert devs[0][2] == "front-left,front-right"
 
 
-def test_expand_stereo_inputs_splits_channels():
+def test_expandir_entradas_estereo_separa_canais():
     out = plat.expand_stereo_inputs(plat.parse_pactl_list(PACTL_SOURCES, (".monitor", "Praxis")))
     ids = [i for i, _ in out]
     assert ids[0].endswith(":left") and ids[1].endswith(":right")
     assert ids[2] == "alsa_input.pci.analog-mono"
-    assert "Input 1 (L)" in out[0][1]
+    assert "Entrada 1 (esquerda)" in out[0][1]
 
 
-def test_parse_pactl_info():
+def test_leitura_pactl_info():
     raw = "Server Name: PulseAudio (on PipeWire 1.0)\nDefault Sink: spk\nDefault Source: mic\n"
     assert plat.parse_pactl_info(raw) == ("mic", "spk")
     assert plat.parse_pactl_info("") == ("", "")
@@ -54,11 +54,11 @@ def test_parse_pactl_info():
     ("hw:left", ("hw", 0)), ("hw:right", ("hw", 1)),
     ("alsa:card:left", ("alsa:card", 0)),
 ])
-def test_split_channel(dev, expected):
+def test_separa_canal(dev, expected):
     assert plat.split_channel(dev) == expected
 
 
-def test_resample_lengths_and_dtype():
+def test_reamostragem_tamanhos_e_tipo():
     x = (np.sin(np.linspace(0, 20, 48000)) * 10000).astype(np.int16)
     y = plat.resample(x, 48000, 16000)
     assert y.dtype == np.int16 and abs(len(y) - 16000) <= 1
@@ -69,7 +69,7 @@ def test_resample_lengths_and_dtype():
     assert len(plat.resample(np.zeros(0, np.int16), 8000, 16000)) == 0
 
 
-def test_resample_preserves_tone_frequency():
+def test_reamostragem_preserva_frequencia_do_tom():
     sr_in, sr_out, f0 = 48000, 16000, 440.0
     t = np.arange(sr_in) / sr_in
     y = plat.resample(np.sin(2 * np.pi * f0 * t).astype(np.float32), sr_in, sr_out)
@@ -90,35 +90,35 @@ WIN_DEVICES = [
 ]
 
 
-def test_find_loopback_macos_blackhole():
+def test_encontra_loopback_macos_blackhole():
     assert plat.find_loopback(DEVICES, plat.LOOPBACK_DRIVERS) == ("BlackHole 2ch", "BlackHole 2ch")
     peer = plat.find_loopback(DEVICES, plat.PEER_LOOPBACK_DRIVERS, avoid=("BlackHole 2ch",))
     assert peer == ("BlackHole 16ch", "BlackHole 16ch")
 
 
-def test_find_loopback_windows_vbcable():
+def test_encontra_loopback_windows_vbcable():
     assert plat.find_loopback(WIN_DEVICES, plat.LOOPBACK_DRIVERS) == (
         "CABLE Input (VB-Audio Virtual Cable)", "CABLE Output (VB-Audio Virtual Cable)")
 
 
-def test_find_loopback_none():
+def test_encontra_loopback_nenhum():
     assert plat.find_loopback(DEVICES[:2], plat.LOOPBACK_DRIVERS) is None
 
 
-def test_loopbacks_hidden_from_device_lists():
+def test_loopbacks_ocultos_das_listas_de_dispositivos():
     assert plat._is_loopback("BlackHole 2ch")
     assert plat._is_loopback("CABLE Output (VB-Audio Virtual Cable)")
     assert not plat._is_loopback("MacBook Pro Microphone")
 
 
-def test_paths_are_per_os():
+def test_caminhos_dependem_do_sistema():
     assert plat.config_dir().name.lower() == "praxis"
     vp = plat.venv_python(Path("/x/venv"))
     assert vp.name in ("python3", "python.exe")
     assert ("Scripts" in vp.parts) == plat.IS_WIN
 
 
-def test_temp_paths_private_and_unique():
+def test_caminhos_temporarios_privados_e_unicos():
     d = plat.temp_dir()
     assert d.is_dir()
     if hasattr(os, "getuid"):
@@ -129,7 +129,7 @@ def test_temp_paths_private_and_unique():
     assert Path(plat.temp_path("x.wav")).parent == d
 
 
-def test_cuda_env_adds_existing_dirs_only(tmp_path, monkeypatch):
+def test_ambiente_cuda_adiciona_so_pastas_existentes(tmp_path, monkeypatch):
     monkeypatch.setenv("PRAXIS_CUDA_LIB", os.pathsep.join([str(tmp_path), "/does/not/exist"]))
     env = plat.cuda_env({"PATH": "p", "LD_LIBRARY_PATH": "l"})
     var = "PATH" if plat.IS_WIN else "LD_LIBRARY_PATH"
@@ -137,7 +137,7 @@ def test_cuda_env_adds_existing_dirs_only(tmp_path, monkeypatch):
     assert "/does/not/exist" not in env[var]
 
 
-def test_parse_xrandr_prefers_primary():
+def test_leitura_xrandr_prefere_monitor_principal():
     out = ("Screen 0: minimum 8 x 8\n"
            "HDMI-1 connected 1920x1080+0+0 (normal) 600mm x 340mm\n"
            "eDP-1 connected primary 2560x1600+1920+0 (normal) 300mm x 190mm\n"
@@ -147,19 +147,19 @@ def test_parse_xrandr_prefers_primary():
     assert plat.parse_xrandr("") == (0, 0, 0, 0)
 
 
-def test_get_backend_env_override(monkeypatch):
+def test_backend_escolhido_por_variavel_de_ambiente(monkeypatch):
     pytest.importorskip("sounddevice")
     plat.reset_backend()
     monkeypatch.setenv("PRAXIS_AUDIO", "sounddevice")
     try:
         assert plat.get_backend().name == "sounddevice"
     except OSError:
-        pytest.skip("PortAudio library not available")
+        pytest.skip("biblioteca PortAudio não disponível")
     finally:
         plat.reset_backend()
 
 
-def test_sounddevice_backend_hint_mentions_driver():
+def test_dica_do_backend_sounddevice_cita_o_driver():
     b = plat.SoundDeviceBackend.__new__(plat.SoundDeviceBackend)
     hint = b.setup_hint()
     if plat.IS_MAC:
@@ -168,18 +168,18 @@ def test_sounddevice_backend_hint_mentions_driver():
         assert "VB-Audio" in hint
 
 
-def test_player_stop_and_wait():
+def test_player_parar_e_esperar():
     p = plat.Player()
     assert not p.done
     p.stop()
     assert p.wait(0.1) and p.done
 
 
-# ── windows must never leave the usable screen area ───────────────────────────
+# ── janelas nunca podem sair da área útil da tela ─────────────────────────────
 
-MAC_WORK = (0, 30, 1792, 1004)       # 16" MacBook: menu bar 30 px, Dock 86 px
-SMALL = (0, 0, 1366, 728)            # 1366×768 laptop with a 40 px taskbar
-SECOND = (1920, 0, 1280, 984)        # secondary monitor to the right
+MAC_WORK = (0, 30, 1792, 1004)       # MacBook 16": barra de menus 30 px, Dock 86 px
+SMALL = (0, 0, 1366, 728)            # notebook 1366×768 com barra de tarefas de 40 px
+SECOND = (1920, 0, 1280, 984)        # monitor secundário à direita
 
 
 def _inside(work, w, h, x, y, titlebar):
@@ -189,36 +189,36 @@ def _inside(work, w, h, x, y, titlebar):
 
 @pytest.mark.parametrize("work", [MAC_WORK, SMALL, SECOND, (0, 0, 800, 600)])
 @pytest.mark.parametrize("want", [(560, 900), (1120, 1040), (480, 540), (3000, 3000)])
-def test_fit_window_always_inside(work, want):
+def test_ajusta_janela_sempre_dentro(work, want):
     w, h, x, y = plat.fit_window(work, *want, titlebar=32)
     assert _inside(work, w, h, x, y, 32), (work, want, (w, h, x, y))
     assert w <= want[0] and h <= want[1]
 
 
-def test_fit_window_regression_v010_overflow():
-    """v0.1.0 asked for screen_h - 80 = 1040 px (+ title bar) on a 1120 px Mac
-    screen whose usable height is 1004 px → the bottom went under the Dock."""
+def test_ajusta_janela_regressao_v010_estouro():
+    """A v0.1.0 pedia screen_h - 80 = 1040 px (+ barra de título) numa tela de Mac
+    de 1120 px cuja altura útil é 1004 px → a parte de baixo ficava sob o Dock."""
     w, h, x, y = plat.fit_window(MAC_WORK, 560, 1040, titlebar=28)
     assert y + h + 28 <= 30 + 1004
 
 
 @pytest.mark.parametrize("prefer", [(-500, -500), (5000, 5000), (100, 100)])
-def test_fit_window_clamps_preferred_position(prefer):
+def test_ajusta_janela_limita_posicao_preferida(prefer):
     w, h, x, y = plat.fit_window(SMALL, 1120, 700, titlebar=32, prefer=prefer)
     assert _inside(SMALL, w, h, x, y, 32)
 
 
-def test_work_area_returns_usable_rect():
+def test_area_de_trabalho_retorna_retangulo_util():
     x, y, w, h = plat.work_area()
     if w == 0:
-        pytest.skip("no display / work-area API on this runner")
+        pytest.skip("sem tela / sem API de área de trabalho nesta máquina de testes")
     assert w > 0 and h > 0
 
 
 
-def test_benchmark_normalisation_keeps_combining_marks():
-    """Hindi vowel signs and Arabic letters must not be split into fragments
-    (that inflated/hid errors in the real-speech benchmark)."""
+def test_normalizacao_do_benchmark_mantem_sinais_combinados():
+    """Sinais de vogal do hindi e letras árabes não podem ser quebrados em pedaços
+    (isso inflava/escondia erros no benchmark com fala real)."""
     import sys
     from conftest import ROOT
     sys.path.insert(0, str(ROOT / "benchmarks"))
@@ -228,9 +228,9 @@ def test_benchmark_normalisation_keeps_combining_marks():
     assert normalize("Elle appela sa sœur, l’aînée!") == "elle appela sa soeur l aînée"
 
 
-def test_work_area_linux_fallback_without_window_manager(monkeypatch):
-    """CI / minimal Linux desktops have no window manager: wm_maxsize() came
-    back as 560 × 1048575 and the window was 'fitted' into nonsense."""
+def test_area_de_trabalho_linux_sem_gerenciador_de_janelas(monkeypatch):
+    """Na integração contínua (CI) / em desktops Linux mínimos não há gerenciador de
+    janelas: wm_maxsize() voltava 560 × 1048575 e a janela era 'ajustada' a um absurdo."""
     import types
     monkeypatch.setattr(plat, "IS_LINUX", True)
     monkeypatch.setattr(plat, "IS_MAC", False)

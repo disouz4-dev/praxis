@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
-"""Praxis — hardware acceleration (GPU) detection and backend selection.
+"""Praxis — detecção de aceleração por hardware (placa de vídeo) e escolha do backend.
 
-Picks the fastest *correct* backend for each stage on the current machine:
+Escolhe, para cada etapa, o backend (motor de execução) mais rápido que ainda
+dá resultado *correto* nesta máquina:
 
-  Stage   NVIDIA (Linux/Win)   Apple Silicon      AMD/Intel GPU (Linux/Win)   Fallback
+  Etapa   NVIDIA (Linux/Win)   Apple Silicon      GPU AMD/Intel (Linux/Win)   Alternativa
   ASR     faster-whisper CUDA  mlx-whisper(Metal) whisper.cpp (Vulkan build)  faster-whisper CPU
   MT      CTranslate2 CUDA     CPU (Accelerate)   CPU                         CPU
   TTS     onnxruntime CUDA     onnxruntime CoreML onnxruntime DirectML (Win)  CPU
-  Clone   PyTorch CUDA         PyTorch MPS        PyTorch MPS (AMD Mac)       CPU
+  Clonar  PyTorch CUDA         PyTorch MPS        PyTorch MPS (AMD Mac)       CPU
 
-Measured exclusions (see docs/QA_REPORT.md):
-  * whisper.cpp Metal on Intel Macs with AMD GPUs returned wrong text ("," for a
-    full sentence) and was slower than CPU → never auto-selected there.
+(ASR = reconhecimento de fala; MT = tradução automática; TTS = síntese de voz.)
 
-Nothing here imports PyTorch (see OnnxSileroVAD in praxis.py for why).
-Override with PRAXIS_DEVICE=cpu|cuda|mlx|whispercpp or `praxis.py --device`.
+Exclusões medidas (veja docs/QA_REPORT.md):
+  * whisper.cpp com Metal em Macs Intel com placa AMD devolveu texto errado
+    ("," no lugar de uma frase inteira) e foi mais lento que a CPU → nunca é
+    escolhido automaticamente nessas máquinas.
+
+Nada aqui importa o PyTorch (o motivo está em OnnxSileroVAD, no praxis.py).
+Para forçar, use PRAXIS_DEVICE=cpu|cuda|mlx|whispercpp ou `praxis.py --device`.
 """
 from __future__ import annotations
 
@@ -43,10 +47,11 @@ def _has(mod: str) -> bool:
 
 @functools.lru_cache(maxsize=1)
 def ensure_cuda_libs() -> list[str]:
-    """Makes cuBLAS/cuDNN installed from PyPI (nvidia-cublas-cu12,
-    nvidia-cudnn-cu12 — what the installers use) loadable by CTranslate2
-    without LD_LIBRARY_PATH: preloads them globally on Linux and registers
-    their DLL dirs on Windows. Returns the libraries/dirs it registered."""
+    """Deixa o cuBLAS/cuDNN instalados pelo PyPI (nvidia-cublas-cu12,
+    nvidia-cudnn-cu12 — os que os instaladores usam) acessíveis ao CTranslate2
+    sem precisar de LD_LIBRARY_PATH: no Linux carrega as bibliotecas antes, de
+    forma global; no Windows registra as pastas das DLLs. Devolve as
+    bibliotecas/pastas registradas."""
     import glob
     import site
     import sys
@@ -66,7 +71,7 @@ def ensure_cuda_libs() -> list[str]:
                     pass
         elif SYSTEM == "Linux":
             import ctypes
-            # order matters: cuBLASLt before cuBLAS, cuDNN core before its sub-libraries
+            # a ordem importa: cuBLASLt antes do cuBLAS, núcleo do cuDNN antes das sub-bibliotecas
             for pat in ("cublas/lib/libcublasLt.so*", "cublas/lib/libcublas.so*",
                         "cudnn/lib/libcudnn.so*", "cudnn/lib/libcudnn_*.so*"):
                 for lib in sorted(glob.glob(os.path.join(base, pat))):
@@ -89,7 +94,7 @@ def cuda_device_count() -> int:
 
 @functools.lru_cache(maxsize=1)
 def gpu_names() -> tuple[str, ...]:
-    """Best-effort human-readable GPU names (for --check / logs only)."""
+    """Nomes legíveis das placas de vídeo, quando possível (só para --check / logs)."""
     names: list[str] = []
     try:
         if SYSTEM == "Darwin":
@@ -124,10 +129,11 @@ def onnx_providers() -> tuple[str, ...]:
 
 @functools.lru_cache(maxsize=1)
 def whispercpp_gpu_backend() -> str | None:
-    """GPU backend compiled into the installed pywhispercpp, if any.
+    """Backend de placa de vídeo compilado no pywhispercpp instalado, se houver.
 
-    The PyPI wheels are CPU (+Metal on macOS). Vulkan/CUDA/HIP need a source
-    build: GGML_VULKAN=1 pip install --no-binary pywhispercpp pywhispercpp"""
+    Os pacotes prontos do PyPI usam só CPU (+Metal no macOS). Vulkan/CUDA/HIP
+    exigem compilar a partir do código-fonte:
+    GGML_VULKAN=1 pip install --no-binary pywhispercpp pywhispercpp"""
     if not _has("_pywhispercpp"):
         return None
     try:
@@ -159,40 +165,41 @@ class AccelPlan:
 
 
 def choose_asr(requested: str = "auto") -> tuple[str, str]:
-    """→ (backend, reason). Never auto-selects a backend known to be wrong/slow."""
+    """→ (backend, motivo). Nunca escolhe sozinho um backend que se sabe errado/lento."""
     req = (requested or "auto").lower()
     if req != "auto":
         if req not in ASR_BACKENDS:
-            raise ValueError(f"unknown ASR device {requested!r}; choose from {ASR_BACKENDS}")
-        return req, "requested"
+            raise ValueError(f"dispositivo de ASR desconhecido {requested!r}; escolha entre {ASR_BACKENDS}")
+        return req, "pedido pelo usuário"
     if cuda_device_count() > 0:
-        return "cuda", f"{cuda_device_count()} CUDA device(s)"
+        return "cuda", f"{cuda_device_count()} dispositivo(s) CUDA"
     if IS_APPLE_SILICON and _has("mlx_whisper"):
-        return "mlx", "Apple Silicon GPU (MLX)"
+        return "mlx", "placa de vídeo do Apple Silicon (MLX)"
     wb = whispercpp_gpu_backend()
     if wb in ("vulkan", "cuda", "hip", "sycl"):
         return "whispercpp", f"whisper.cpp {wb}"
     if wb == "metal" and IS_APPLE_SILICON:
         return "whispercpp", "whisper.cpp Metal"
     if IS_APPLE_SILICON:
-        return "cpu", "Apple Silicon CPU (install mlx-whisper for GPU)"
+        return "cpu", "CPU do Apple Silicon (instale o mlx-whisper para usar a placa de vídeo)"
     if IS_INTEL_MAC:
-        return "cpu", "Intel Mac — Metal whisper.cpp measured wrong/slower; CPU is best"
-    return "cpu", "no supported GPU"
+        return "cpu", "Mac Intel — whisper.cpp com Metal errou/foi mais lento nos testes; a CPU é melhor"
+    return "cpu", "nenhuma placa de vídeo compatível"
 
 
 def choose_tts_providers() -> list[str]:
     avail = onnx_providers()
     order = ["CUDAExecutionProvider", "DmlExecutionProvider"]
-    if IS_APPLE_SILICON:   # CoreML on Intel Macs is CPU-bound and slower for Piper
+    if IS_APPLE_SILICON:   # em Macs Intel o CoreML depende da CPU e fica mais lento para o Piper
         order.append("CoreMLExecutionProvider")
     chosen = [p for p in order if p in avail]
     return chosen + ["CPUExecutionProvider"] if chosen else []
 
 
 def choose_clone_device() -> str:
-    """Device for OmniVoice (PyTorch). Probed lazily: only called when the user
-    actually uses a cloned voice (which loads torch anyway)."""
+    """Dispositivo para o OmniVoice (PyTorch). Só é verificado quando necessário:
+    é chamado apenas quando o usuário usa de fato uma voz clonada (que carrega
+    o torch de qualquer jeito)."""
     try:
         import torch
         if torch.cuda.is_available():
@@ -211,33 +218,33 @@ def plan(requested_asr: str | None = None) -> AccelPlan:
     return AccelPlan(asr=asr, asr_reason=why,
                      mt_device="cuda" if cuda_device_count() > 0 else "cpu",
                      tts_providers=choose_tts_providers(),
-                     # predicted; resolved by choose_clone_device() when torch loads
+                     # previsão; o valor real vem de choose_clone_device() quando o torch carrega
                      clone_device="cuda" if cuda_device_count() > 0 else
                      ("mps" if SYSTEM == "Darwin" else "cpu"),
                      gpus=gpu_names())
 
 
-# ── Automatic model choice (from the real-speech streaming test on lab2) ──────
-# Live transcription error rate (words; characters for zh/ja), ~1 min of
-# continuous real speech per language, fed in real time. Source:
+# ── Escolha automática do modelo (teste com fala real ao vivo na máquina lab2) ──
+# Taxa de erro da transcrição ao vivo (palavras; caracteres para zh/ja), com
+# ~1 min de fala real contínua por idioma, enviada em tempo real. Fonte:
 # benchmarks/results/stream-cuda-large-v3-turbo.json / stream-cpu-small.json.
 MEASURED_ERROR = {
     "gpu": {"model": "large-v3-turbo",
-            "pt": .05, "en": .01, "es": .03, "fr": .08, "de": .18, "it": .14, "ru": .07, "zh": .13,
-            "nl": .12, "pl": .03, "uk": .08, "tr": .12, "ar": .13, "hi": .34, "ja": .14, "ko": .27},
+            "pt": .05, "en": .01, "es": .03, "fr": .08, "de": .18, "it": .14, "ru": .07, "zh": .06,
+            "nl": .12, "pl": .03, "uk": .08, "tr": .12, "ar": .13, "hi": .34, "ja": .11, "ko": .07},
     "cpu": {"model": "small",
-            "pt": .08, "en": .03, "es": .03, "fr": .25, "de": .29, "it": .32, "ru": .16, "zh": .33,
-            "nl": .21, "pl": .16, "uk": .19, "tr": .24, "ar": .31, "hi": .70, "ja": .22, "ko": .37},
+            "pt": .08, "en": .03, "es": .03, "fr": .25, "de": .29, "it": .32, "ru": .16, "zh": .29,
+            "nl": .21, "pl": .16, "uk": .19, "tr": .24, "ar": .31, "hi": .70, "ja": .20, "ko": .08},
 }
-POOR_QUALITY = 0.20      # above this share of errors the user is warned
+POOR_QUALITY = 0.20      # acima desta proporção de erros o usuário recebe um aviso
 
 
 def recommend_model(src_lang: str, asr_backend: str) -> tuple[str, str]:
-    """→ (Whisper model, plain-language note) for this hardware and language.
+    """→ (modelo Whisper, aviso em linguagem simples) para este hardware e idioma.
 
-    GPU: large-v3-turbo — most accurate and keeps up with continuous speech in
-    all 16 languages. CPU: small — the most accurate model that still keeps up
-    (medium/large-v3-turbo lag 4–26 s behind on a CPU)."""
+    Placa de vídeo: large-v3-turbo — o mais preciso, e acompanha fala contínua
+    nos 16 idiomas. CPU: small — o modelo mais preciso que ainda acompanha
+    (medium/large-v3-turbo ficam 4–26 s atrasados numa CPU)."""
     kind = "cpu" if asr_backend == "cpu" else "gpu"
     table = MEASURED_ERROR[kind]
     model = table["model"]
@@ -252,7 +259,7 @@ def recommend_model(src_lang: str, asr_backend: str) -> tuple[str, str]:
     return model, note
 
 
-# ── ASR adapters: same .transcribe() contract as faster_whisper.WhisperModel ──
+# ── Adaptadores de ASR: mesmo .transcribe() do faster_whisper.WhisperModel ──
 
 class _Seg:
     __slots__ = ("text", "no_speech_prob", "avg_logprob")
@@ -272,7 +279,7 @@ MLX_REPOS = {"tiny": "mlx-community/whisper-tiny-mlx", "base": "mlx-community/wh
 
 
 class MLXWhisper:
-    """mlx-whisper (Apple Silicon GPU) behind the faster-whisper interface."""
+    """mlx-whisper (placa de vídeo do Apple Silicon) com a mesma interface do faster-whisper."""
     backend = "mlx"
 
     def __init__(self, model_name: str) -> None:
@@ -296,7 +303,7 @@ class MLXWhisper:
 
 
 class WhisperCpp:
-    """whisper.cpp (pywhispercpp) — GPU via whichever backend it was built with."""
+    """whisper.cpp (pywhispercpp) — usa a placa de vídeo pelo backend com que foi compilado."""
     backend = "whispercpp"
 
     def __init__(self, model_name: str, use_gpu: bool = True) -> None:
@@ -313,18 +320,18 @@ class WhisperCpp:
 
 
 def load_asr(model_name: str, backend: str, log=print):
-    """Instantiates the ASR backend; on any failure falls back to faster-whisper CPU."""
+    """Cria o backend de ASR; se algo falhar, volta para o faster-whisper na CPU."""
     from faster_whisper import WhisperModel
     if backend == "mlx":
         try:
             return MLXWhisper(model_name)
         except Exception as e:
-            log(f"mlx-whisper unavailable ({e}); falling back to CPU")
+            log(f"mlx-whisper indisponível ({e}); usando a CPU")
     elif backend == "whispercpp":
         try:
             return WhisperCpp(model_name)
         except Exception as e:
-            log(f"whisper.cpp unavailable ({e}); falling back to CPU")
+            log(f"whisper.cpp indisponível ({e}); usando a CPU")
     elif backend == "cuda":
         try:
             ensure_cuda_libs()
@@ -334,16 +341,17 @@ def load_asr(model_name: str, backend: str, log=print):
             m.backend = "cuda"
             return m
         except Exception as e:
-            log(f"CUDA Whisper failed ({type(e).__name__}: {e}); falling back to CPU")
+            log(f"Whisper com CUDA falhou ({type(e).__name__}: {e}); usando a CPU")
     m = WhisperModel(model_name, device="cpu", compute_type="int8")
     m.backend = "cpu"
     return m
 
 
-# Speaking-rate calibration: some Piper voices are very slow (measured: German
-# "MLS" 10.8 letters/s vs "Thorsten" 19.9), which makes translated speech last
-# longer than the original and the engine fall behind. Voices slower than the
-# target get a faster default speed, never beyond MIN_RATE_SCALE (still natural).
+# Calibração da velocidade de fala: algumas vozes do Piper são muito lentas
+# (medido: alemão "MLS" 10,8 letras/s contra "Thorsten" 19,9), o que faz a fala
+# traduzida durar mais que a original e o motor ficar para trás. Vozes mais
+# lentas que a meta ganham uma velocidade padrão maior, nunca além de
+# MIN_RATE_SCALE (continua soando natural).
 CALIBRATION_TEXT = {
     "pt": "O tempo passa depressa quando conversamos com amigos sobre a vida.",
     "en": "Time goes by quickly when we talk with friends about our lives.",
@@ -362,10 +370,10 @@ MIN_RATE_SCALE = 0.72
 
 
 def voice_rate_scale(voice, lang: str) -> float:
-    """length_scale that brings a slow voice up to TARGET_LETTERS_PER_S (1.0 = as is)."""
+    """length_scale que leva uma voz lenta até TARGET_LETTERS_PER_S (1.0 = sem mudança)."""
     text = CALIBRATION_TEXT.get(lang)
     if not text:
-        return 1.0                     # scripts without a comparable letters/s target
+        return 1.0                     # escritas sem uma meta comparável de letras/s
     try:
         pcm = b"".join(c.audio_int16_bytes for c in voice.synthesize(text))
         seconds = len(pcm) / 2 / voice.config.sample_rate
@@ -383,8 +391,8 @@ def _voice_lang(path: str) -> str:
 
 
 def load_piper_accelerated(path: str, providers: list[str] | None = None):
-    """PiperVoice on the best ONNX Runtime provider (CUDA / DirectML / CoreML),
-    with its speaking rate calibrated (see voice_rate_scale)."""
+    """PiperVoice no melhor provedor do ONNX Runtime (CUDA / DirectML / CoreML),
+    com a velocidade de fala calibrada (veja voice_rate_scale)."""
     voice = _load_piper_provider(path, providers)
     voice.praxis_rate_scale = voice_rate_scale(voice, _voice_lang(path))
     return voice
@@ -404,5 +412,5 @@ def _load_piper_provider(path: str, providers: list[str] | None = None):
             import onnxruntime
             voice.session = onnxruntime.InferenceSession(str(path), providers=providers)
         except Exception:
-            pass   # keep the CPU session
+            pass   # mantém a sessão na CPU
     return voice

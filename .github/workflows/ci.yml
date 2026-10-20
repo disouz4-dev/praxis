@@ -18,13 +18,13 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install ruff
-      - name: Ruff (errors, undefined names, bugbear)
+      - name: Ruff (erros, nomes indefinidos, bugbear)
         run: ruff check --select F,E9,B023,B006 praxis.py praxis_platform.py praxis_config.py tests benchmarks scripts
-      - name: ShellCheck installer
+      - name: ShellCheck no instalador
         run: shellcheck -S warning install.sh
 
   test:
-    name: test (${{ matrix.os }}, py${{ matrix.python }})
+    name: testes (${{ matrix.os }}, py${{ matrix.python }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -37,27 +37,28 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - name: System packages (Linux)
+      - name: Pacotes do sistema (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libportaudio2 xvfb pulseaudio-utils
-      - name: Install
+      - name: Instalação
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
           pip install --no-deps argostranslate
-      - name: Smoke — engine environment check
+      - name: Teste rápido — verificação do ambiente do motor
         run: python praxis.py --check
-      - name: Smoke — device listing
+      - name: Teste rápido — listagem de dispositivos
         run: python praxis.py --list-devices
-      - name: Tests (Linux, virtual display)
+      - name: Testes (Linux, tela virtual)
         if: runner.os == 'Linux'
         run: xvfb-run -a python -m pytest -v
-      - name: Tests
+      - name: Testes
         if: runner.os != 'Linux'
         run: python -m pytest -v
 
   benchmark:
-    # Real models on real human speech: ASR quality (WER) + end-to-end latency.
+    # Modelos reais com fala humana real: qualidade do reconhecimento de fala
+    # (WER, taxa de erro de palavras) + atraso de ponta a ponta.
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     needs: test
     runs-on: ${{ matrix.os }}
@@ -69,14 +70,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.12", cache: pip }
-      - name: System packages (Linux)
+      - name: Pacotes do sistema (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libportaudio2
-      - name: Install
+      - name: Instalação
         run: |
           pip install -r requirements-dev.txt
           pip install --no-deps argostranslate
-      - name: Cache models + corpus
+      - name: Cache de modelos + corpus
         uses: actions/cache@v4
         with:
           path: |
@@ -84,11 +85,11 @@ jobs:
             ~/.local/share/argos-translate
             benchmarks/data
           key: bench-${{ runner.os }}-v1
-      - name: Fetch speech corpus (LibriSpeech / MLS, CC BY 4.0)
+      - name: Baixar corpus de fala (LibriSpeech / MLS, CC BY 4.0)
         run: python benchmarks/fetch_speech_corpus.py --langs pt en es --per-lang 10
-      - name: Quality + latency gates
+      - name: Limites de qualidade + atraso
         run: python -m pytest -m slow -v
-      - name: Benchmark report
+      - name: Relatório de benchmark
         run: |
           python benchmarks/run_benchmarks.py asr --models small --langs pt en es --name asr-${{ runner.os }}
           python benchmarks/run_benchmarks.py latency --model small --pairs pt:en en:pt es:en --name latency-${{ runner.os }}

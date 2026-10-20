@@ -491,7 +491,8 @@
       "lag_trend_ms": 241.0,
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
-      ]
+      ],
+      "letter_error_rate": 0.0451
     },
     {
       "pair": "en->pt",
@@ -891,7 +892,8 @@
       "lag_trend_ms": -548.0,
       "findings": [
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
-      ]
+      ],
+      "letter_error_rate": 0.0136
     },
     {
       "pair": "es->en",
@@ -1419,7 +1421,8 @@
         }
       ],
       "lag_trend_ms": 172.0,
-      "findings": []
+      "findings": [],
+      "letter_error_rate": 0.0272
     },
     {
       "pair": "fr->en",
@@ -1832,7 +1835,8 @@
         "pulou 1 trecho(s) inteiro(s) da fala (maior: 8 palavras seguidas)",
         "inventou 8 palavras que não foram faladas",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.8 s"
-      ]
+      ],
+      "letter_error_rate": 0.2246
     },
     {
       "pair": "de->en",
@@ -2333,7 +2337,8 @@
       "findings": [
         "transcrição ruim: 42% das palavras erradas",
         "2 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
-      ]
+      ],
+      "letter_error_rate": 0.1358
     },
     {
       "pair": "it->en",
@@ -2863,7 +2868,8 @@
         "transcrição ruim: 39% das palavras erradas",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.2 s"
-      ]
+      ],
+      "letter_error_rate": 0.0952
     },
     {
       "pair": "ru->en",
@@ -3202,7 +3208,8 @@
       "findings": [
         "transcrição ruim: 28% das palavras erradas",
         "picos de atraso: 1 em cada 20 trechos demora mais de 4.7 s"
-      ]
+      ],
+      "letter_error_rate": 0.0731
     },
     {
       "pair": "zh->en",
@@ -3212,7 +3219,7 @@
       "segments": 12,
       "wer": 1.0,
       "cer": 0.3739,
-      "error_rate": 0.3739,
+      "error_rate": 0.3385,
       "error_metric": "characters",
       "errors": {
         "reference_units": 195,
@@ -3539,8 +3546,9 @@
       ],
       "lag_trend_ms": 129.0,
       "findings": [
-        "transcrição ruim: 37% dos caracteres erradas"
-      ]
+        "transcrição ruim: 34% dos caracteres erradas"
+      ],
+      "letter_error_rate": 0.3385
     },
     {
       "pair": "nl->en",
@@ -3927,7 +3935,8 @@
       "findings": [
         "transcrição ruim: 27% das palavras erradas",
         "2 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
-      ]
+      ],
+      "letter_error_rate": 0.1317
     },
     {
       "pair": "pl->en",
@@ -4383,7 +4392,8 @@
       "lag_trend_ms": 34.0,
       "findings": [
         "transcrição ruim: 37% das palavras erradas"
-      ]
+      ],
+      "letter_error_rate": 0.0669
     },
     {
       "pair": "uk->en",
@@ -4833,7 +4843,8 @@
         "transcrição ruim: 46% das palavras erradas",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "1 trecho(s) com fala viraram texto vazio"
-      ]
+      ],
+      "letter_error_rate": 0.11
     },
     {
       "pair": "tr->en",
@@ -5195,7 +5206,8 @@
         "transcrição ruim: 44% das palavras erradas",
         "inventou 9 palavras que não foram faladas",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.5 s"
-      ]
+      ],
+      "letter_error_rate": 0.1058
     },
     {
       "pair": "ar->en",
@@ -5605,7 +5617,8 @@
       "lag_trend_ms": 16.0,
       "findings": [
         "transcrição ruim: 49% das palavras erradas"
-      ]
+      ],
+      "letter_error_rate": 0.1697
     },
     {
       "pair": "hi->en",
@@ -6105,7 +6118,8 @@
         "transcrição ruim: 99% das palavras erradas",
         "pulou 1 trecho(s) inteiro(s) da fala (maior: 10 palavras seguidas)",
         "não acompanha o falante: atraso típico 1.2 s, sobe -1.4 s da 1ª para a 2ª metade e sobram 10 s de tradução quando ele para"
-      ]
+      ],
+      "letter_error_rate": 0.9919
     },
     {
       "pair": "ja->en",
@@ -6115,7 +6129,7 @@
       "segments": 9,
       "wer": 1.0,
       "cer": 0.3245,
-      "error_rate": 0.3245,
+      "error_rate": 0.316,
       "error_metric": "characters",
       "errors": {
         "reference_units": 250,
@@ -6372,7 +6386,8 @@
       "findings": [
         "transcrição ruim: 32% dos caracteres erradas",
         "picos de atraso: 1 em cada 20 trechos demora mais de 3.3 s"
-      ]
+      ],
+      "letter_error_rate": 0.316
     },
     {
       "pair": "ko->en",
@@ -6382,14 +6397,14 @@
       "segments": 11,
       "wer": 0.4419,
       "cer": 0.2288,
-      "error_rate": 0.4419,
-      "error_metric": "words",
+      "error_rate": 0.2416,
+      "error_metric": "characters",
       "errors": {
-        "reference_units": 86,
-        "substituted": 27,
-        "skipped": 4,
-        "invented": 7,
-        "longest_skipped_run": 2,
+        "reference_units": 269,
+        "substituted": 35,
+        "skipped": 7,
+        "invented": 23,
+        "longest_skipped_run": 3,
         "dropped_phrases": []
       },
       "stage_ms_p50": {
@@ -6685,10 +6700,11 @@
       ],
       "lag_trend_ms": 601.0,
       "findings": [
-        "transcrição ruim: 44% das palavras erradas",
-        "inventou 7 palavras que não foram faladas",
+        "transcrição ruim: 24% dos caracteres erradas",
+        "inventou 23 caracteres que não foram faladas",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
-      ]
+      ],
+      "letter_error_rate": 0.2416
     }
   ]
 }

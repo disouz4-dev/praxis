@@ -480,7 +480,8 @@
         "trechos esperam 1268 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -307.0
+      "lag_trend_ms": -307.0,
+      "letter_error_rate": 0.015
     },
     {
       "pair": "en->pt",
@@ -882,7 +883,8 @@
         "não acompanha o falante: atraso típico 4.2 s, sobe -0.5 s da 1ª para a 2ª metade e sobram 8 s de tradução quando ele para",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": -470.0
+      "lag_trend_ms": -470.0,
+      "letter_error_rate": 0.0385
     },
     {
       "pair": "es->en",
@@ -1398,7 +1400,8 @@
         "não acompanha o falante: atraso típico 6.5 s, sobe +3.7 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para",
         "trechos esperam 2383 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)"
       ],
-      "lag_trend_ms": 3715.0
+      "lag_trend_ms": 3715.0,
+      "letter_error_rate": 0.0128
     },
     {
       "pair": "fr->en",
@@ -1797,7 +1800,8 @@
         "não acompanha o falante: atraso típico 5.9 s, sobe +1.8 s da 1ª para a 2ª metade e sobram 4 s de tradução quando ele para",
         "trechos esperam 1510 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)"
       ],
-      "lag_trend_ms": 1751.0
+      "lag_trend_ms": 1751.0,
+      "letter_error_rate": 0.0959
     },
     {
       "pair": "de->en",
@@ -2281,7 +2285,8 @@
         "trechos esperam 3617 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)",
         "2 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": 3858.0
+      "lag_trend_ms": 3858.0,
+      "letter_error_rate": 0.0543
     },
     {
       "pair": "it->en",
@@ -2793,7 +2798,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "1 trecho(s) com fala viraram texto vazio"
       ],
-      "lag_trend_ms": 299.0
+      "lag_trend_ms": 299.0,
+      "letter_error_rate": 0.1078
     },
     {
       "pair": "ru->en",
@@ -3124,7 +3130,8 @@
       "findings": [
         "não acompanha o falante: atraso típico 5.2 s, sobe -0.1 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para"
       ],
-      "lag_trend_ms": -117.0
+      "lag_trend_ms": -117.0,
+      "letter_error_rate": 0.0289
     },
     {
       "pair": "zh->en",
@@ -3134,7 +3141,7 @@
       "segments": 12,
       "wer": 0.9286,
       "cer": 0.1982,
-      "error_rate": 0.1982,
+      "error_rate": 0.1282,
       "error_metric": "characters",
       "errors": {
         "reference_units": 195,
@@ -3452,7 +3459,8 @@
       "findings": [
         "não acompanha o falante: atraso típico 5.5 s, sobe -1.0 s da 1ª para a 2ª metade e sobram 6 s de tradução quando ele para"
       ],
-      "lag_trend_ms": -998.0
+      "lag_trend_ms": -998.0,
+      "letter_error_rate": 0.1282
     },
     {
       "pair": "nl->en",
@@ -3829,7 +3837,8 @@
         "não acompanha o falante: atraso típico 4.3 s, sobe +0.0 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para",
         "2 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": 20.0
+      "lag_trend_ms": 20.0,
+      "letter_error_rate": 0.0735
     },
     {
       "pair": "pl->en",
@@ -4277,7 +4286,8 @@
         "não acompanha o falante: atraso típico 6.6 s, sobe +0.2 s da 1ª para a 2ª metade e sobram 9 s de tradução quando ele para",
         "trechos esperam 2277 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)"
       ],
-      "lag_trend_ms": 210.0
+      "lag_trend_ms": 210.0,
+      "letter_error_rate": 0.0158
     },
     {
       "pair": "uk->en",
@@ -4718,7 +4728,8 @@
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa",
         "1 trecho(s) com fala viraram texto vazio"
       ],
-      "lag_trend_ms": 2574.0
+      "lag_trend_ms": 2574.0,
+      "letter_error_rate": 0.0609
     },
     {
       "pair": "tr->en",
@@ -5069,7 +5080,8 @@
         "não acompanha o falante: atraso típico 5.2 s, sobe -0.2 s da 1ª para a 2ª metade e sobram 3 s de tradução quando ele para",
         "trechos esperam 616 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)"
       ],
-      "lag_trend_ms": -172.0
+      "lag_trend_ms": -172.0,
+      "letter_error_rate": 0.0463
     },
     {
       "pair": "ar->en",
@@ -5461,7 +5473,8 @@
         "não acompanha o falante: atraso típico 5.3 s, sobe -0.5 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para",
         "1 trecho(s) com fala viraram texto vazio"
       ],
-      "lag_trend_ms": -503.0
+      "lag_trend_ms": -503.0,
+      "letter_error_rate": 0.089
     },
     {
       "pair": "hi->en",
@@ -5949,7 +5962,8 @@
         "não acompanha o falante: atraso típico 16.0 s, sobe +10.8 s da 1ª para a 2ª metade e sobram 23 s de tradução quando ele para",
         "trechos esperam 13073 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)"
       ],
-      "lag_trend_ms": 10752.0
+      "lag_trend_ms": 10752.0,
+      "letter_error_rate": 0.1524
     },
     {
       "pair": "ja->en",
@@ -5959,7 +5973,7 @@
       "segments": 9,
       "wer": 1.0,
       "cer": 0.166,
-      "error_rate": 0.166,
+      "error_rate": 0.144,
       "error_metric": "characters",
       "errors": {
         "reference_units": 250,
@@ -6209,7 +6223,8 @@
       "findings": [
         "não acompanha o falante: atraso típico 5.7 s, sobe -0.4 s da 1ª para a 2ª metade e sobram 6 s de tradução quando ele para"
       ],
-      "lag_trend_ms": -406.0
+      "lag_trend_ms": -406.0,
+      "letter_error_rate": 0.144
     },
     {
       "pair": "ko->en",
@@ -6219,14 +6234,14 @@
       "segments": 11,
       "wer": 0.2907,
       "cer": 0.0819,
-      "error_rate": 0.2907,
-      "error_metric": "words",
+      "error_rate": 0.0743,
+      "error_metric": "characters",
       "errors": {
-        "reference_units": 86,
-        "substituted": 16,
-        "skipped": 7,
-        "invented": 2,
-        "longest_skipped_run": 1,
+        "reference_units": 269,
+        "substituted": 14,
+        "skipped": 3,
+        "invented": 3,
+        "longest_skipped_run": 2,
         "dropped_phrases": []
       },
       "stage_ms_p50": {
@@ -6516,11 +6531,11 @@
         }
       ],
       "findings": [
-        "transcrição ruim: 29% das palavras erradas",
         "não acompanha o falante: atraso típico 5.7 s, sobe +0.8 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para",
         "1 trecho(s) cortado(s) no meio por excesso de duração sem pausa"
       ],
-      "lag_trend_ms": 807.0
+      "lag_trend_ms": 807.0,
+      "letter_error_rate": 0.0743
     }
   ]
 }

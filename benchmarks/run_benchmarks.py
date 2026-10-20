@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Praxis benchmarks on real human speech (see fetch_speech_corpus.py).
+"""Benchmarks do Praxis com fala humana real (veja fetch_speech_corpus.py).
 
-  asr      Transcription quality (WER / CER) per language and Whisper model,
-           in two modes:
-             full  — the whole utterance in one call (upper bound)
-             live  — the audio is streamed through the engine's real
-                     vad_worker (Silero VAD + MAX_SEG_S forced cuts), each
-                     segment transcribed separately and joined — exactly what
-                     happens during a call.
-  latency  End-of-speech → first translated audio, per stage:
-             VAD tail (silence needed to close a segment)
-             ASR (Whisper)   MT (Argos)   TTS first sentence (Piper)
+  asr      Qualidade da transcrição (taxa de erro de palavras / de caracteres)
+           por idioma e modelo Whisper, em dois modos:
+             full  — a frase inteira em uma única chamada (limite superior)
+             live  — o áudio passa pelo vad_worker real do motor (detector de
+                     fala Silero + cortes forçados a cada MAX_SEG_S), cada
+                     trecho é transcrito separadamente e depois unido —
+                     exatamente o que acontece durante uma chamada.
+  latency  Do fim da fala ao primeiro áudio traduzido, por etapa:
+             espera pelo silêncio (silêncio necessário para fechar um trecho)
+             transcrição (Whisper)   tradução (Argos)   voz da 1ª frase (Piper)
 
-Every number comes from the production code paths in praxis.py
-(transcribe_segment, vad_worker, do_translate, load_piper).
+Todos os números vêm dos mesmos caminhos de código usados em produção no
+praxis.py (transcribe_segment, vad_worker, do_translate, load_piper).
 
-Usage:
+Uso:
   python benchmarks/run_benchmarks.py asr --models tiny base small --langs pt en es
   python benchmarks/run_benchmarks.py latency --model small --pairs pt:en en:pt es:en
-Results: benchmarks/results/<name>.json + .md
+Resultados: benchmarks/results/<nome>.json + .md
 """
 from __future__ import annotations
 
@@ -45,30 +45,32 @@ DATA = Path(__file__).resolve().parent / "data" / "speech"
 RESULTS = Path(__file__).resolve().parent / "results"
 VOICES = Path(__file__).resolve().parent / "data" / "voices"
 
-PIPER_VOICES = {   # lang → (locale, speaker, quality)
+PIPER_VOICES = {   # idioma → (localidade, locutor, qualidade)
     "en": ("en_US", "lessac", "medium"),
     "pt": ("pt_BR", "faber", "medium"),
     "es": ("es_ES", "sharvard", "medium"),
 }
 
 
-# ── text normalisation + metrics ──────────────────────────────────────────────
+# ── normalização de texto + métricas ──────────────────────────────────────────
 
 _ARABIC_TASHKEEL = re.compile("[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
 
 
 def normalize(text: str) -> str:
-    """Lowercase, drop punctuation/symbols, collapse spaces — WITHOUT breaking
-    words of scripts that use combining marks (Hindi vowel signs, Thai…).
+    """Minúsculas, remove pontuação/símbolos, junta espaços — SEM quebrar
+    palavras de escritas que usam sinais combinantes (sinais vocálicos do
+    hindi, tailandês…).
 
-    Arabic optional vowel marks (tashkeel) are removed and alef/yeh variants
-    unified, as references include them but speech recognisers do not.
-    Accents are kept (they distinguish words in pt/es/fr)."""
+    Os sinais vocálicos opcionais do árabe (tashkeel) são removidos e as
+    variantes de alef/yeh unificadas, pois as referências os incluem mas os
+    reconhecedores de fala não. Os acentos são mantidos (distinguem palavras
+    em pt/es/fr)."""
     t = unicodedata.normalize("NFKC", text).lower()
     t = t.replace("’", "'").replace("œ", "oe").replace("æ", "ae")
     t = _ARABIC_TASHKEEL.sub("", t)
     t = re.sub("[إأآٱ]", "ا", t).replace("ى", "ي")
-    # punctuation (P*) and symbols (S*) become spaces; marks (M*) stay attached
+    # pontuação (P*) e símbolos (S*) viram espaços; sinais (M*) continuam grudados
     t = "".join(" " if unicodedata.category(ch)[0] in "PS" else ch for ch in t)
     return re.sub(r"\s+", " ", t).strip()
 
@@ -78,6 +80,16 @@ def wer_cer(refs: list[str], hyps: list[str]) -> tuple[float, float]:
     r = [normalize(x) for x in refs]
     h = [normalize(x) or "<empty>" for x in hyps]
     return float(jiwer.wer(r, h)), float(jiwer.cer(r, h))
+
+
+def letter_error(ref: str, hyp: str) -> float:
+    """Taxa de erro por letra, ignorando espaços: justa para idiomas em que o
+    limite das palavras é ambíguo (chinês, japonês, coreano) e mostra que um
+    erro de grafia (híndi) é uma letra errada, não uma palavra perdida."""
+    import jiwer
+    r = normalize(ref).replace(" ", "")
+    h = normalize(hyp).replace(" ", "") or "∅"
+    return float(jiwer.cer(r, h)) if r else 0.0
 
 
 def load_corpus(lang: str) -> list[dict]:
@@ -93,18 +105,18 @@ def load_corpus(lang: str) -> list[dict]:
 def read16k(path: Path) -> np.ndarray:
     a, sr = sf.read(str(path), dtype="float32", always_2d=True)
     a = a.mean(axis=1)
-    assert sr == 16000, f"{path}: expected 16 kHz, got {sr}"
+    assert sr == 16000, f"{path}: esperado 16 kHz, veio {sr}"
     return a
 
 
-# ── live segmentation through the real vad_worker ─────────────────────────────
+# ── segmentação ao vivo pelo vad_worker real ──────────────────────────────────
 
-SEG_KW: dict = {}   # vad_worker overrides for experiments (max_seg_s, smart_cut, preroll_s)
+SEG_KW: dict = {}   # substituições do vad_worker para experimentos (max_seg_s, smart_cut, preroll_s)
 
 
 def live_segments(audio: np.ndarray, trailing_silence_s: float = 0.6) -> list[np.ndarray]:
-    """Feeds audio chunk-by-chunk through praxis.vad_worker (Silero VAD,
-    production thresholds) and returns the int16 segments it emits."""
+    """Passa o áudio bloco a bloco pelo praxis.vad_worker (detector de fala
+    Silero, limiares de produção) e devolve os trechos int16 que ele emite."""
     chunk = praxis.VAD_CHUNK
     pad = np.zeros(int(trailing_silence_s * praxis.SR), np.float32)
     x = np.concatenate([audio, pad])
@@ -136,8 +148,9 @@ def live_segments(audio: np.ndarray, trailing_silence_s: float = 0.6) -> list[np
 
 
 def vad_tail_ms(audio: np.ndarray) -> float | None:
-    """Time between the last chunk the VAD scores as speech and the moment it
-    emits "end" — the unavoidable 'wait for silence' part of the latency."""
+    """Tempo entre o último bloco que o detector de fala considera fala e o
+    momento em que ele emite "end" — a parte inevitável de 'esperar o
+    silêncio' no atraso."""
     vad = praxis.OnnxSileroVAD(threshold=0.5, sampling_rate=praxis.SR,
                                min_silence_duration_ms=praxis.SILENCE_MS)
     chunk = praxis.VAD_CHUNK
@@ -149,7 +162,7 @@ def vad_tail_ms(audio: np.ndarray) -> float | None:
         p = vad.prob(piece)
         if p >= vad.threshold:
             last_speech = (i + chunk) / praxis.SR
-        # replay through the iterator logic without re-running the model
+        # repete a lógica do iterador sem rodar o modelo de novo
         vad.current_sample += chunk
         if p >= vad.threshold and vad.temp_end:
             vad.temp_end = 0
@@ -166,9 +179,9 @@ def vad_tail_ms(audio: np.ndarray) -> float | None:
     return (end_at - last_speech) * 1000
 
 
-# ── ASR benchmark ─────────────────────────────────────────────────────────────
+# ── benchmark de transcrição ──────────────────────────────────────────────────
 
-DEVICE: str | None = None   # ASR backend override (auto/cpu/cuda/mlx/whispercpp)
+DEVICE: str | None = None   # força o backend de transcrição (auto/cpu/cuda/mlx/whispercpp)
 
 
 def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
@@ -180,7 +193,7 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
         for lang in langs:
             corpus = load_corpus(lang)
             if not corpus:
-                print(f"  ! no corpus for {lang} — run fetch_speech_corpus.py", file=sys.stderr)
+                print(f"  ! sem corpus para {lang} — rode fetch_speech_corpus.py", file=sys.stderr)
                 continue
             refs, hyp_full, hyp_live, samples = [], [], [], []
             asr_t, audio_t, live_segs = 0.0, 0.0, 0
@@ -207,8 +220,8 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
                                 "dur_s": round(len(a) / praxis.SR, 2), "ref": it["text"],
                                 "hyp": h, "wer": round(w, 3), "asr_s": round(dt, 3),
                                 **({"hyp_live": hl, "wer_live": round(wl, 3)} if live else {})})
-                print(f"  {model_name:6} {lang} {it['file']}  WER {w:5.1%}"
-                      + (f"  live {wl:5.1%}" if live else "") + f"  {dt:5.2f}s", file=sys.stderr)
+                print(f"  {model_name:6} {lang} {it['file']}  erro de palavras {w:5.1%}"
+                      + (f"  ao vivo {wl:5.1%}" if live else "") + f"  {dt:5.2f}s", file=sys.stderr)
             wer, cer = wer_cer(refs, hyp_full)
             row = {"model": model_name, "lang": lang, "n": len(corpus),
                    "backend": getattr(whisper, "backend", "cpu"),
@@ -224,7 +237,7 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
     return report
 
 
-# ── latency benchmark ─────────────────────────────────────────────────────────
+# ── benchmark de atraso ───────────────────────────────────────────────────────
 
 def ensure_piper_voice(lang: str) -> str:
     import urllib.request
@@ -237,7 +250,7 @@ def ensure_piper_voice(lang: str) -> str:
     for ext in ("", ".json"):
         dest = VOICES / f"{name}{ext}"
         if not dest.exists():
-            print(f"  downloading {dest.name}", file=sys.stderr)
+            print(f"  baixando {dest.name}", file=sys.stderr)
             urllib.request.urlretrieve(base + ext, dest)
     return str(VOICES / name)
 
@@ -259,7 +272,7 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
     for src, tgt in pairs:
         praxis.setup_argos(src, tgt)
         voice = praxis.load_piper(ensure_piper_voice(tgt))
-        praxis.do_translate("warm up.", src, tgt)               # load MT model
+        praxis.do_translate("warm up.", src, tgt)               # carrega o modelo de tradução
         b"".join(c.audio_int16_bytes for c in voice.synthesize("warm up."))
         corpus = load_corpus(src)[:max_items]
         stages: dict[str, list[float]] = {k: [] for k in
@@ -267,7 +280,7 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
         samples = []
         for it in corpus:
             a = read16k(it["path"])
-            # the engine only ever sees ≤ MAX_SEG_S segments
+            # o motor só recebe trechos de no máximo MAX_SEG_S
             segs = live_segments(a)
             if not segs:
                 continue
@@ -275,7 +288,7 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
             tail = vad_tail_ms(a)
             if tail is None:
                 tail = float(praxis.SILENCE_MS)
-                print('  ! VAD tail not measurable, using SILENCE_MS', file=sys.stderr)
+                print('  ! espera pelo silêncio não mensurável, usando SILENCE_MS', file=sys.stderr)
             t0 = time.perf_counter()
             text = praxis.transcribe_segment(whisper, last, src)
             t1 = time.perf_counter()
@@ -294,8 +307,8 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
                             "text": text, "translation": tr,
                             **{k: round(v, 1) for k, v in row.items()}})
             print(f"  {src}→{tgt} {it['file']}  total {row['total']:6.0f} ms  "
-                  f"(vad {tail:.0f} asr {row['asr']:.0f} mt {row['mt']:.0f} "
-                  f"tts {row['tts_first']:.0f})", file=sys.stderr)
+                  f"(silêncio {tail:.0f} transcrição {row['asr']:.0f} tradução {row['mt']:.0f} "
+                  f"voz {row['tts_first']:.0f})", file=sys.stderr)
         report["results"].append({
             "pair": f"{src}->{tgt}", "n": len(samples),
             "p50_ms": {k: round(statistics.median(v), 1) for k, v in stages.items() if v},
@@ -304,7 +317,7 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
     return report
 
 
-# ── reporting ─────────────────────────────────────────────────────────────────
+# ── relatórios ────────────────────────────────────────────────────────────────
 
 def machine_info() -> dict:
     import os
@@ -319,37 +332,64 @@ def machine_info() -> dict:
     return info
 
 
+BACKEND_NAMES = {"cpu": "processador", "cuda": "placa de vídeo (CUDA)",
+                 "mlx": "Apple Silicon (MLX)", "whispercpp": "whisper.cpp"}
+
+
+def where(backend: str | None) -> str:
+    """Nome legível de onde a transcrição roda (processador, placa de vídeo…)."""
+    b = backend or "cpu"
+    return BACKEND_NAMES.get(b, b)
+
+
+def machine_line(m: dict, cores: bool = True) -> str:
+    """Linha de cabeçalho com a máquina usada, sem siglas soltas."""
+    parts = [m["os"], f"processador {m['cpu']}"]
+    if cores:
+        parts.append(f"{m['cores']} núcleos")
+    parts += [f"Python {m['python']}",
+              f"placa de vídeo CUDA: {'sim' if m['cuda'] else 'não'}"]
+    return "_Máquina: " + " · ".join(parts) + "_"
+
+
 def to_markdown(rep: dict) -> str:
     m = rep["machine"]
-    lines = [f"_Machine: {m['os']} · {m['cpu']} · {m['cores']} cores · "
-             f"Python {m['python']} · CUDA {m['cuda']}_", ""]
+    lines = [machine_line(m), ""]
     if rep["kind"] == "asr":
-        lines += ["| Model | Backend | Lang | Clips | Speakers | Audio | WER full | WER live | CER live | RTF |",
+        lines += ["| Modelo | Onde roda | Idioma | Gravações | Falantes | Áudio | "
+                  "Erro de palavras (frase inteira) | Erro de palavras (ao vivo) | "
+                  "Erro de caracteres (ao vivo) | Velocidade de transcrição |",
                   "|---|---|---|---:|---:|---:|---:|---:|---:|---:|"]
         for r in rep["results"]:
-            lines.append(f"| {r['model']} | {r.get('backend', 'cpu')} | {r['lang']} | {r['n']} | {r['speakers']} | "
+            lines.append(f"| {r['model']} | {where(r.get('backend', 'cpu'))} | {r['lang']} | {r['n']} | {r['speakers']} | "
                          f"{r['audio_s']:.0f}s | {r['wer']:.1%} | {r.get('wer_live', float('nan')):.1%} | "
                          f"{r.get('cer_live', float('nan')):.1%} | {r['rtf']:.2f} |")
-        lines += ["", "WER full = whole utterance in one call · WER live = streamed through the "
-                  "engine's VAD (cuts at silence or every "
-                  f"{praxis.MAX_SEG_S:.0f}s) · RTF = ASR time / audio time (lower is faster)."]
+        lines += ["", "Erro de palavras = parcela das palavras transcritas errado, puladas ou inventadas "
+                  "(erro de caracteres = o mesmo, contado por letra). "
+                  "Frase inteira = a gravação toda transcrita de uma vez (melhor resultado possível) · "
+                  "ao vivo = o áudio passa pelo detector de fala do motor (corta nas pausas ou a cada "
+                  f"{praxis.MAX_SEG_S:.0f}s), como numa chamada · velocidade de transcrição = tempo "
+                  "transcrevendo ÷ duração do áudio (menor = mais rápido; abaixo de 1 = mais rápido que a fala)."]
         worst = sorted((s for r in rep["results"] for s in r["samples"]),
                        key=lambda s: -s.get("wer_live", s["wer"]))[:5]
-        lines += ["", "### Worst live transcriptions", ""]
+        lines += ["", "### Piores transcrições ao vivo", ""]
         for s in worst:
-            lines += [f"- `{s['file']}` WER {s.get('wer_live', s['wer']):.0%}",
-                      f"  - ref: {s['ref']}", f"  - hyp: {s.get('hyp_live', s['hyp'])}"]
+            lines += [f"- `{s['file']}` erro de palavras {s.get('wer_live', s['wer']):.0%}",
+                      f"  - texto real: {s['ref']}", f"  - transcrito: {s.get('hyp_live', s['hyp'])}"]
     else:
-        lines += [f"Whisper model: `{rep['model']}` · backend: `{rep.get('backend', 'cpu')}`", "",
-                  "| Pair | N | VAD tail | ASR | MT | TTS 1st | **Total p50** | **Total p95** |",
+        lines += [f"Modelo Whisper: `{rep['model']}` · roda em: {where(rep.get('backend', 'cpu'))}", "",
+                  "| Par | Gravações | Espera pelo silêncio | Transcrição | Tradução | Voz (1ª frase) | "
+                  "**Total, atraso típico** | **Total, pior caso comum (1 em 20)** |",
                   "|---|---:|---:|---:|---:|---:|---:|---:|"]
         for r in rep["results"]:
             p, q = r["p50_ms"], r["p95_ms"]
             lines.append(f"| {r['pair']} | {r['n']} | {p['vad_tail']:.0f} | {p['asr']:.0f} | "
                          f"{p['mt']:.0f} | {p['tts_first']:.0f} | **{p['total']:.0f} ms** | "
                          f"**{q['total']:.0f} ms** |")
-        lines += ["", "Stage values are p50 in ms. Total = end of speech → first translated "
-                  "audio sample ready (playback start)."]
+        lines += ["", "Valores por etapa em ms, atraso típico (mediana: metade das gravações é mais rápida). "
+                  "Pior caso comum = 1 em cada 20 gravações demora mais que isso. "
+                  "Espera pelo silêncio = quanto o detector de fala aguarda para ter certeza de que a frase acabou. "
+                  "Total = do fim da fala até a primeira amostra de áudio traduzido pronta (início da reprodução)."]
     return "\n".join(lines) + "\n"
 
 
@@ -367,21 +407,21 @@ def main() -> None:
     a = sub.add_parser("asr")
     a.add_argument("--models", nargs="+", default=["small"])
     a.add_argument("--langs", nargs="+", default=["pt", "en", "es"])
-    a.add_argument("--no-live", action="store_true")
+    a.add_argument("--no-live", action="store_true", help="só o modo frase inteira (sem o modo ao vivo)")
     a.add_argument("--name", default="asr")
-    a.add_argument("--device", default=None, help="auto|cpu|cuda|mlx|whispercpp")
-    a.add_argument("--max-seg", type=float, help="override MAX_SEG_S")
-    a.add_argument("--no-smart-cut", action="store_true")
-    a.add_argument("--preroll", type=float, help="override PREROLL_S")
-    a.add_argument("--no-repeat-guard", action="store_true")
+    a.add_argument("--device", default=None, help="onde transcrever: auto|cpu|cuda|mlx|whispercpp")
+    a.add_argument("--max-seg", type=float, help="substitui MAX_SEG_S (duração máxima de um trecho, em s)")
+    a.add_argument("--no-smart-cut", action="store_true", help="desliga o corte no ponto mais silencioso")
+    a.add_argument("--preroll", type=float, help="substitui PREROLL_S (áudio guardado antes do início da fala, em s)")
+    a.add_argument("--no-repeat-guard", action="store_true", help="desliga a proteção contra repetições em loop")
     a.add_argument("--whisper", nargs="*", default=[], metavar="KEY=JSON",
-                   help="override WHISPER_OPTS, e.g. vad_filter=false")
+                   help="substitui WHISPER_OPTS, ex.: vad_filter=false")
     lt = sub.add_parser("latency")
     lt.add_argument("--model", default="small")
     lt.add_argument("--pairs", nargs="+", default=["pt:en", "en:pt", "es:en"])
     lt.add_argument("--max-items", type=int, default=10)
     lt.add_argument("--name", default="latency")
-    lt.add_argument("--device", default=None, help="auto|cpu|cuda|mlx|whispercpp")
+    lt.add_argument("--device", default=None, help="onde transcrever: auto|cpu|cuda|mlx|whispercpp")
     args = ap.parse_args()
     global DEVICE
     DEVICE = args.device

@@ -1,29 +1,29 @@
-_Machine: Linux-7.0.0-31-generic-x86_64-with-glibc2.39 · x86_64 · Python 3.12.3 · CUDA True_
+_Máquina: Linux-7.0.0-31-generic-x86_64-with-glibc2.39 · processador x86_64 · Python 3.12.3 · placa de vídeo CUDA: sim_
 
-Whisper `medium` on `cpu` — ~1 min of continuous real speech per pair, fed in real time
+Whisper `medium` rodando em: processador — ~1 min de fala real contínua por par, entregue em tempo real
 
-| Pair | Speech | Error rate | Translation fidelity (0–100) | Typical latency | 1-in-20 worst | Lag growth (2nd vs 1st half) | Backlog when speaker stops | Translated / original speech | Keeps up |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| pt->en | 71s | 4.8% words | 74.0 | 5.6 s | 7.0 s | -0.3 s | 2.6 s | 67% | ❌ |
-| en->pt | 72s | 4.7% words | 73.6 | 4.2 s | 7.1 s | -0.5 s | 7.6 s | 80% | ❌ |
-| es->en | 73s | 4.6% words | 69.0 | 6.5 s | 9.6 s | +3.7 s | 7.0 s | 60% | ❌ |
-| fr->en | 62s | 17.1% words | 61.5 | 5.9 s | 8.8 s | +1.8 s | 4.0 s | 70% | ❌ |
-| de->en | 63s | 18.9% words | 64.9 | 7.7 s | 10.4 s | +3.9 s | 9.3 s | 59% | ❌ |
-| it->en | 78s | 26.0% words | 58.5 | 5.5 s | 8.7 s | +0.3 s | 4.0 s | 66% | ❌ |
-| ru->en | 66s | 9.1% words | 76.9 | 5.2 s | 9.0 s | -0.1 s | 6.5 s | 57% | ❌ |
-| zh->en | 62s | 19.8% chars | 35.3 | 5.5 s | 7.2 s | -1.0 s | 5.6 s | 59% | ❌ |
-| nl->en | 66s | 17.0% words | 57.0 | 4.3 s | 6.3 s | +0.0 s | 7.4 s | 64% | ❌ |
-| pl->en | 69s | 10.1% words | 63.4 | 6.6 s | 8.3 s | +0.2 s | 9.3 s | 79% | ❌ |
-| uk->en | 69s | 14.1% words | 72.4 | 7.4 s | 9.8 s | +2.6 s | 9.0 s | 62% | ❌ |
-| tr->en | 72s | 15.5% words | 64.9 | 5.2 s | 7.6 s | -0.2 s | 2.5 s | 44% | ❌ |
-| ar->en | 74s | 18.8% words | 68.8 | 5.3 s | 7.4 s | -0.5 s | 6.6 s | 61% | ❌ |
-| hi->en | 69s | 37.6% words | 42.9 | 16.0 s | 24.7 s | +10.8 s | 22.9 s | 57% | ❌ |
-| ja->en | 64s | 16.6% chars | 59.1 | 5.7 s | 8.3 s | -0.4 s | 5.7 s | 53% | ❌ |
-| ko->en | 69s | 29.1% words | 60.7 | 5.7 s | 7.5 s | +0.8 s | 7.4 s | 58% | ❌ |
+| Par | Fala | Taxa de erro | Erro por letra | Fidelidade da tradução (0–100) | Atraso típico | Pior caso comum (1 em 20) | Crescimento do atraso (2ª vs 1ª metade) | Tradução pendente quando o falante para | Fala traduzida / original | Acompanha |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| pt->en | 71s | 4.8% palavras | 1.5% | 74.0 | 5.6 s | 7.0 s | -0.3 s | 2.6 s | 67% | ❌ |
+| en->pt | 72s | 4.7% palavras | 3.9% | 73.6 | 4.2 s | 7.1 s | -0.5 s | 7.6 s | 80% | ❌ |
+| es->en | 73s | 4.6% palavras | 1.3% | 69.0 | 6.5 s | 9.6 s | +3.7 s | 7.0 s | 60% | ❌ |
+| fr->en | 62s | 17.1% palavras | 9.6% | 61.5 | 5.9 s | 8.8 s | +1.8 s | 4.0 s | 70% | ❌ |
+| de->en | 63s | 18.9% palavras | 5.4% | 64.9 | 7.7 s | 10.4 s | +3.9 s | 9.3 s | 59% | ❌ |
+| it->en | 78s | 26.0% palavras | 10.8% | 58.5 | 5.5 s | 8.7 s | +0.3 s | 4.0 s | 66% | ❌ |
+| ru->en | 66s | 9.1% palavras | 2.9% | 76.9 | 5.2 s | 9.0 s | -0.1 s | 6.5 s | 57% | ❌ |
+| zh->en | 62s | 12.8% caracteres | 12.8% | 35.3 | 5.5 s | 7.2 s | -1.0 s | 5.6 s | 59% | ❌ |
+| nl->en | 66s | 17.0% palavras | 7.3% | 57.0 | 4.3 s | 6.3 s | +0.0 s | 7.4 s | 64% | ❌ |
+| pl->en | 69s | 10.1% palavras | 1.6% | 63.4 | 6.6 s | 8.3 s | +0.2 s | 9.3 s | 79% | ❌ |
+| uk->en | 69s | 14.1% palavras | 6.1% | 72.4 | 7.4 s | 9.8 s | +2.6 s | 9.0 s | 62% | ❌ |
+| tr->en | 72s | 15.5% palavras | 4.6% | 64.9 | 5.2 s | 7.6 s | -0.2 s | 2.5 s | 44% | ❌ |
+| ar->en | 74s | 18.8% palavras | 8.9% | 68.8 | 5.3 s | 7.4 s | -0.5 s | 6.6 s | 61% | ❌ |
+| hi->en | 69s | 37.6% palavras | 15.2% | 42.9 | 16.0 s | 24.7 s | +10.8 s | 22.9 s | 57% | ❌ |
+| ja->en | 64s | 14.4% caracteres | 14.4% | 59.1 | 5.7 s | 8.3 s | -0.4 s | 5.7 s | 53% | ❌ |
+| ko->en | 69s | 7.4% caracteres | 7.4% | 60.7 | 5.7 s | 7.5 s | +0.8 s | 7.4 s | 58% | ❌ |
 
-### Where the time goes (typical, per segment)
+### Para onde vai o tempo (típico, por trecho)
 
-| Pair | Waiting in queue | Transcription | Translation | Voice (1st sentence) | Waiting for previous speech |
+| Par | Espera na fila | Transcrição | Tradução | Voz (1ª frase) | Espera pela fala anterior |
 |---|---:|---:|---:|---:|---:|
 | pt->en | 1268 ms | 3514 ms | 26 ms | 66 ms | 0 ms |
 | en->pt | 0 ms | 3566 ms | 31 ms | 88 ms | 0 ms |
@@ -42,7 +42,7 @@ Whisper `medium` on `cpu` — ~1 min of continuous real speech per pair, fed in 
 | ja->en | 0 ms | 4038 ms | 31 ms | 76 ms | 0 ms |
 | ko->en | 0 ms | 3829 ms | 28 ms | 76 ms | 1 ms |
 
-### Problems found
+### Problemas encontrados
 
 - **pt->en**: não acompanha o falante: atraso típico 5.6 s, sobe -0.3 s da 1ª para a 2ª metade e sobram 3 s de tradução quando ele para; trechos esperam 1268 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala); 1 trecho(s) cortado(s) no meio por excesso de duração sem pausa
 - **en->pt**: não acompanha o falante: atraso típico 4.2 s, sobe -0.5 s da 1ª para a 2ª metade e sobram 8 s de tradução quando ele para; 1 trecho(s) cortado(s) no meio por excesso de duração sem pausa
@@ -59,6 +59,6 @@ Whisper `medium` on `cpu` — ~1 min of continuous real speech per pair, fed in 
 - **ar->en**: não acompanha o falante: atraso típico 5.3 s, sobe -0.5 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para; 1 trecho(s) com fala viraram texto vazio
 - **hi->en**: transcrição ruim: 38% das palavras erradas; não acompanha o falante: atraso típico 16.0 s, sobe +10.8 s da 1ª para a 2ª metade e sobram 23 s de tradução quando ele para; trechos esperam 13073 ms na fila antes de serem transcritos (a transcrição é mais lenta que a fala)
 - **ja->en**: não acompanha o falante: atraso típico 5.7 s, sobe -0.4 s da 1ª para a 2ª metade e sobram 6 s de tradução quando ele para
-- **ko->en**: transcrição ruim: 29% das palavras erradas; não acompanha o falante: atraso típico 5.7 s, sobe +0.8 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para; 1 trecho(s) cortado(s) no meio por excesso de duração sem pausa
+- **ko->en**: não acompanha o falante: atraso típico 5.7 s, sobe +0.8 s da 1ª para a 2ª metade e sobram 7 s de tradução quando ele para; 1 trecho(s) cortado(s) no meio por excesso de duração sem pausa
 
-Error rate = share of words (characters for zh/ja) transcribed wrong, skipped or invented. Translation fidelity compares the translation of what was heard with the translation of the true script. Latency = end of a speech segment → first translated audio. Lag growth ≈ 0 means it keeps pace.
+Taxa de erro = parcela das palavras (caracteres em zh/ja) transcritas errado, puladas ou inventadas. Fidelidade da tradução (0–100) compara a tradução do que foi ouvido com a tradução do texto real; 100 = idênticas. Atraso = do fim de um trecho de fala até o primeiro áudio traduzido; atraso típico = mediana (metade dos trechos é mais rápida); pior caso comum = 1 em cada 20 trechos demora mais que isso. Crescimento do atraso ≈ 0 significa que acompanha o ritmo.

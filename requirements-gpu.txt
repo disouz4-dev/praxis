@@ -1,8 +1,8 @@
-# Optional GPU backends — the installers pick these automatically.
-# NVIDIA (Linux/Windows): CUDA runtime for faster-whisper / CTranslate2
+# Backends opcionais para placa de vídeo — os instaladores escolhem sozinhos.
+# NVIDIA (Linux/Windows): bibliotecas CUDA para o faster-whisper / CTranslate2
 #   nvidia-cublas-cu12
 #   nvidia-cudnn-cu12>=9,<10
-# Apple Silicon: Whisper on the GPU via MLX
+# Apple Silicon: Whisper na placa de vídeo via MLX
 #   mlx-whisper
-# AMD / Intel GPUs (Linux/Windows): whisper.cpp built with Vulkan
+# Placas AMD / Intel (Linux/Windows): whisper.cpp compilado com Vulkan
 #   GGML_VULKAN=1 pip install --no-binary pywhispercpp pywhispercpp

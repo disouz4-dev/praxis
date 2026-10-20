@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Builds the app icons (PNG / ICO / ICNS) from the speech-bubble symbol in
-assets/praxis.png. Run: python scripts/make_icons.py  (ICNS needs macOS iconutil)."""
+"""Gera os ícones do app (PNG / ICO / ICNS) a partir do símbolo de balão de fala
+em assets/praxis.png. Uso: python scripts/make_icons.py  (o ICNS precisa do
+iconutil do macOS)."""
 import shutil
 import subprocess
 import sys
@@ -12,14 +13,14 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 SRC = ASSETS / "praxis.png"
-BG = (11, 15, 25, 255)          # matches the logo background
-CROP = (312, 150, 942, 760)     # bubble + waveform, no wordmark (1254px source)
+BG = (11, 15, 25, 255)          # mesma cor do fundo do logo
+CROP = (312, 150, 942, 760)     # balão + onda sonora, sem o nome escrito (imagem original de 1254px)
 
 
 def build(size: int = 1024) -> Image.Image:
     logo = Image.open(SRC).convert("RGBA").crop(CROP)
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    # macOS icon grid: ~824px rounded body inside 1024 canvas
+    # grade de ícones do macOS: corpo arredondado de ~824px numa tela de 1024
     body = int(size * 0.805)
     off = (size - body) // 2
     mask = Image.new("L", (body, body), 0)
@@ -47,7 +48,7 @@ def main() -> None:
                 icon.resize((s * 2, s * 2), Image.LANCZOS).save(iconset / f"icon_{s}x{s}@2x.png")
             subprocess.run(["iconutil", "-c", "icns", str(iconset),
                             "-o", str(ASSETS / "icon.icns")], check=True)
-    print("icons written to", ASSETS, file=sys.stderr)
+    print("ícones gravados em", ASSETS, file=sys.stderr)
 
 
 if __name__ == "__main__":

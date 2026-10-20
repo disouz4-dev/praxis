@@ -1,19 +1,19 @@
-"""UI module (praxis_config.py): catalog, voices, config persistence, i18n, downloads."""
+"""Módulo da interface (praxis_config.py): catálogo, vozes, gravação da configuração, traduções da interface (i18n), downloads."""
 import io
 import json
 
 import pytest
 
 
-def test_catalog_url_is_percent_encoded(cfg_module):
+def test_url_do_catalogo_usa_codificacao_percentual(cfg_module):
     pc = cfg_module
     tug = next(v for v in pc.VOICE_CATALOG if v["speaker"] == "tugão")
     url = pc._catalog_url(tug, ".json")
-    url.encode("ascii")                                   # must be pure ASCII
+    url.encode("ascii")                                   # tem que ser só ASCII
     assert "tug%C3%A3o" in url and url.endswith(".onnx.json")
 
 
-def test_catalog_entries_are_well_formed(cfg_module):
+def test_entradas_do_catalogo_bem_formadas(cfg_module):
     pc = cfg_module
     names = set()
     for v in pc.VOICE_CATALOG:
@@ -24,7 +24,7 @@ def test_catalog_entries_are_well_formed(cfg_module):
         names.add(fn)
 
 
-def test_voice_lang_code_and_filter(cfg_module):
+def test_codigo_de_idioma_da_voz_e_filtro(cfg_module):
     pc = cfg_module
     assert pc._voice_lang_code("/v/it_IT-paola-medium.onnx") == "it"
     voices = [("/v/pt_BR-faber-medium.onnx", "Faber"), ("/v/en_US-ryan-medium.onnx", "Ryan"),
@@ -32,19 +32,19 @@ def test_voice_lang_code_and_filter(cfg_module):
     assert [l for _, l in pc._voices_for_lang(voices, "pt")] == ["Faber", "🎙 Me"]
 
 
-def test_best_catalog_voice_prefers_default_then_medium(cfg_module):
+def test_melhor_voz_do_catalogo_prefere_padrao_depois_media(cfg_module):
     pc = cfg_module
-    assert pc._best_catalog_voice("de")["speaker"] == "thorsten"     # measured faster, "default"
+    assert pc._best_catalog_voice("de")["speaker"] == "thorsten"     # medida como mais rápida, "padrão"
     assert pc._best_catalog_voice("it")["quality"] == "medium"
     assert pc._best_catalog_voice("xx") is None
 
 
-def test_load_cfg_defaults_when_missing(cfg_module):
+def test_carrega_config_padrao_quando_ausente(cfg_module):
     pc = cfg_module
     assert pc.load_cfg() == {**pc.DEFAULT_CFG, **{k: v for k, v in pc.load_cfg().items()}}
 
 
-def test_load_cfg_survives_corrupt_and_bad_types(cfg_module):
+def test_carrega_config_resiste_a_arquivo_corrompido_e_tipos_errados(cfg_module):
     pc = cfg_module
     pc.CONFIG_FILE.parent.mkdir(parents=True)
     pc.CONFIG_FILE.write_text("{not json")
@@ -58,7 +58,7 @@ def test_load_cfg_survives_corrupt_and_bad_types(cfg_module):
     assert pc.load_cfg()["mode"] == pc.DEFAULT_CFG["mode"]
 
 
-def test_save_cfg_roundtrip_is_atomic(cfg_module):
+def test_salvar_e_reler_config_e_atomico(cfg_module):
     pc = cfg_module
     cfg = dict(pc.DEFAULT_CFG, src="es", ui_lang="de")
     pc.save_cfg(cfg)
@@ -67,14 +67,14 @@ def test_save_cfg_roundtrip_is_atomic(cfg_module):
     assert pc.load_cfg()["src"] == "es"
 
 
-def test_i18n_all_languages_have_same_keys(cfg_module):
+def test_i18n_todos_os_idiomas_tem_as_mesmas_chaves(cfg_module):
     pc = cfg_module
     base = set(pc.UI_STRINGS["pt"])
     for lang, table in pc.UI_STRINGS.items():
-        assert set(table) == base, f"{lang}: missing {base - set(table)}"
+        assert set(table) == base, f"{lang}: faltando {base - set(table)}"
 
 
-def test_get_voices_lists_onnx_and_clones(cfg_module):
+def test_lista_vozes_onnx_e_clones(cfg_module):
     pc = cfg_module
     pc.VOICES_DIR.mkdir()
     (pc.VOICES_DIR / "pt_BR-faber-medium.onnx").write_bytes(b"x")
@@ -95,7 +95,7 @@ class _Resp(io.BytesIO):
         self.close()
 
 
-def test_download_voice_files_atomic(cfg_module, monkeypatch):
+def test_download_dos_arquivos_de_voz_atomico(cfg_module, monkeypatch):
     pc = cfg_module
     v = pc.VOICE_CATALOG[0]
     monkeypatch.setattr(pc.urllib.request, "urlopen", lambda url, timeout=0: _Resp(b"data"))
@@ -106,7 +106,7 @@ def test_download_voice_files_atomic(cfg_module, monkeypatch):
     assert not list(pc.VOICES_DIR.glob("*.part"))
 
 
-def test_download_voice_files_failure_leaves_nothing(cfg_module, monkeypatch):
+def test_falha_no_download_de_voz_nao_deixa_nada(cfg_module, monkeypatch):
     pc = cfg_module
     v = pc.VOICE_CATALOG[1]
     calls = []
@@ -119,10 +119,10 @@ def test_download_voice_files_failure_leaves_nothing(cfg_module, monkeypatch):
     monkeypatch.setattr(pc.urllib.request, "urlopen", fake)
     with pytest.raises(OSError):
         pc._download_voice_files(v)
-    assert list(pc.VOICES_DIR.iterdir()) == []          # no partial voice "installed"
+    assert list(pc.VOICES_DIR.iterdir()) == []          # nenhuma voz pela metade "instalada"
 
 
-def test_audio_lists_never_raise(cfg_module, monkeypatch):
+def test_listas_de_audio_nunca_dao_erro(cfg_module, monkeypatch):
     pc = cfg_module
     import praxis_platform as plat
 
@@ -135,11 +135,11 @@ def test_audio_lists_never_raise(cfg_module, monkeypatch):
     assert pc._pa_defaults() == ("", "")
 
 
-def test_no_hardcoded_linux_only_calls():
-    """Regression guard for cross-platform support."""
+def test_sem_chamadas_fixas_exclusivas_do_linux():
+    """Proteção contra regressão no suporte a vários sistemas operacionais."""
     from conftest import ROOT
     src = (ROOT / "praxis_config.py").read_text(encoding="utf-8") + \
         (ROOT / "praxis.py").read_text(encoding="utf-8")
     for bad in ('"aplay"', '"xrandr"', '"/tmp/', "'/tmp/", '".local/share/praxis/venv',
                 '["parec"', '["pacat"', '"pw-metadata"'):
-        assert bad not in src, f"Linux-only call left in UI/engine: {bad}"
+        assert bad not in src, f"Chamada exclusiva do Linux esquecida na interface/motor: {bad}"
