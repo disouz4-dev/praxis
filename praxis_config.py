@@ -4,8 +4,6 @@
 import json
 import os
 import queue
-import re
-import select
 import subprocess
 import sys
 import threading
@@ -17,7 +15,9 @@ from tkinter import messagebox
 import numpy as np
 import customtkinter as ctk
 
-CONFIG_FILE = Path.home() / ".config" / "praxis" / "config.json"
+import praxis_platform as plat
+
+CONFIG_FILE = plat.config_dir() / "config.json"
 VOICES_DIR  = Path(__file__).parent / "voices"
 PRAXIS_PY   = Path(__file__).parent / "praxis.py"
 ASSETS_DIR  = Path(__file__).parent / "assets"
@@ -43,6 +43,10 @@ SRC_LANGS = [
 ]
 
 _HF_BASE = "https://huggingface.co/rhasspy/piper-voices/resolve/main"
+
+# Fonts that exist on each OS / fontes disponíveis por sistema
+_MONO_FONT = "Menlo" if plat.IS_MAC else "Consolas" if plat.IS_WIN else "Monospace"
+_UI_FONT   = "Helvetica Neue" if plat.IS_MAC else "Segoe UI" if plat.IS_WIN else "DejaVu Sans"
 
 # Vozes verificadas em rhasspy/piper-voices voices.json (todas com HTTP 200)
 VOICE_CATALOG: list[dict] = [
@@ -100,7 +104,8 @@ def _catalog_filename(v: dict) -> str:
 
 def _catalog_url(v: dict, ext: str = "") -> str:
     l, lo, sp, q = v["lang"], v["locale"], v["speaker"], v["quality"]
-    return f"{_HF_BASE}/{l}/{lo}/{sp}/{q}/{lo}-{sp}-{q}.onnx{ext}"
+    from urllib.parse import quote
+    return f"{_HF_BASE}/" + quote(f"{l}/{lo}/{sp}/{q}/{lo}-{sp}-{q}.onnx{ext}")
 
 
 # ── Tradução da interface / UI translation ────────────────────────────────────
@@ -837,28 +842,9 @@ THEME_DARK: dict = {
 
 
 def _get_primary_monitor() -> tuple[int, int, int, int]:
-    """Retorna (x_offset, y_offset, largura, altura) do monitor primário via xrandr.
-    Returns (0, 0, 0, 0) se não conseguir determinar."""
-    try:
-        out = subprocess.check_output(
-            ["xrandr"], text=True, stderr=subprocess.DEVNULL)
-        # Prefere o monitor marcado como "primary"
-        for line in out.splitlines():
-            if " connected primary" in line:
-                m = re.search(r'(\d+)x(\d+)\+(\d+)\+(\d+)', line)
-                if m:
-                    return (int(m.group(3)), int(m.group(4)),
-                            int(m.group(1)), int(m.group(2)))
-        # Fallback: primeiro monitor conectado
-        for line in out.splitlines():
-            if " connected" in line and "disconnected" not in line:
-                m = re.search(r'(\d+)x(\d+)\+(\d+)\+(\d+)', line)
-                if m:
-                    return (int(m.group(3)), int(m.group(4)),
-                            int(m.group(1)), int(m.group(2)))
-    except Exception:
-        pass
-    return 0, 0, 0, 0
+    """(x, y, w, h) do monitor primário; (0, 0, 0, 0) se desconhecido.
+    Primary monitor geometry; zeros when unknown (caller uses Tk fallback)."""
+    return plat.primary_monitor_geometry()
 
 
 # ── Voz / catálogo ────────────────────────────────────────────────────────────
@@ -928,50 +914,21 @@ def _best_catalog_voice(lang_code: str) -> dict | None:
 
 # ── Áudio ─────────────────────────────────────────────────────────────────────
 
-def _pa_devices(pa_type: str, exclude: list[str]) -> list[tuple[str, str, str]]:
-    """Retorna [(name, description, channel_map)] via `pactl list <pa_type>`."""
+def get_audio_inputs() -> list[tuple[str, str]]:
+    """Entradas de áudio (id, label) — dispositivos estéreo viram Input 1 / Input 2.
+    Audio inputs via the platform backend; stereo devices split into L/R."""
     try:
-        raw = subprocess.check_output(
-            ["pactl", "list", pa_type], text=True, stderr=subprocess.DEVNULL,
-            env={**__import__("os").environ, "LANG": "C", "LC_ALL": "C"},
-        )
+        return plat.get_backend().list_inputs()
     except Exception:
         return []
 
-    result: list[tuple[str, str, str]] = []
-    name = desc = chmap = ""
-    for line in raw.splitlines():
-        s = line.strip()
-        if s.startswith("Name:"):
-            name = s.split(":", 1)[1].strip()
-            desc = chmap = ""
-        elif s.startswith("Description:"):
-            desc = s.split(":", 1)[1].strip()
-        elif s.startswith("Channel Map:"):
-            chmap = s.split(":", 1)[1].strip()
-            if name and desc and not any(ex in name for ex in exclude):
-                result.append((name, desc, chmap))
-            name = desc = chmap = ""
-    return result
-
-
-def get_audio_inputs() -> list[tuple[str, str]]:
-    """Fontes de áudio — expande dispositivos estéreo em Input 1 / Input 2."""
-    raw = _pa_devices("sources", exclude=[".monitor", "Praxis", "Atos2"])
-    result: list[tuple[str, str]] = []
-    for name, desc, chmap in raw:
-        channels = chmap.split(",")
-        if len(channels) == 2:
-            result.append((f"{name}:left",  f"{desc}  —  Input 1 (L)"))
-            result.append((f"{name}:right", f"{desc}  —  Input 2 (R)"))
-        else:
-            result.append((name, desc))
-    return result
-
 
 def get_audio_outputs() -> list[tuple[str, str]]:
-    """Sinks de áudio (saídas) — exclui dispositivos virtuais do Praxis."""
-    return [(n, d) for n, d, _ in _pa_devices("sinks", exclude=["Praxis", "Atos2"])]
+    """Saídas de áudio — exclui dispositivos virtuais do Praxis / loopback drivers."""
+    try:
+        return plat.get_backend().list_outputs()
+    except Exception:
+        return []
 
 
 def get_voices() -> list[tuple[str, str]]:
@@ -1026,21 +983,11 @@ def get_voices() -> list[tuple[str, str]]:
 
 
 def _pa_defaults() -> tuple[str, str]:
-    """Retorna (default_source_name, default_sink_name) via `pactl info`."""
+    """(default_input, default_output) do sistema via backend de áudio."""
     try:
-        raw = subprocess.check_output(
-            ["pactl", "info"], text=True, stderr=subprocess.DEVNULL,
-            env={**__import__("os").environ, "LANG": "C", "LC_ALL": "C"},
-        )
+        return plat.get_backend().defaults()
     except Exception:
         return "", ""
-    src = sink = ""
-    for line in raw.splitlines():
-        if line.startswith("Default Source:"):
-            src = line.split(":", 1)[1].strip()
-        elif line.startswith("Default Sink:"):
-            sink = line.split(":", 1)[1].strip()
-    return src, sink
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -1049,9 +996,18 @@ def load_cfg() -> dict:
     cfg = dict(DEFAULT_CFG)
     if CONFIG_FILE.exists():
         try:
-            cfg.update(json.loads(CONFIG_FILE.read_text()))
+            loaded = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                cfg.update(loaded)
         except Exception:
             pass
+    # Coerce types: a hand-edited/corrupt file must never crash the UI
+    for k, v in DEFAULT_CFG.items():
+        if v is not None and not isinstance(cfg.get(k), type(v)):
+            if isinstance(v, float) and isinstance(cfg.get(k), int) and not isinstance(cfg.get(k), bool):
+                cfg[k] = float(cfg[k])
+            else:
+                cfg[k] = v
     # Migra voice_out para a pasta local do programa se ainda aponta para o path antigo
     old_base = str(Path.home() / ".local" / "share" / "praxis" / "voices")
     vo = cfg.get("voice_out", "")
@@ -1063,7 +1019,36 @@ def load_cfg() -> dict:
 
 def save_cfg(cfg: dict) -> None:
     CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CONFIG_FILE.write_text(json.dumps(cfg, indent=2, ensure_ascii=False))
+    # Atomic write: a crash mid-write must not corrupt the config
+    tmp = CONFIG_FILE.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, CONFIG_FILE)
+
+
+def _download_voice_files(v: dict, timeout: float = 60.0) -> None:
+    """Downloads .onnx + .onnx.json of a catalog voice atomically.
+
+    Each file goes to `<name>.part` and is renamed only when complete, so an
+    interrupted download never looks like an installed voice."""
+    import shutil as _sh
+    VOICES_DIR.mkdir(parents=True, exist_ok=True)
+    fname = _catalog_filename(v)
+    done: list[Path] = []
+    try:
+        for ext in (".json", ""):   # small json first: fail fast on 404
+            dest = VOICES_DIR / f"{fname}{ext}"
+            part = dest.with_name(dest.name + ".part")
+            with urllib.request.urlopen(_catalog_url(v, ext), timeout=timeout) as r, \
+                    open(part, "wb") as f:
+                _sh.copyfileobj(r, f, 1 << 16)
+            os.replace(part, dest)
+            done.append(dest)
+    except Exception:
+        for d in done:
+            d.unlink(missing_ok=True)
+        for ext in (".json", ""):
+            (VOICES_DIR / f"{fname}{ext}.part").unlink(missing_ok=True)
+        raise
 
 
 def lang_label(code: str) -> str:
@@ -1186,21 +1171,17 @@ class VoiceDownloadDialog(ctk.CTkToplevel):
         threading.Thread(target=self._worker, args=(selected,), daemon=True).start()
 
     def _worker(self, voices: list[dict]) -> None:
-        import urllib.request
         VOICES_DIR.mkdir(parents=True, exist_ok=True)
         total = len(voices)
         for i, v in enumerate(voices):
-            fname = _catalog_filename(v)
             msg = f"({i + 1}/{total}) Baixando {v['name']}…"
             self.after(0, lambda m=msg: self._status_lbl.configure(text=m))
             self.after(0, lambda p=i / total: self._prog_bar.set(p))
-            for ext in ("", ".json"):
-                try:
-                    urllib.request.urlretrieve(
-                        _catalog_url(v, ext), str(VOICES_DIR / f"{fname}{ext}"))
-                except Exception as e:
-                    err = f"Erro {v['name']}{ext}: {e}"
-                    self.after(0, lambda m=err: self._status_lbl.configure(text=m))
+            try:
+                _download_voice_files(v)
+            except Exception as e:
+                err = f"Erro {v['name']}: {e}"
+                self.after(0, lambda m=err: self._status_lbl.configure(text=m))
         self.after(0, self._done)
 
     def _done(self) -> None:
@@ -1233,6 +1214,7 @@ class ConfigWindow(ctk.CTk):
         """Inicializa a janela principal de configuração do Praxis.
         Initializes the main Praxis configuration window."""
         super().__init__()
+        self._set_window_icon()   # before the splash, so the Dock never shows Python's icon
         ctk.set_default_color_theme("blue")
 
         self.cfg = load_cfg()
@@ -1268,8 +1250,8 @@ class ConfigWindow(ctk.CTk):
             sw = self.winfo_screenwidth()
             sh = self.winfo_screenheight()
             ox = oy = 0
-        win_h = max(680, min(sh - 80, sh))   # usa quase toda a tela, mínimo 680
-        self.minsize(560, 640)
+        win_h = max(min(680, sh - 40), sh - 80)   # quase toda a tela / nearly full height
+        self.minsize(560, min(640, sh - 40))
         x = ox + (sw - 560) // 2
         y = oy + max(0, (sh - win_h) // 2)
         self.geometry(f"560x{win_h}+{x}+{y}")
@@ -1278,53 +1260,33 @@ class ConfigWindow(ctk.CTk):
 
         # Força PipeWire a 44100 Hz em todo o sistema ao iniciar
         # Force PipeWire to 44100 Hz system-wide on startup
-        subprocess.run(
-            ["pw-metadata", "-n", "settings", "0", "clock.force-rate", "44100"],
-            capture_output=True, timeout=3
-        )
+        try:
+            plat.get_backend().force_rate(44100)   # PipeWire only; no-op elsewhere
+        except Exception:
+            pass
 
         # Splash de carregamento aparece ANTES de _build() para dar feedback imediato
         # Loading splash appears BEFORE _build() to give immediate visual feedback
         splash, _sp_prog, _sp_lbl = self._create_loading_splash()
         self.update()  # força a splash a renderizar antes do build pesado / force splash to render
 
-        # Thread daemon que anima a barra de progresso enquanto _build() bloqueia o main thread
-        # Daemon thread animates the progress bar while _build() blocks the main thread
-        import time as _time
-        _sp_stop = threading.Event()
-        _sp_phase: list[float] = [0.05, 0.82]  # [valor_atual, limite_fase]
-
-        def _sp_anim() -> None:
-            while not _sp_stop.is_set():
-                _time.sleep(0.12)
-                v, hi = _sp_phase
-                nxt = min(hi, v + 0.008)
-                _sp_phase[0] = nxt
-                try:
-                    splash.after(0, _sp_prog.set, nxt)
-                except Exception:
-                    break
-
-        _sp_thread = threading.Thread(target=_sp_anim, daemon=True)
-        _sp_thread.start()
-
+        # Progress is advanced from the main thread between phases (Tk is not
+        # thread-safe; _build() blocks the loop anyway, so a thread can't animate it).
+        _sp_prog.set(0.10)
         _sp_lbl.configure(text="Construindo interface…")
         self.update()
         self._build()
 
-        _sp_phase[1] = 0.96   # nova fase: dispositivos de áudio / new phase: audio devices
+        _sp_prog.set(0.82)
         _sp_lbl.configure(text="Conectando áudio…")
         self.update()
         self._refresh_devices(startup=True)
 
-        # Finaliza animação / finish animation
-        _sp_stop.set()
         _sp_prog.set(1.0)
         _sp_lbl.configure(text="Pronto!")
         self.update()
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-        self._set_window_icon()
 
         # Fecha splash e exibe janela principal após breve pausa
         # Close splash and show main window after brief pause
@@ -1344,7 +1306,7 @@ class ConfigWindow(ctk.CTk):
             self._toggle_theme_impl()
         except Exception as _te:
             import traceback
-            with open("/tmp/praxis_theme_err.log", "a") as _f:
+            with open(plat.temp_path("praxis_theme_err.log"), "a") as _f:
                 traceback.print_exc(file=_f)
 
     def _toggle_theme_impl(self) -> None:
@@ -1366,10 +1328,7 @@ class ConfigWindow(ctk.CTk):
 
         # Para o thread do meter
         self._meter_stop.set()
-        if self._meter_proc:
-            try: self._meter_proc.terminate()
-            except Exception: pass
-        self._meter_proc = None
+        self._close_meter_capture()
 
         self._stop_ptt_config_listener()
         self._stop_engine(collapse=False)
@@ -1398,19 +1357,16 @@ class ConfigWindow(ctk.CTk):
     def _on_close(self) -> None:
         self._stop_engine(collapse=False)
         self._meter_stop.set()
-        if self._meter_proc:
-            try:
-                self._meter_proc.terminate()
-            except Exception:
-                pass
-        if hasattr(self, "_stop_meter"):
-            self._stop_meter()
+        self._close_meter_capture()
+        self._stop_meter()
+        self._stop_ov_playback()
         # Restaura PipeWire para rate automático ao fechar
         # Restore PipeWire to automatic rate on close
-        subprocess.run(
-            ["pw-metadata", "-n", "settings", "0", "clock.force-rate", "0"],
-            capture_output=True, timeout=3
-        )
+        try:
+            plat.get_backend().restore_rate()
+        except Exception:
+            pass
+        self._restore_default_devices()
         self.destroy()
 
     # ── Helpers de tradução e cores / Translation and color helpers ───────────
@@ -1510,8 +1466,6 @@ class ConfigWindow(ctk.CTk):
     def _create_loading_splash(self) -> "tuple[tk.Toplevel, ctk.CTkProgressBar, ctk.CTkLabel]":
         """Cria e exibe a splash de carregamento com logo + barra de progresso.
         Creates and shows the loading splash with logo + progress bar."""
-        from PIL import Image, ImageTk  # lazy import / importação tardia
-
         WIDTH, LOGO_H = 420, 280
         BAR_H = 6
 
@@ -1534,12 +1488,18 @@ class ConfigWindow(ctk.CTk):
 
         # Logo / imagem de topo
         splash_path = ASSETS_DIR / "praxis.png"
+        logo_ok = False
         if splash_path.exists():
-            img = Image.open(splash_path).resize((WIDTH, LOGO_H), Image.LANCZOS)
-            self._loading_photo = ImageTk.PhotoImage(img)
-            tk.Label(sp, image=self._loading_photo, bg="#0D1117", bd=0).pack()
-        else:
-            tk.Label(sp, text="Praxis", font=("Segoe UI", 28, "bold"),
+            try:
+                from PIL import Image, ImageTk  # optional (Pillow)
+                img = Image.open(splash_path).resize((WIDTH, LOGO_H), Image.LANCZOS)
+                self._loading_photo = ImageTk.PhotoImage(img)
+                tk.Label(sp, image=self._loading_photo, bg="#0D1117", bd=0).pack()
+                logo_ok = True
+            except Exception:
+                pass
+        if not logo_ok:
+            tk.Label(sp, text="Praxis", font=(_UI_FONT, 28, "bold"),
                      fg="white", bg="#0D1117").pack(pady=(LOGO_H // 2 - 20, 0))
 
         # Label de status / status label
@@ -1563,11 +1523,15 @@ class ConfigWindow(ctk.CTk):
         return sp, prog, status_lbl
 
     def _set_window_icon(self) -> None:
-        """Define o ícone da janela/barra de tarefas a partir de praxis.png."""
+        """Define o ícone da janela / barra de tarefas / Dock (sem depender do Pillow).
+        Sets the window, taskbar and macOS Dock icon (Tk 8.6+ reads PNG natively)."""
         try:
-            from PIL import Image, ImageTk
-            img = Image.open(ASSETS_DIR / "praxis.png").resize((64, 64), Image.LANCZOS)
-            self._taskbar_icon = ImageTk.PhotoImage(img)
+            if plat.IS_WIN and (ASSETS_DIR / "icon.ico").exists():
+                self.iconbitmap(default=str(ASSETS_DIR / "icon.ico"))
+            png = ASSETS_DIR / ("icon.png" if plat.IS_MAC else "icon_256.png")
+            if not png.exists():
+                png = ASSETS_DIR / "praxis.png"
+            self._taskbar_icon = tk.PhotoImage(file=str(png))
             self.wm_iconphoto(True, self._taskbar_icon)
         except Exception:
             pass
@@ -1787,7 +1751,7 @@ class ConfigWindow(ctk.CTk):
         """Alterna a aba visível entre Config e Clonar, mostrando/ocultando os frames.
         Switches the visible tab between Config and Clone by showing/hiding frames."""
         self._fix_seg_colors(self._tab_seg)
-        if "Config" in value:
+        if value == self._t("tab_config"):
             self._clone_frame_outer.pack_forget()
             self._config_frame_outer.pack(fill="both", expand=True)
         else:
@@ -1968,7 +1932,6 @@ class ConfigWindow(ctk.CTk):
         c = self._gate_canvas
         c.delete("all")
         pad = 9  # margem vertical da trilha
-        r   = 4  # raio do arredondamento da trilha (simulado com oval+rect)
 
         # Trilha cinza de fundo
         c.create_rectangle(0, pad, W, H - pad, fill="#E5E7EB", outline="", tags="track")
@@ -2103,70 +2066,51 @@ class ConfigWindow(ctk.CTk):
             return None
         return name.split(":")[0]   # remove :left / :right
 
-    def _start_meter_thread(self) -> None:
-        self._meter_stop.clear()
-        if self._meter_proc:
+    def _close_meter_capture(self) -> None:
+        cap = getattr(self, "_meter_proc", None)
+        self._meter_proc = None
+        if cap is not None:
             try:
-                self._meter_proc.terminate()
+                cap.close()
             except Exception:
                 pass
-            self._meter_proc = None
 
-        device = self._get_meter_device()
-        cmd = ["parec", "--format=s16le", "--rate=48000", "--channels=2",
-               "--latency-msec=5"]
-        if device:
-            cmd.append(f"--device={device}")
+    def _start_meter_thread(self) -> None:
+        self._close_meter_capture()
+        self._meter_stop = threading.Event()   # fresh event: old reader exits on its own
+
+        mic_label = getattr(self, "mic_var", None)
+        device = self._label_to_name(mic_label.get(), self._inputs) if mic_label else None
+        rate, frames = 16000, 256              # 16 ms per chunk
 
         try:
-            self._meter_proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+            cap = plat.get_backend().open_capture(device or None, rate, frames)
         except Exception:
             return
+        self._meter_proc = cap
 
-        def _reader():
-            frames     = 128                 # ~2.7 ms por chunk a 48 kHz
-            chunk_sz   = frames * 2 * 2      # stereo s16le = 4 bytes/frame
-            proc       = self._meter_proc
-            stop       = self._meter_stop
-            q          = self._meter_q
-            fd         = proc.stdout.fileno()
-            env        = 0.0
-            rate       = 48000
-            att  = 1.0 - np.exp(-1.0 / (0.003 * rate / frames))
-            rel  = 1.0 - np.exp(-1.0 / (0.120 * rate / frames))
-
-            while not stop.is_set():
-                data = proc.stdout.read(chunk_sz)
-                if not data:
-                    break
-
-                # Drena buffer acumulado → usa só o chunk mais recente
-                while True:
-                    ready, _, _ = select.select([fd], [], [], 0)
-                    if not ready:
+        def _reader(cap=cap, stop=self._meter_stop, q=self._meter_q):
+            env = 0.0
+            att = 1.0 - np.exp(-1.0 / (0.003 * rate / frames))
+            rel = 1.0 - np.exp(-1.0 / (0.120 * rate / frames))
+            try:
+                while not stop.is_set():
+                    data = cap.read()
+                    if not data:
                         break
-                    extra = os.read(fd, chunk_sz)
-                    if not extra:
-                        break
-                    data = extra
-
-                arr = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
-                if len(arr) >= 2:
-                    mono = np.maximum(np.abs(arr[0::2]), np.abs(arr[1::2]))
-                    rms  = float(np.sqrt(np.mean(mono ** 2)))
-                else:
-                    rms = 0.0
-
-                if rms > env:
-                    env += att * (rms - env)
-                else:
-                    env += rel * (rms - env)
-
-                if q.full():
-                    try: q.get_nowait()
-                    except queue.Empty: pass
-                try: q.put_nowait(env)
-                except queue.Full: pass
+                    arr = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
+                    rms = float(np.sqrt(np.mean(arr ** 2))) if len(arr) else 0.0
+                    env += (att if rms > env else rel) * (rms - env)
+                    if q.full():
+                        try: q.get_nowait()
+                        except queue.Empty: pass
+                    try: q.put_nowait(env)
+                    except queue.Full: pass
+            finally:
+                try:
+                    cap.close()
+                except Exception:
+                    pass
 
         threading.Thread(target=_reader, daemon=True).start()
 
@@ -2347,7 +2291,10 @@ class ConfigWindow(ctk.CTk):
         self._stop_ptt_config_listener()
         if not key_str:
             return
-        from pynput import keyboard as _kb, mouse as _ms
+        try:
+            from pynput import keyboard as _kb, mouse as _ms
+        except Exception:
+            return   # pynput unavailable (Wayland/headless/missing) — meter just stays active
         kind, name = key_str.split(":", 1) if ":" in key_str else ("keyboard", key_str)
         if kind == "mouse":
             ptt_btn = getattr(_ms.Button, name, None)
@@ -2381,7 +2328,6 @@ class ConfigWindow(ctk.CTk):
     def _build_monitoring_ui(self) -> None:
         """Constrói o painel direito de monitoramento (transcrição, tradução, logs).
         Builds the right monitoring panel (transcript, translation, logs)."""
-        GREEN = "#22C55E"
         AMBER = "#F59E0B"
         RED   = "#EF4444"
 
@@ -2438,7 +2384,7 @@ class ConfigWindow(ctk.CTk):
         ctk.CTkLabel(log_card, text="Log", font=ctk.CTkFont(size=11, weight="bold"),
                      text_color=self.MUTED).pack(anchor="w", padx=12, pady=(6, 2))
         self._log_box = ctk.CTkTextbox(log_card, fg_color=self.CARD,
-                                        font=ctk.CTkFont(size=10, family="Monospace"),
+                                        font=ctk.CTkFont(size=10, family=_MONO_FONT),
                                         border_width=0, wrap="none",
                                         state="disabled", height=60)
         self._log_box.pack(fill="both", expand=True, padx=8, pady=(0, 6))
@@ -2889,15 +2835,14 @@ class ConfigWindow(ctk.CTk):
                 self.after(0, lambda: self._test_btn.configure(
                     state="disabled", text="▶  …"))
                 from piper import PiperVoice
-                import wave, io
+                import wave
                 voice = PiperVoice.load(voice_path)
-                tmp_wav = "/tmp/praxis_voice_test.wav"
+                tmp_wav = plat.temp_path("praxis_voice_test.wav")
                 with wave.open(tmp_wav, "wb") as wf:
                     voice.synthesize_wav(phrase, wf)
-                subprocess.run(["aplay", tmp_wav],
-                               stderr=subprocess.DEVNULL, timeout=30)
-            except Exception:
-                pass
+                plat.get_backend().play_file(tmp_wav, self._selected_output()).wait(60)
+            except Exception as e:
+                print(f"[praxis] voice test failed: {e}", file=sys.stderr)
             finally:
                 self.after(0, lambda: self._test_btn.configure(
                     state="normal", text=self._t("btn_test")))
@@ -3121,7 +3066,7 @@ class ConfigWindow(ctk.CTk):
             meter_top, text="", width=36,
             variable=self._monitor_var, onvalue=True, offvalue=False,
             progress_color=self.ACCENT,
-            command=self._toggle_monitor,
+            command=self._toggle_clone_monitor,
         ).pack(side="right", padx=(0, 6))
 
         # Inicializa estado ANTES de criar o canvas — <Configure> pode disparar no pack()
@@ -3232,20 +3177,34 @@ class ConfigWindow(ctk.CTk):
             ext = os.path.splitext(src_path)[1].lower()
             if ext == ".wav":
                 # Apara WAV para ≤15s sem recodificar / trim WAV to ≤15s without re-encoding
-                wav_path = self._trim_ref_wav(src_path, max_s=15.0)
+                try:
+                    wav_path = self._trim_ref_wav(src_path, max_s=15.0,
+                                                  out=plat.temp_path("ov_ref_import.wav"))
+                except Exception:
+                    self._ov_rec_status.configure(
+                        text="❌ WAV inválido / não suportado", text_color="#EF4444")
+                    return
             else:
                 # Converte + apara para ≤15s em uma passagem ffmpeg
                 # Convert + trim to ≤15s in a single ffmpeg pass
                 self._ov_rec_status.configure(
                     text="Convertendo áudio…", text_color="#F59E0B")
                 self.update_idletasks()
-                wav_path = "/tmp/ov_ref_import.wav"
-                r = subprocess.run(
-                    ["ffmpeg", "-y", "-i", src_path, "-t", "15",
-                     "-ar", "24000", "-ac", "1", "-sample_fmt", "s16", wav_path],
-                    capture_output=True, timeout=60,
-                )
-                if r.returncode != 0:
+                wav_path = plat.temp_path("ov_ref_import.wav")
+                ffmpeg = plat.ffmpeg_exe()
+                if not ffmpeg:
+                    self._ov_rec_status.configure(
+                        text="❌ ffmpeg não encontrado — instale ffmpeg", text_color="#EF4444")
+                    return
+                try:
+                    r = subprocess.run(
+                        [ffmpeg, "-y", "-i", src_path, "-t", "15",
+                         "-ar", "24000", "-ac", "1", "-sample_fmt", "s16", wav_path],
+                        capture_output=True, timeout=60,
+                    )
+                except Exception:
+                    r = None
+                if r is None or r.returncode != 0:
                     self._ov_rec_status.configure(
                         text="❌ Conversão falhou", text_color="#EF4444")
                     return
@@ -3614,9 +3573,15 @@ class ConfigWindow(ctk.CTk):
             # O stream usa dtype=int16 → normalizar para [-1, 1] antes de sf.write
             # Stream uses dtype=int16 → normalize to [-1, 1] before sf.write (PCM_16 expects float in [-1,1])
             pcm = np.concatenate(frames, axis=0).flatten().astype(np.float32) / 32768.0
-            out = "/tmp/ov_ref.wav"
+            out = plat.temp_path("ov_ref.wav")
             sr  = getattr(self, "_audio_sr", 44100)
-            sf.write(out, pcm, sr, subtype="PCM_16")
+            try:
+                sf.write(out, pcm, sr, subtype="PCM_16")
+            except Exception as e:
+                msg = f"❌ {e}"
+                self.after(0, lambda: self._ov_rec_status.configure(
+                    text=msg, text_color="#EF4444"))
+                return
             self.after(0, lambda: self._ov_ref_path.set(out))
             self.after(0, lambda: self._ov_rec_status.configure(
                 text="Gravado — transcrevendo…", text_color=self.MUTED))
@@ -3631,10 +3596,9 @@ class ConfigWindow(ctk.CTk):
         """Toggle play/pause do WAV de referência. Toggle play/pause of reference WAV."""
         # Se já está tocando, mata o processo e volta ao estado inicial
         # If already playing, kill the process and return to idle state
-        proc: subprocess.Popen | None = getattr(self, "_ov_play_proc", None)
-        if proc and proc.poll() is None:
-            proc.kill()
-            self._ov_play_proc = None
+        player = getattr(self, "_ov_play_proc", None)
+        if player is not None and not player.done:
+            self._stop_ov_playback()
             self._ov_play_ref_btn.configure(text="▶ Ouvir referência")
             return
 
@@ -3644,17 +3608,41 @@ class ConfigWindow(ctk.CTk):
 
         self._ov_play_ref_btn.configure(text="■ Parar")
 
-        def _play():
-            self._ov_play_proc = subprocess.Popen(
-                ["aplay", path], stderr=subprocess.DEVNULL)
-            self._ov_play_proc.wait()
-            # Quando terminar naturalmente, restaura o botão
-            # When playback finishes naturally, restore button
-            self.after(0, lambda: self._ov_play_ref_btn.configure(
-                text="▶ Ouvir referência"))
-            self._ov_play_proc = None
+        try:
+            player = plat.get_backend().play_file(path, self._selected_output())
+        except Exception as e:
+            self._ov_play_ref_btn.configure(text="▶ Ouvir referência")
+            self._ov_rec_status.configure(text=f"❌ {e}", text_color="#EF4444")
+            return
+        self._ov_play_proc = player
 
-        threading.Thread(target=_play, daemon=True).start()
+        def _wait(player=player):
+            player.wait()
+            # Quando terminar naturalmente, restaura o botão (só se ainda for o atual)
+            # When playback finishes, restore the button (only if still current)
+            def _restore():
+                if getattr(self, "_ov_play_proc", None) is player:
+                    self._ov_play_proc = None
+                    self._ov_play_ref_btn.configure(text="▶ Ouvir referência")
+            self.after(0, _restore)
+
+        threading.Thread(target=_wait, daemon=True).start()
+
+    def _stop_ov_playback(self) -> None:
+        player = getattr(self, "_ov_play_proc", None)
+        self._ov_play_proc = None
+        if player is not None:
+            try:
+                player.stop()
+            except Exception:
+                pass
+
+    def _selected_output(self) -> str | None:
+        """Output device chosen in the Config tab (None = system default)."""
+        out_var = getattr(self, "out_var", None)
+        if not out_var:
+            return None
+        return self._label_to_name(out_var.get(), self._outputs) or None
 
     def _ov_transcribe(self) -> None:
         """Transcreve o WAV de referência com Whisper. Transcribes ref WAV with Whisper."""
@@ -3870,7 +3858,7 @@ class ConfigWindow(ctk.CTk):
                 torch_mod.cuda.empty_cache()
 
     @staticmethod
-    def _trim_ref_wav(wav_path: str, max_s: float = 15.0) -> str:
+    def _trim_ref_wav(wav_path: str, max_s: float = 15.0, out: str | None = None) -> str:
         """Apara WAV de referência para max_s segundos para evitar OOM em gravações longas.
         Trims reference WAV to max_s seconds to prevent OOM on long recordings."""
         import wave as _wave
@@ -3880,7 +3868,7 @@ class ConfigWindow(ctk.CTk):
             if dur <= max_s:
                 return wav_path  # já curto o suficiente / already short enough
             raw = wf.readframes(int(sr * max_s))
-        out = "/tmp/ov_ref_trim.wav"
+        out = out or plat.new_temp_file(".wav")
         with _wave.open(out, "wb") as wf:
             wf.setnchannels(nch); wf.setsampwidth(sw); wf.setframerate(sr)
             wf.writeframes(raw)
@@ -3951,7 +3939,7 @@ class ConfigWindow(ctk.CTk):
             _peak = float(_np.max(_np.abs(_audio)))
             if _peak > 1e-6:
                 _audio = _audio / max(_peak, 1.0)
-            out_path = "/tmp/ov_result.wav"
+            out_path = plat.temp_path("ov_result.wav")
             sf.write(out_path, _audio, 24000, subtype="PCM_16")
             self._ov_result_path = out_path
             _st("✓ Pronto — clique em Ouvir", "#22C55E")
@@ -3965,13 +3953,17 @@ class ConfigWindow(ctk.CTk):
 
     def _ov_play_result(self) -> None:
         """Reproduz /tmp/ov_result.wav. Plays the OmniVoice result WAV."""
-        path = getattr(self, "_ov_result_path", "/tmp/ov_result.wav")
+        path = getattr(self, "_ov_result_path", plat.temp_path("ov_result.wav"))
         if not __import__("os").path.exists(path):
             return
         def _play():
             import sounddevice as sd, soundfile as sf
             data, sr = sf.read(path, dtype="float32")
-            sd.play(data, sr)
+            dev = self._selected_output()
+            idx = None
+            if dev and isinstance(plat.get_backend(), plat.SoundDeviceBackend):
+                idx = plat.get_backend().device_index(dev, "output")
+            sd.play(data, sr, device=idx)
             sd.wait()
         threading.Thread(target=_play, daemon=True).start()
 
@@ -4154,14 +4146,15 @@ class ConfigWindow(ctk.CTk):
             try:
                 import sounddevice as sd, numpy as np
 
-                # Definir dispositivos padrão no PipeWire para que 'default' aponte para a seleção
-                # Set PipeWire defaults so 'default' routes to the selected devices
-                if pa_in:
-                    subprocess.run(["pactl", "set-default-source", pa_in],
-                                   capture_output=True, timeout=3)
-                if pa_out:
-                    subprocess.run(["pactl", "set-default-sink", pa_out],
-                                   capture_output=True, timeout=3)
+                backend = plat.get_backend()
+                device = None
+                if isinstance(backend, plat.PulseBackend):
+                    # PortAudio only sees PulseAudio's "default" device on Linux, so point
+                    # the defaults at the selection (restored on close).
+                    self._set_pulse_defaults(pa_in, pa_out)
+                else:
+                    device = (backend.device_index(pa_in, "input"),
+                              backend.device_index(pa_out, "output"))
 
                 SR = 44100  # fixo; PipeWire faz resampling se necessário / fixed; PipeWire resamples if needed
 
@@ -4174,9 +4167,11 @@ class ConfigWindow(ctk.CTk):
                     db = 20 * np.log10(rms / 32768.0) if rms > 0 else -60.0
                     db = max(-60.0, min(0.0, db))
                     level = (db + 60.0) / 60.0
-                    self.after(0, self._clone_meter_update, level, db)
+                    # Never touch Tk from the audio thread: publish the value and
+                    # let _clone_meter_poll() (main thread, ~30 Hz) draw it.
+                    self._clone_meter_val = (level, db)
 
-                    # Monitor / loopback
+                    # Monitor / loopback (mono in → all output channels)
                     if getattr(self, "_monitor_on", False):
                         outdata[:] = indata
                     else:
@@ -4188,9 +4183,18 @@ class ConfigWindow(ctk.CTk):
 
                 # Abre para dispositivo 'default' que agora aponta para a seleção pactl
                 # Opens to 'default' device which now routes to the pactl selection
+                # Many outputs (e.g. MacBook speakers) reject mono → open with the
+                # device's channel count (max 2) on the output side.
+                out_idx = device[1] if device else None
+                try:
+                    out_info = sd.query_devices(out_idx if out_idx is not None
+                                                else sd.default.device[1], "output")
+                    out_ch = max(1, min(2, int(out_info["max_output_channels"])))
+                except Exception:
+                    out_ch = 1
                 with sd.Stream(
-                    device=None,
-                    samplerate=SR, channels=1, dtype="int16",
+                    device=device,
+                    samplerate=SR, channels=(1, out_ch), dtype="int16",
                     blocksize=128, latency="low", callback=_cb,
                 ) as stream:
                     self._meter_stream = stream
@@ -4199,9 +4203,24 @@ class ConfigWindow(ctk.CTk):
             except Exception:
                 import traceback; traceback.print_exc()
 
-        threading.Thread(target=_run, daemon=True).start()
+        self._clone_meter_val = None
+        self._meter_thread = threading.Thread(target=_run, daemon=True)
+        self._meter_thread.start()
+        if not getattr(self, "_clone_meter_poll_id", None):
+            self._clone_meter_poll()
 
-    def _toggle_monitor(self) -> None:
+    def _clone_meter_poll(self) -> None:
+        """Main-thread poll that draws the Clone-tab meter (~30 Hz)."""
+        val = getattr(self, "_clone_meter_val", None)
+        if val is not None:
+            self._clone_meter_val = None
+            try:
+                self._clone_meter_update(*val)
+            except Exception:
+                pass
+        self._clone_meter_poll_id = self.after(33, self._clone_meter_poll)
+
+    def _toggle_clone_monitor(self) -> None:
         """Liga/desliga o monitor de áudio (loopback mic → caixas).
         Toggles audio monitor (mic → speakers loopback). Warns about echo if speakers."""
         on = self._monitor_var.get()
@@ -4215,6 +4234,43 @@ class ConfigWindow(ctk.CTk):
 
     def _stop_meter(self) -> None:
         self._meter_stream = None
+        pid = getattr(self, "_clone_meter_poll_id", None)
+        self._clone_meter_poll_id = None
+        if pid:
+            try:
+                self.after_cancel(pid)
+            except Exception:
+                pass
+        t = getattr(self, "_meter_thread", None)
+        if t is not None and t.is_alive() and t is not threading.current_thread():
+            t.join(timeout=2)   # let PortAudio close the stream before Tk goes away
+
+    def _set_pulse_defaults(self, src: str, sink: str) -> None:
+        """Linux/PulseAudio: temporarily set default source/sink, remembering the
+        originals so _restore_default_devices() can put them back on close."""
+        if not hasattr(self, "_orig_pa_defaults"):
+            self._orig_pa_defaults = _pa_defaults()
+        for kind, name in (("source", src), ("sink", sink)):
+            if not name:
+                continue
+            try:
+                subprocess.run(["pactl", f"set-default-{kind}", name],
+                               capture_output=True, timeout=3)
+            except Exception:
+                pass
+
+    def _restore_default_devices(self) -> None:
+        orig = getattr(self, "_orig_pa_defaults", None)
+        if not orig:
+            return
+        for kind, name in zip(("source", "sink"), orig):
+            if not name:
+                continue
+            try:
+                subprocess.run(["pactl", f"set-default-{kind}", name],
+                               capture_output=True, timeout=3)
+            except Exception:
+                pass
 
     def _test_clone(self, wav_path: str, ref_text: str,
                     test_btn: ctk.CTkButton | None = None,
@@ -4268,7 +4324,7 @@ class ConfigWindow(ctk.CTk):
                 kw: dict = {"text": msg}
                 if color:
                     kw["text_color"] = color
-                self.after(0, test_status.configure, kw)
+                self.after(0, lambda kw=kw: test_status.configure(**kw))
             if phase:
                 _phase_range[0], _phase_range[1] = phase
 
@@ -4347,9 +4403,9 @@ class ConfigWindow(ctk.CTk):
                 _peak = float(_np.max(_np.abs(_audio)))
                 if _peak > 1e-6:
                     _audio = _audio / max(_peak, 1.0)  # escala se pico > 1; mantém se ≤ 1
-                tmp = "/tmp/praxis_clone_test.wav"
+                tmp = plat.temp_path("praxis_clone_test.wav")
                 sf.write(tmp, _audio, 24000, subtype="PCM_16")
-                subprocess.run(["aplay", tmp], stderr=subprocess.DEVNULL, timeout=60)
+                plat.get_backend().play_file(tmp, self._selected_output()).wait(120)
                 _set_prog(1.0)
                 if test_prog:
                     self.after(0, lambda: test_prog.configure(progress_color="#22C55E"))
@@ -4556,11 +4612,13 @@ class ConfigWindow(ctk.CTk):
             "gate_threshold": round(self._gate_frac * 0.28, 4),
             "ptt_key":        self._ptt_key,
             "theme":          self.cfg.get("theme", "light"),
+            "ui_lang":        self.cfg.get("ui_lang", "pt"),
         }
 
     def _save(self) -> None:
         """Salva as configurações atuais no arquivo de config. Saves current config to file."""
-        save_cfg(self._collect())
+        self.cfg.update(self._collect())
+        save_cfg(self.cfg)
         messagebox.showinfo("Praxis", "Configurações salvas.")
 
     def _launch(self) -> None:
@@ -4576,13 +4634,14 @@ class ConfigWindow(ctk.CTk):
             messagebox.showerror("Praxis",
                                  f"Arquivo de voz não encontrado:\n{voice_out}")
             return
-        save_cfg(cfg)
+        self.cfg.update(cfg)
+        save_cfg(self.cfg)
 
         # Para engine anterior se ainda rodando
         self._stop_engine(collapse=False)
 
-        venv_python = Path.home() / ".local/share/praxis/venv/bin/python3"
-        python = str(venv_python) if venv_python.exists() else sys.executable
+        venv_python = plat.installed_python()
+        python = str(venv_python) if venv_python else sys.executable
 
         cmd_parts = [
             python, str(PRAXIS_PY),
@@ -4616,24 +4675,27 @@ class ConfigWindow(ctk.CTk):
             box.configure(state="disabled")
 
         # Inicia engine — inclui cuBLAS da Ollama no LD_LIBRARY_PATH para GPU funcionar
-        _env = os.environ.copy()
-        _cuda12 = "/usr/local/lib/ollama/cuda_v12"
-        if Path(_cuda12).exists():
-            _env["LD_LIBRARY_PATH"] = (
-                f"{_cuda12}:{_env['LD_LIBRARY_PATH']}"
-                if _env.get("LD_LIBRARY_PATH") else _cuda12
+        _env = plat.cuda_env(os.environ.copy())
+        _env["PYTHONIOENCODING"] = "utf-8"   # JSON lines with non-ASCII on Windows
+        self._close_engine_log()
+        self._engine_log = open(plat.log_path(), "w", encoding="utf-8")
+        try:
+            self._engine_proc = subprocess.Popen(
+                cmd_parts,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=self._engine_log,
+                text=True,
+                encoding="utf-8",
+                bufsize=1,
+                env=_env,
             )
-        self._engine_log = open("/tmp/praxis_engine.log", "w")
-        self._engine_proc = subprocess.Popen(
-            cmd_parts,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=self._engine_log,
-            text=True,
-            bufsize=1,
-            env=_env,
-        )
-        threading.Thread(target=self._engine_reader, daemon=True).start()
+        except OSError as e:
+            messagebox.showerror("Praxis", f"Falha ao iniciar o motor:\n{e}")
+            self._mon_set_status("Erro", "#EF4444")
+            return
+        threading.Thread(target=self._engine_reader, args=(self._engine_proc,),
+                         daemon=True).start()
 
         # Exibe painel de monitoramento à direita — _left encolhe, _right ocupa 560px
         # Show monitoring panel on the right — _left shrinks, _right takes 560px
@@ -4647,9 +4709,10 @@ class ConfigWindow(ctk.CTk):
         """Para o subprocesso do motor Praxis. Se collapse=True, recolhe o painel de monitoramento.
         Stops the Praxis engine subprocess. If collapse=True, hides the monitoring panel."""
         proc = getattr(self, "_engine_proc", None)
-        if proc and proc.poll() is None:
-            proc.terminate()
-        self._engine_proc = None
+        self._engine_proc = None   # the reader ignores events from a stale proc
+        if proc is not None:
+            threading.Thread(target=self._terminate_engine, args=(proc,),
+                             daemon=True).start()
 
         if collapse:
             self._right.pack_forget()
@@ -4661,43 +4724,121 @@ class ConfigWindow(ctk.CTk):
         if hasattr(self, "_apply_voice_btn"):
             self._apply_voice_btn.configure(state="disabled", text="⟳  Aplicar")
 
-    def _engine_reader(self) -> None:
+    @staticmethod
+    def _terminate_engine(proc: subprocess.Popen) -> None:
+        """Graceful stop: JSON 'stop' → close stdin → SIGTERM → SIGKILL.
+        The engine tears down its virtual devices on the way out; always reaped."""
+        if proc.poll() is None:
+            try:
+                proc.stdin.write(json.dumps({"cmd": "stop"}) + "\n")
+                proc.stdin.flush()
+            except Exception:
+                pass
+        try:
+            proc.stdin.close()
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+
+    def _close_engine_log(self) -> None:
+        log = getattr(self, "_engine_log", None)
+        self._engine_log = None
+        if log is not None:
+            try:
+                log.close()
+            except Exception:
+                pass
+
+    def _post(self, fn, *args) -> None:
+        """self.after() from a worker thread, tolerating a destroyed window."""
+        try:
+            self.after(0, fn, *args)
+        except (RuntimeError, tk.TclError):
+            pass
+
+    def _engine_reader(self, proc: subprocess.Popen) -> None:
         """Thread que lê o stdout do motor (JSON por linha) e atualiza a UI de monitoramento.
-        Thread that reads engine stdout (JSON per line) and updates the monitoring UI."""
-        proc = self._engine_proc
-        if not proc:
-            return
+        Thread that reads engine stdout (JSON per line) and updates the monitoring UI.
+        Events from a process that is no longer current are dropped."""
+        last_error = ""
+
+        def _current() -> bool:
+            return proc is self._engine_proc
+
         for raw in proc.stdout:
+            if not _current():
+                continue
             line = raw.strip()
             if not line:
                 continue
             try:
                 ev = json.loads(line)
             except json.JSONDecodeError:
-                self.after(0, self._log_append, line)
+                self._post(self._log_append, line)
+                continue
+            if not isinstance(ev, dict):
                 continue
             etype = ev.get("e")
+            # Bilateral: peer speech ("in") is marked so it isn't mistaken for yours
+            prefix = "← " if ev.get("dir") == "in" else ""
             if etype == "progress":
                 pct = ev.get("pct", 0) / 100
                 msg = ev.get("msg", "")
-                self.after(0, self._set_progress, pct, msg)
+                self._post(self._set_progress, pct, msg)
+            elif etype == "accel":
+                self._post(self._log_append,
+                           f"[aceleração] Whisper: {ev.get('asr', '?').upper()} — {ev.get('reason', '')}")
             elif etype == "ready":
-                self.after(0, self._on_engine_ready)
+                self._post(self._on_engine_ready)
             elif etype == "transcript":
-                self.after(0, self._mon_append, self._orig_box, ev.get("text", ""))
+                self._post(self._mon_append, self._orig_box, prefix + ev.get("text", ""))
             elif etype == "translation":
-                self.after(0, self._mon_append, self._trans_box, ev.get("text", ""))
+                self._post(self._mon_append, self._trans_box, prefix + ev.get("text", ""))
             elif etype == "voice_reloaded":
                 label = next((lbl for p, lbl in self._voices
                               if p == ev.get("path", "")), ev.get("path", ""))
-                self.after(0, self._log_append, f"[voz] {label}")
-                self.after(0, lambda: self._apply_voice_btn.configure(
+                self._post(self._log_append, f"[voz] {label}")
+                self._post(lambda: self._apply_voice_btn.configure(
                     state="normal", text="⟳  Aplicar") if hasattr(self, "_apply_voice_btn") else None)
             elif etype == "error":
-                self.after(0, self._log_append, f"[erro] {ev.get('msg', '')}")
-                self.after(0, lambda: self._apply_voice_btn.configure(
+                last_error = ev.get("msg", "")
+                self._post(self._log_append, f"[erro] {last_error}")
+                self._post(lambda: self._apply_voice_btn.configure(
                     state="normal", text="⟳  Aplicar") if hasattr(self, "_apply_voice_btn") else None)
-        self.after(0, self._mon_set_status, "Encerrado", "#EF4444")
+        rc = proc.wait()
+        if _current():
+            # Engine died on its own (crash / startup error): unlock the UI and say why
+            self._engine_proc = None
+            self._post(self._on_engine_exit, rc, last_error)
+
+    def _on_engine_exit(self, rc: int, last_error: str) -> None:
+        self._close_engine_log()
+        self._iniciar_btn.configure(state="normal", text=self._t("btn_start"))
+        if hasattr(self, "_theme_btn"):
+            self._theme_btn.configure(state="normal")
+        if hasattr(self, "_apply_voice_btn"):
+            self._apply_voice_btn.configure(state="disabled", text="⟳  Aplicar")
+        if rc == 0:
+            self._mon_set_status("Encerrado", "#EF4444")
+            return
+        self._mon_set_status("Erro", "#EF4444")
+        tail = ""
+        try:
+            tail = Path(plat.log_path()).read_text(encoding="utf-8", errors="replace")[-1500:]
+        except Exception:
+            pass
+        self._log_append(f"[erro] motor encerrou (código {rc}). Log: {plat.log_path()}")
+        messagebox.showerror(
+            "Praxis", f"O motor encerrou com erro (código {rc}).\n\n"
+                      f"{last_error or tail.strip()[-600:]}\n\nLog: {plat.log_path()}")
 
     def _set_progress(self, pct: float, msg: str) -> None:
         self._mon_prog_bar.set(pct)
@@ -4733,186 +4874,24 @@ class ConfigWindow(ctk.CTk):
         self._log_box.configure(state="disabled")
 
 
-# ── Janela de Monitoramento ───────────────────────────────────────────────────
-
-class MonitorWindow(ctk.CTkToplevel):
-    BG     = "#F5F7FA"
-    CARD   = "#FFFFFF"
-    BORDER = "#E5E7EB"
-    MUTED  = "#6B7280"
-    GREEN  = "#22C55E"
-    AMBER  = "#F59E0B"
-    RED    = "#EF4444"
-
-    def __init__(self, parent, cmd_parts: list):
-        super().__init__(parent)
-        self.title("Praxis — Monitoramento")
-        self.geometry("780x520")
-        self.resizable(True, True)
-        self.configure(fg_color=self.BG)
-
-        self._proc: subprocess.Popen | None = None
-        self._cmd  = cmd_parts
-
-        self._build_ui()
-        self._start_engine()
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
-
-    # ── UI ────────────────────────────────────────────────────────────────────
-
-    def _build_ui(self) -> None:
-        # ── Status bar ────────────────────────────────────────────────────────
-        top = ctk.CTkFrame(self, fg_color=self.CARD,
-                           border_width=1, border_color=self.BORDER,
-                           corner_radius=10)
-        top.pack(fill="x", padx=16, pady=(16, 10))
-
-        row1 = ctk.CTkFrame(top, fg_color="transparent", height=42)
-        row1.pack(fill="x")
-        row1.pack_propagate(False)
-
-        self._dot = ctk.CTkLabel(row1, text="●", font=("Inter", 16),
-                                  text_color=self.AMBER)
-        self._dot.pack(side="left", padx=(14, 6))
-
-        self._status_lbl = ctk.CTkLabel(row1, text="Iniciando…",
-                                         font=("Inter", 13),
-                                         text_color="#374151")
-        self._status_lbl.pack(side="left")
-
-        ctk.CTkButton(row1, text="Parar", width=80, height=30,
-                      fg_color=self.RED, hover_color="#DC2626",
-                      font=("Inter", 13, "bold"),
-                      command=self._stop_engine).pack(side="right", padx=12)
-
-        # ── Barra de progresso (visível apenas durante loading) ───────────────
-        self._prog_frame = ctk.CTkFrame(top, fg_color="transparent", height=18)
-        self._prog_frame.pack(fill="x", padx=14, pady=(0, 10))
-        self._prog_bar = ctk.CTkProgressBar(self._prog_frame, height=6,
-                                             corner_radius=3,
-                                             progress_color=self.AMBER,
-                                             fg_color=self.BORDER)
-        self._prog_bar.pack(fill="x")
-        self._prog_bar.set(0)
-
-        # ── Dois painéis ──────────────────────────────────────────────────────
-        body = ctk.CTkFrame(self, fg_color="transparent")
-        body.pack(fill="both", expand=True, padx=16, pady=(0, 4))
-        body.columnconfigure(0, weight=1)
-        body.columnconfigure(1, weight=1)
-        body.rowconfigure(0, weight=1)
-
-        self._orig_box  = self._make_panel(body, 0, "Você está dizendo")
-        self._trans_box = self._make_panel(body, 1, "Sendo enviado")
-
-        # ── Log do engine ─────────────────────────────────────────────────────
-        log_card = ctk.CTkFrame(self, fg_color=self.CARD,
-                                border_width=1, border_color=self.BORDER,
-                                corner_radius=10, height=90)
-        log_card.pack(fill="x", padx=16, pady=(0, 12))
-        log_card.pack_propagate(False)
-        ctk.CTkLabel(log_card, text="Log", font=("Inter", 11, "bold"),
-                     text_color=self.MUTED).pack(anchor="w", padx=12, pady=(6, 2))
-        self._log_box = ctk.CTkTextbox(log_card, fg_color=self.CARD,
-                                        font=("Monospace", 10), border_width=0,
-                                        wrap="none", state="disabled",
-                                        scrollbar_button_color=self.BORDER,
-                                        height=60)
-        self._log_box.pack(fill="both", expand=True, padx=8, pady=(0, 6))
-
-    def _make_panel(self, parent, col: int, title: str) -> ctk.CTkTextbox:
-        pad = (0, 8) if col == 0 else (8, 0)
-        card = ctk.CTkFrame(parent, fg_color=self.CARD,
-                             border_width=1, border_color=self.BORDER,
-                             corner_radius=12)
-        card.grid(row=0, column=col, sticky="nsew", padx=pad)
-
-        ctk.CTkLabel(card, text=title, font=("Inter", 12, "bold"),
-                     text_color=self.MUTED).pack(anchor="w", padx=16, pady=(14, 4))
-
-        sep = ctk.CTkFrame(card, fg_color=self.BORDER, height=1)
-        sep.pack(fill="x", padx=16)
-
-        box = ctk.CTkTextbox(card, fg_color=self.CARD,
-                              font=("Inter", 15), border_width=0,
-                              wrap="word", state="disabled",
-                              scrollbar_button_color=self.BORDER)
-        box.pack(fill="both", expand=True, padx=12, pady=(8, 12))
-        return box
-
-    # ── Engine ────────────────────────────────────────────────────────────────
-
-    def _start_engine(self) -> None:
-        self._log = open("/tmp/praxis_engine.log", "w")
-        self._proc = subprocess.Popen(
-            self._cmd,
-            stdout=subprocess.PIPE,
-            stderr=self._log,
-            text=True,
-            bufsize=1,
-        )
-        threading.Thread(target=self._reader, daemon=True).start()
-
-    def _reader(self) -> None:
-        for raw in self._proc.stdout:
-            line = raw.strip()
-            if not line:
-                continue
-            try:
-                ev = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            etype = ev.get("e")
-            if etype == "progress":
-                pct = ev.get("pct", 0) / 100
-                msg = ev.get("msg", "")
-                self.after(0, self._set_progress, pct, msg)
-            elif etype == "ready":
-                self.after(0, self._on_ready)
-            elif etype == "transcript":
-                self.after(0, self._append, self._orig_box, ev.get("text", ""))
-            elif etype == "translation":
-                self.after(0, self._append, self._trans_box, ev.get("text", ""))
-
-        self.after(0, self._set_status, "Encerrado", self.RED)
-
-    def _set_progress(self, pct: float, msg: str) -> None:
-        self._prog_bar.set(pct)
-        self._prog_bar.configure(progress_color=self.AMBER)
-        self._status_lbl.configure(text=msg or "Iniciando…")
-        self._dot.configure(text_color=self.AMBER)
-
-    def _on_ready(self) -> None:
-        self._prog_bar.set(1.0)
-        self._prog_bar.configure(progress_color=self.GREEN)
-        self._set_status("Traduzindo", self.GREEN)
-        self.after(800, self._hide_progress)
-
-    def _hide_progress(self) -> None:
-        self._prog_frame.pack_forget()
-
-    def _stop_engine(self) -> None:
-        if self._proc and self._proc.poll() is None:
-            self._proc.terminate()
-        self._set_status("Parado", self.RED)
-
-    # ── Helpers ───────────────────────────────────────────────────────────────
-
-    def _set_status(self, text: str, color: str) -> None:
-        self._dot.configure(text_color=color)
-        self._status_lbl.configure(text=text)
-
-    def _append(self, widget: ctk.CTkTextbox, text: str) -> None:
-        widget.configure(state="normal")
-        widget.insert("end", text + "\n\n")
-        widget.see("end")
-        widget.configure(state="disabled")
-
-    def _on_close(self) -> None:
-        self._stop_engine()
-        self.destroy()
+def _set_process_identity() -> None:
+    """Shows "Praxis" instead of "Python" in the macOS menu bar / Dock and
+    groups the Windows taskbar entry under Praxis. Best-effort, optional deps."""
+    try:
+        if plat.IS_MAC:
+            from Foundation import NSBundle  # pyobjc (optional)
+            info = NSBundle.mainBundle().localizedInfoDictionary() or \
+                NSBundle.mainBundle().infoDictionary()
+            if info is not None:
+                info["CFBundleName"] = "Praxis"
+        elif plat.IS_WIN:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("Praxis.App")
+    except Exception:
+        pass
 
 
 if __name__ == "__main__":
+    _set_process_identity()
     app = ConfigWindow()
     app.mainloop()
