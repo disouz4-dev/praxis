@@ -5,10 +5,10 @@ Real-time voice translator with virtual microphone (bilateral mode).
 
 import argparse
 import json
+import os
 import queue
 import re
 import signal
-import subprocess
 import sys
 import threading
 import time
@@ -22,21 +22,30 @@ from rich.live import Live
 from rich.panel import Panel
 from rich.table import Table
 
+import praxis_platform as plat
+
 # ── Constantes de áudio e PulseAudio / Audio and PulseAudio constants ─────────
 SR         = 16000          # taxa de amostragem Whisper / Whisper sample rate
 VAD_CHUNK  = 512            # ~32 ms @ 16 kHz — janela do VAD / VAD window size
 SILENCE_MS = 200            # silêncio para cortar segmento / silence to cut segment
 MAX_SEG_S  = 4.0            # força corte em falas longas / max segment length
-SINK_OUT   = "Praxis_Out"   # null sink → microfone virtual de saída / outbound virtual mic
-SRC_MIC    = "Praxis_Mic"   # nome da fonte de áudio virtual / virtual audio source name
-SRC_DESC   = "Praxis_Microfone"  # descrição legível no pavucontrol / human-readable description
-SINK_IN    = "Praxis_In"    # null sink → captura áudio do interlocutor / inbound capture sink
+PREROLL_S  = 0.25           # áudio antes do "start" do VAD / audio kept before VAD start (onset)
+SMART_CUT_WINDOW_S = 1.5    # corte longo no ponto mais silencioso / long-segment cut searches this tail
+SINK_OUT   = plat.SINK_OUT  # null sink → microfone virtual de saída / outbound virtual mic
+SRC_MIC    = plat.SRC_MIC   # nome da fonte de áudio virtual / virtual audio source name
+SRC_DESC   = plat.SRC_DESC  # descrição legível no pavucontrol / human-readable description
+SINK_IN    = plat.SINK_IN   # null sink → captura áudio do interlocutor / inbound capture sink
 
 # ── Estado global compartilhado entre threads / Global state shared between threads ──
-_pactl_mods: list[int] = []     # IDs dos módulos PulseAudio carregados / loaded PulseAudio module IDs
 _active = threading.Event()     # sinaliza se tradução está ativa / signals if translation is active
+_peer_active = threading.Event()  # peer direction: follows pause/resume but never PTT
 _stop   = threading.Event()     # sinaliza encerramento do programa / signals program shutdown
 _active.set()
+_peer_active.set()
+
+# Audio backend + virtual devices (set in main) / platform audio backend
+_backend: "plat.AudioBackend | None" = None
+_vmic: "plat.VirtualMic" = plat.VirtualMic(target=SINK_OUT, mic_label=SRC_DESC)
 
 # Filas de áudio bruto (chunks VAD) / Raw audio queues (VAD chunks)
 _out_audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)  # microfone do usuário / user mic
@@ -71,96 +80,37 @@ def _emit(data: dict) -> None:
         print(json.dumps(data, ensure_ascii=False), flush=True)
 
 
-# ── PulseAudio / PipeWire ─────────────────────────────────────────────────────
+# ── Audio (delegated to praxis_platform) ─────────────────────────────────────
 
-def _pactl(*args: str) -> str:
-    """Executa comando pactl e retorna stdout. / Runs pactl command and returns stdout."""
-    r = subprocess.run(["pactl", *args], capture_output=True, text=True, check=True)
-    return r.stdout.strip()
+def _get_backend() -> "plat.AudioBackend":
+    global _backend
+    if _backend is None:
+        _backend = plat.get_backend()
+    return _backend
 
 
-def setup_virtual_devices(bilateral: bool) -> None:
-    """Cria microfone virtual no PulseAudio/PipeWire.
-    Creates virtual microphone in PulseAudio/PipeWire.
-
-    Cria um null sink (SINK_OUT) + remap source (SRC_MIC) para o microfone virtual.
-    Em modo bilateral, também cria SINK_IN para capturar áudio do interlocutor.
-    Creates a null sink (SINK_OUT) + remap source (SRC_MIC) for the virtual mic.
-    In bilateral mode, also creates SINK_IN to capture peer audio.
-    """
-    mod_sink = int(_pactl(
-        "load-module", "module-null-sink",
-        f"sink_name={SINK_OUT}",
-        f"sink_properties=device.description={SINK_OUT}",
-    ))
-    mod_src = int(_pactl(
-        "load-module", "module-remap-source",
-        f"source_name={SRC_MIC}",
-        f"master={SINK_OUT}.monitor",
-        f"source_properties=device.description={SRC_DESC}",
-    ))
-    _pactl_mods.extend([mod_sink, mod_src])
-
-    if bilateral:
-        mod_in = int(_pactl(
-            "load-module", "module-null-sink",
-            f"sink_name={SINK_IN}",
-            f"sink_properties=device.description=Praxis_Entrada",
-        ))
-        _pactl_mods.append(mod_in)
+def setup_virtual_devices(bilateral: bool) -> "plat.VirtualMic":
+    """Creates (Linux) or locates (macOS/Windows) the virtual microphone."""
+    global _vmic
+    _vmic = _get_backend().setup_virtual_mic(bilateral)
+    return _vmic
 
 
 def teardown_virtual_devices() -> None:
-    """Remove todos os módulos PulseAudio criados pelo Praxis ao encerrar.
-    Removes all PulseAudio modules created by Praxis on shutdown."""
-    for mod in reversed(_pactl_mods):
-        try:
-            _pactl("unload-module", str(mod))
-        except Exception:
-            pass
+    """Removes virtual devices created by Praxis (no-op where nothing was created)."""
+    if _backend is not None:
+        _backend.teardown()
 
 
 def resolve_mic(mic_arg: str | None) -> str | None:
-    """Se mic_arg termina com :left ou :right, cria um remap source mono e devolve seu nome."""
-    if not mic_arg:
-        return None
-    if not (mic_arg.endswith(":left") or mic_arg.endswith(":right")):
-        return mic_arg
-
-    master, side = mic_arg.rsplit(":", 1)
-    ch_map   = "front-left"  if side == "left" else "front-right"
-    src_name = f"Praxis_Src_{side.capitalize()}"
-
-    mod = int(_pactl(
-        "load-module", "module-remap-source",
-        f"source_name={src_name}",
-        f"master={master}",
-        "channels=1",
-        f"master_channel_map={ch_map}",
-        "channel_map=mono",
-        f"source_properties=device.description=Praxis_{side.capitalize()}_Mono",
-    ))
-    _pactl_mods.append(mod)
-    return src_name
+    """Linux: 'dev:left/right' → mono remap source. Elsewhere the channel is
+    selected at capture time, so the id is returned unchanged."""
+    return _get_backend().resolve_mic(mic_arg)
 
 
 def play_pcm(pcm: bytes, rate: int, *devices: str | None) -> None:
-    """Toca PCM s16le em um ou mais dispositivos PulseAudio simultaneamente.
-    Plays s16le PCM on one or more PulseAudio devices simultaneously."""
-    def _play(dev: str | None) -> None:
-        cmd = ["pacat", "--playback", "--format=s16le", f"--rate={rate}", "--channels=1"]
-        if dev:
-            cmd.append(f"--device={dev}")
-        subprocess.run(cmd, input=pcm, check=False)
-
-    targets = list(devices)
-    if len(targets) == 1:
-        _play(targets[0])
-    else:
-        # Toca em múltiplos dispositivos em paralelo / play on multiple devices in parallel
-        ts = [threading.Thread(target=_play, args=(d,), daemon=True) for d in targets]
-        for t in ts: t.start()
-        for t in ts: t.join()
+    """Plays s16le mono PCM on one or more devices simultaneously."""
+    _get_backend().play_pcm_multi(pcm, rate, devices)
 
 
 # ── TUI ───────────────────────────────────────────────────────────────────────
@@ -199,10 +149,9 @@ def build_panel() -> Panel:
     table.add_row("")
     table.add_row("[dim]ENTER: pausar/retomar   │   Ctrl+C: sair[/dim]")
 
-    hints = [f"Mic virtual: [bold]{SRC_DESC}[/bold]"]
+    hints = [f"Mic virtual: [bold]{_vmic.mic_label}[/bold]"]
     if bilat:
-        hints.append(f"Bilateral: redirecione saída deles para [bold]Praxis_Entrada[/bold] (pavucontrol)")
-    if bilat:
+        hints.append(f"Bilateral: redirecione saída deles para [bold]{_vmic.peer_label}[/bold]")
         hints.append("[dim]Use fone de ouvido para evitar feedback[/dim]")
 
     return Panel(
@@ -216,76 +165,126 @@ def build_panel() -> Panel:
 
 # ── Workers ───────────────────────────────────────────────────────────────────
 
-def mic_worker(mic_device: str | None) -> None:
-    """Captura microfone via parec (PulseAudio/PipeWire) → _out_audio_q.
+def capture_worker(device: str | None,
+                   audio_q: "queue.Queue[np.ndarray]",
+                   active: threading.Event,
+                   delay: float = 0.0) -> None:
+    """Captures mono 16 kHz audio from `device` → audio_q (VAD_CHUNK samples).
 
-    Sempre drena o pipe mesmo quando inativo — evita acúmulo de áudio antigo
+    Sempre drena a captura mesmo quando inativo — evita acúmulo de áudio antigo
     no buffer do SO que seria liberado na próxima ativação (bug PTT/gate).
+    Always drains capture while inactive so stale audio is never replayed.
     """
-    cmd = ["parec", "--format=s16le", f"--rate={SR}", "--channels=1", "--latency-msec=100"]
-    if mic_device:
-        cmd.append(f"--device={mic_device}")
-
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    chunk_bytes = VAD_CHUNK * 2  # s16le = 2 bytes por sample
+    if delay:
+        time.sleep(delay)
+    try:
+        cap = _get_backend().open_capture(device, SR, VAD_CHUNK)
+    except Exception as e:
+        _emit({"e": "error", "msg": f"audio capture failed ({device or 'default'}): {e}"})
+        console.print(f"[red]Captura de áudio falhou:[/red] {e}")
+        return
     try:
         while not _stop.is_set():
-            data = proc.stdout.read(chunk_bytes)
+            data = cap.read()
             if not data:
                 break
-            if not _active.is_set():
-                continue  # descarta: drena o pipe mas não enfileira
+            if not active.is_set():
+                continue  # descarta: drena mas não enfileira / drain, don't enqueue
             arr = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
             if len(arr) == VAD_CHUNK:
                 try:
-                    _out_audio_q.put_nowait(arr.copy())
+                    audio_q.put_nowait(arr.copy())
                 except queue.Full:
                     pass
     finally:
-        proc.terminate()
+        cap.close()
+
+
+def mic_worker(mic_device: str | None) -> None:
+    """User microphone → _out_audio_q."""
+    capture_worker(mic_device, _out_audio_q, _active)
 
 
 def monitor_worker() -> None:
-    """Captura Praxis_In.monitor via parec (bilateral — voz do interlocutor)."""
-    time.sleep(1.0)
-    proc = subprocess.Popen(
-        ["parec", f"--device={SINK_IN}.monitor",
-         "--format=s16le", f"--rate={SR}", "--channels=1", "--latency-msec=100"],
-        stdout=subprocess.PIPE,
-    )
-    chunk_bytes = VAD_CHUNK * 2
+    """Peer audio (bilateral) → _in_audio_q."""
+    capture_worker(_vmic.peer_capture, _in_audio_q, _peer_active, delay=1.0)
+
+
+class OnnxSileroVAD:
+    """Streaming Silero VAD on onnxruntime — same API as silero's VADIterator.
+
+    Uses the Silero v6 ONNX model bundled with faster-whisper, so the engine
+    needs no PyTorch. (PyTorch + CTranslate2 in one process load two OpenMP
+    runtimes and crash Whisper on macOS.)"""
+
+    CONTEXT = 64
+
+    def __init__(self, threshold: float = 0.5, sampling_rate: int = 16000,
+                 min_silence_duration_ms: int = 100, speech_pad_ms: int = 30) -> None:
+        import onnxruntime
+        from faster_whisper.utils import get_assets_path
+        opts = onnxruntime.SessionOptions()
+        opts.inter_op_num_threads = 1
+        opts.intra_op_num_threads = 1
+        opts.log_severity_level = 4
+        self.session = onnxruntime.InferenceSession(
+            str(Path(get_assets_path()) / "silero_vad_v6.onnx"),
+            providers=["CPUExecutionProvider"], sess_options=opts)
+        self.threshold = threshold
+        self.sr = sampling_rate
+        self.min_silence = sampling_rate * min_silence_duration_ms / 1000
+        self.pad = sampling_rate * speech_pad_ms / 1000
+        self.reset_states()
+
+    def reset_states(self) -> None:
+        self._h = np.zeros((1, 1, 128), np.float32)
+        self._c = np.zeros((1, 1, 128), np.float32)
+        self._ctx = np.zeros((1, self.CONTEXT), np.float32)
+        self.triggered = False
+        self.temp_end = 0
+        self.current_sample = 0
+
+    def prob(self, chunk: np.ndarray) -> float:
+        x = np.asarray(chunk, np.float32).reshape(1, -1)
+        inp = np.concatenate([self._ctx, x], axis=1)
+        out, self._h, self._c = self.session.run(None, {"input": inp, "h": self._h, "c": self._c})
+        self._ctx = x[:, -self.CONTEXT:]
+        return float(np.asarray(out).reshape(-1)[0])
+
+    def __call__(self, chunk, return_seconds: bool = False):
+        if hasattr(chunk, "numpy"):
+            chunk = chunk.numpy()
+        n = len(chunk)
+        self.current_sample += n
+        p = self.prob(chunk)
+        if p >= self.threshold and self.temp_end:
+            self.temp_end = 0
+        if p >= self.threshold and not self.triggered:
+            self.triggered = True
+            start = max(0, self.current_sample - self.pad - n)
+            return {"start": start / self.sr if return_seconds else int(start)}
+        if p < self.threshold - 0.15 and self.triggered:
+            if not self.temp_end:
+                self.temp_end = self.current_sample
+            if self.current_sample - self.temp_end < self.min_silence:
+                return None
+            end = self.temp_end + self.pad - n
+            self.temp_end = 0
+            self.triggered = False
+            return {"end": end / self.sr if return_seconds else int(end)}
+        return None
+
+
+def load_silero_vad():
+    """→ (model, VADIterator-compatible factory). ONNX (no torch) when possible."""
     try:
-        while not _stop.is_set():
-            data = proc.stdout.read(chunk_bytes)
-            if not data:
-                break
-            if not _active.is_set():
-                continue  # descarta: drena o pipe mas não enfileira
-            arr = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
-            if len(arr) == VAD_CHUNK:
-                try:
-                    _in_audio_q.put_nowait(arr.copy())
-                except queue.Full:
-                    pass
-    finally:
-        proc.terminate()
-
-
-def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
-               seg_q:         "queue.Queue[np.ndarray]",
-               mode:          str   = "vad",
-               gate_threshold: float = 0.10) -> None:
-    """Detecta segmentos de fala usando Silero VAD e enfileira em seg_q.
-    Detects speech segments using Silero VAD and enqueues them in seg_q.
-
-    Modos / modes:
-      vad  — detecção automática por probabilidade de fala / automatic speech probability detection
-      gate — threshold RMS simples / simple RMS threshold
-      ptt  — push-to-talk via _ptt_flush / push-to-talk via _ptt_flush event
-    """
+        import onnxruntime  # noqa: F401
+        from faster_whisper.utils import get_assets_path
+        if (Path(get_assets_path()) / "silero_vad_v6.onnx").exists():
+            return None, lambda _model, **kw: OnnxSileroVAD(**kw)
+    except Exception:
+        pass
     import torch
-
-    # Carrega Silero VAD local se disponível, senão baixa / load local Silero VAD or download
     _local = Path.home() / ".cache/torch/hub/snakers4_silero-vad_master"
     if _local.exists():
         model, utils = torch.hub.load(str(_local), "silero_vad", source="local",
@@ -293,14 +292,66 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
     else:
         model, utils = torch.hub.load("snakers4/silero-vad", "silero_vad",
                                       force_reload=False, onnx=False, trust_repo=True)
-    VADIterator = utils[3]
-    vad = VADIterator(model, sampling_rate=SR, threshold=0.5,
-                      min_silence_duration_ms=SILENCE_MS)
+    return model, utils[3]
+
+
+def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
+               seg_q:         "queue.Queue[np.ndarray]",
+               mode:          str   = "vad",
+               gate_threshold: float = 0.10,
+               active:        "threading.Event | None" = None,
+               ptt_flush:     "threading.Event | None" = None,
+               vad_factory=None,
+               max_seg_s:     "float | None" = None,
+               smart_cut:     bool = True,
+               preroll_s:     "float | None" = None) -> None:
+    """Detecta segmentos de fala usando Silero VAD e enfileira em seg_q.
+    Detects speech segments using Silero VAD and enqueues them in seg_q.
+
+    Modos / modes:
+      vad  — detecção automática por probabilidade de fala / automatic speech probability detection
+      gate — threshold RMS simples / simple RMS threshold
+      ptt  — push-to-talk via _ptt_flush / push-to-talk via _ptt_flush event
+
+    Segment quality (measured with benchmarks/run_benchmarks.py asr):
+      * pre-roll — the VAD fires a chunk or two *after* speech begins; the
+        last PREROLL_S of audio is prepended so the first syllable survives.
+      * smart cut — long speech is split at the quietest chunk of the last
+        SMART_CUT_WINDOW_S instead of mid-word, without resetting the VAD.
+    """
+    max_seg_s = MAX_SEG_S if max_seg_s is None else max_seg_s
+    preroll_s = PREROLL_S if preroll_s is None else preroll_s
+    active    = active if active is not None else _active
+    ptt_flush = ptt_flush if ptt_flush is not None else _ptt_flush
+    if vad_factory is None:
+        model, VADIterator = load_silero_vad()
+        vad = VADIterator(model, sampling_rate=SR, threshold=0.5,
+                          min_silence_duration_ms=SILENCE_MS)
+    else:
+        vad = vad_factory()
 
     buf: list[np.ndarray] = []
     speaking = False
     buf_dur  = 0.0
     ptt_mode = (mode == "ptt")
+    chunk_s  = VAD_CHUNK / SR
+    preroll: deque = deque(maxlen=max(0, int(round(preroll_s / chunk_s))) or None)
+    if preroll_s <= 0:
+        preroll = deque(maxlen=0)
+
+    def _cut_long() -> None:
+        """Emits a long segment but keeps listening (speech continues)."""
+        nonlocal buf, buf_dur
+        k = min(len(buf) - 1, int(SMART_CUT_WINDOW_S / chunk_s))
+        if smart_cut and k > 0:
+            tail = buf[-k:]
+            energy = [float(np.mean(c.astype(np.float32) ** 2)) for c in tail]
+            j = len(buf) - k + int(np.argmin(energy))
+            seg, rest = buf[:j + 1], buf[j + 1:]
+        else:
+            seg, rest = buf, []
+        seg_q.put(np.concatenate(seg))
+        buf, buf_dur = rest, len(rest) * chunk_s
 
     def _flush_buf() -> None:
         nonlocal buf, buf_dur, speaking
@@ -311,12 +362,12 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
 
     while not _stop.is_set():
         # PTT flush: botão solto → envia buffer atual e desativa
-        if ptt_mode and _ptt_flush.is_set():
-            _ptt_flush.clear()
+        if ptt_mode and ptt_flush.is_set():
+            ptt_flush.clear()
             _flush_buf()
-            _active.clear()
+            active.clear()
 
-        if not _active.is_set():
+        if not active.is_set():
             # Drena fila e DESCARTA buffer interno — áudio antes do botão/gate não deve
             # ser enviado ao pipeline quando o modo voltar a estar ativo.
             while not audio_q.empty():
@@ -327,6 +378,7 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
             if speaking:
                 buf, buf_dur, speaking = [], 0.0, False
                 vad.reset_states()
+            preroll.clear()
             time.sleep(0.05)
             continue
 
@@ -345,22 +397,83 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
                     vad.reset_states()  # sem fala: limpa estado VAD para não vazar
                 continue
 
-        ev = vad(torch.from_numpy(chunk), return_seconds=False)
-        if ev:
-            if "start" in ev and not speaking:
-                speaking = True
-                buf, buf_dur = [], 0.0
-            if "end" in ev and speaking:
-                _flush_buf()
+        i16 = (chunk * 32767).clip(-32768, 32767).astype(np.int16)
+        ev = vad(chunk, return_seconds=False)
+        if ev and "start" in ev and not speaking:
+            speaking = True
+            buf = list(preroll)                 # onset that preceded the trigger
+            buf_dur = len(buf) * chunk_s
+            preroll.clear()
 
         if speaking:
-            buf.append((chunk * 32767).clip(-32768, 32767).astype(np.int16))
-            buf_dur += VAD_CHUNK / SR
-            if buf_dur >= MAX_SEG_S:
-                _flush_buf()
+            buf.append(i16)
+            buf_dur += chunk_s
+        else:
+            preroll.append(i16)
+
+        if ev and "end" in ev and speaking:
+            _flush_buf()
+        elif speaking and buf_dur >= max_seg_s:
+            _cut_long()
 
 
 _SENT_SPLIT = re.compile(r'(?<=[.!?…])\s+')
+
+# Parâmetros do Whisper usados em produção / Whisper decoding options used live
+WHISPER_OPTS: dict = dict(
+    beam_size=1,
+    condition_on_previous_text=False, without_timestamps=True,
+    temperature=0,
+    no_speech_threshold=0.5,
+    log_prob_threshold=-1.0,
+    compression_ratio_threshold=2.4,
+    vad_filter=True,
+    vad_parameters={"min_silence_duration_ms": 300},
+)
+_NOISE_ONLY = {"", ".", ",", "...", "!", "?", "…"}
+
+
+def collapse_repetitions(text: str, max_repeats: int = 2) -> str:
+    """Removes Whisper hallucination loops ("o que é o que é o que é …").
+
+    Any 1–8-word phrase repeated back-to-back more than `max_repeats` times
+    is kept only `max_repeats` times."""
+    words = text.split()
+    if len(words) < 4:
+        return text
+    changed = True
+    while changed:
+        changed = False
+        for n in range(1, 9):
+            i = 0
+            out: list[str] = []
+            while i < len(words):
+                gram = [w.lower().strip(".,!?¿¡;:…") for w in words[i:i + n]]
+                reps = 1
+                while words[i + reps * n:i + (reps + 1) * n] and \
+                        [w.lower().strip(".,!?¿¡;:…") for w in
+                         words[i + reps * n:i + (reps + 1) * n]] == gram:
+                    reps += 1
+                if reps > max_repeats and len(gram) == n:
+                    out.extend(words[i:i + n * max_repeats])
+                    i += reps * n
+                    changed = True
+                else:
+                    out.append(words[i])
+                    i += 1
+            words = out
+    return " ".join(words)
+
+
+def transcribe_segment(whisper, audio_f32: np.ndarray, lang: str) -> str:
+    """ASR of one speech segment (float32, 16 kHz) → text ('' = no speech).
+
+    Shared by the live pipeline and the benchmarks so both measure the same code."""
+    segs, _info = whisper.transcribe(audio_f32, language=lang, **WHISPER_OPTS)
+    # Filtra segmentos com alta probabilidade de não-fala / drop likely non-speech
+    text = " ".join(s.text for s in segs if s.no_speech_prob < 0.5).strip()
+    text = collapse_repetitions(text)
+    return "" if text in _NOISE_ONLY else text
 
 
 def _split_sentences(text: str) -> list[str]:
@@ -391,52 +504,42 @@ def pipeline_worker(
             continue
 
         audio_f32 = segment.astype(np.float32) / 32768.0
-        segs, info = whisper.transcribe(
-            audio_f32, language=src, beam_size=1,
-            condition_on_previous_text=False, without_timestamps=True,
-            temperature=0,
-            no_speech_threshold=0.5,
-            log_prob_threshold=-1.0,
-            compression_ratio_threshold=2.4,
-            vad_filter=True,
-            vad_parameters={"min_silence_duration_ms": 300},
-        )
-        # Filtra segmentos com alta probabilidade de não-fala
-        valid = [s for s in segs if s.no_speech_prob < 0.5]
-        text  = " ".join(s.text for s in valid).strip()
-        if not text or text in (".", ",", "...", "!"):
+        try:
+            text = transcribe_segment(whisper, audio_f32, src)
+            if not text:
+                continue
+            translated = do_translate(text, src, tgt)
+        except Exception as e:
+            # One bad segment must not kill the direction's worker thread
+            _emit({"e": "error", "msg": f"pipeline: {type(e).__name__}: {e}"})
+            console.print(f"[red]pipeline:[/red] {e}")
             continue
-
-        translated = do_translate(text, src, tgt)
         with _tr_lock:
             _transcripts.append((direction, text, translated))
         _emit({"e": "transcript", "dir": direction, "text": text})
         _emit({"e": "translation", "dir": direction, "text": translated})
-
-        # Alimenta o OmniVoice com o áudio fonte atual como referência (se ativo)
-        # Feed OmniVoice with current source audio as reference (if active)
-        global _ov_src_audio_path, _ov_src_text
-        with _piper_lock:
-            _is_ov = isinstance(_piper_out_ref[0] if direction == "out" else piper,
-                                 OmniVoiceEngine)
-        if _is_ov:
-            import soundfile as _sf, tempfile as _tf
-            _tmp_ref = _tf.mktemp(suffix=".wav")
-            _sf.write(_tmp_ref,
-                       segment.astype(np.float32) / 32768.0,
-                       16000, subtype="PCM_16")
-            _ov_src_audio_path = _tmp_ref
-            _ov_src_text = text
 
         # Streaming TTS: sintetiza próxima frase enquanto atual está tocando
         # Lê piper via ref mutável para suportar hot-swap sem reiniciar Whisper
         sentences = _split_sentences(translated)
         with _piper_lock:
             _cur_piper = _piper_out_ref[0] if direction == "out" else piper
+
+        # Feed OmniVoice the live source audio as reference. One fixed file per
+        # direction: the next segment is only processed after playback ends, so
+        # it is never overwritten while being read (and no temp files leak).
+        if isinstance(_cur_piper, OmniVoiceEngine):
+            try:
+                import soundfile as _sf
+                ref = plat.temp_path(f"ov_live_ref_{direction}.wav")
+                _sf.write(ref, segment.astype(np.float32) / 32768.0, SR, subtype="PCM_16")
+                _cur_piper.set_live_reference(ref, text)
+            except Exception as e:
+                console.print(f"[yellow]OmniVoice ref: {e}[/yellow]")
         rate      = _cur_piper.config.sample_rate
         play_q: "queue.Queue[bytes | None]" = queue.Queue()
 
-        def _synth(sents: list[str], _p=_cur_piper) -> None:
+        def _synth(sents: list[str], _p=_cur_piper, play_q=play_q) -> None:
             try:
                 for s in sents:
                     pcm = b"".join(c.audio_int16_bytes for c in _p.synthesize(s))
@@ -452,9 +555,9 @@ def pipeline_worker(
                 break
             if direction == "out":
                 if monitor:
-                    play_pcm(pcm, rate, SINK_OUT, monitor_output)
+                    play_pcm(pcm, rate, _vmic.target, monitor_output)
                 else:
-                    play_pcm(pcm, rate, SINK_OUT)
+                    play_pcm(pcm, rate, _vmic.target)
             else:
                 play_pcm(pcm, rate, monitor_output)
 
@@ -465,49 +568,66 @@ def input_worker(live: Live) -> None:
             input()
         except EOFError:
             break
-        if _active.is_set():
+        if _ui_state["status"] != "PAUSADO":
             _active.clear()
+            _peer_active.clear()
             _ui_state["status"] = "PAUSADO"
         else:
             _active.set()
+            _peer_active.set()
             _ui_state["status"] = "TRADUZINDO"
         live.update(build_panel())
 
 
 # ── Modelos ───────────────────────────────────────────────────────────────────
 
-def _patch_argos_sbd() -> None:
-    """Substitui o sentencizador do argostranslate por regex simples.
-
-    O StanzaSentencizer falha com KeyError 'packages' em recursos stanza
-    que não contêm essa chave. Como o objetivo é apenas partir texto em
-    sentenças para tradução, um splitter regex é equivalente e mais robusto.
-    """
-    import re
-
-    def _regex_split(text: str):
-        """Divide texto em sentenças por pontuação terminal."""
-        parts = re.split(r'(?<=[.!?])\s+', text.strip())
-        return [p for p in parts if p]
-
-    try:
-        import argostranslate.sbd as _sbd
-
-        _orig_split = _sbd.StanzaSentencizer.split_sentences
-
-        def _safe_split(self, text: str):
-            try:
-                return _orig_split(self, text)
-            except Exception:
-                return _regex_split(text)
-
-        _sbd.StanzaSentencizer.split_sentences = _safe_split
-    except Exception:
-        pass
+_ct2_cache: dict[tuple[str, str], tuple] = {}
+_ct2_lock = threading.Lock()
 
 
+def _argos_translator(src: str, tgt: str):
+    """(argos Package, ctranslate2.Translator) for an installed pair, cached.
 
-_patch_argos_sbd()
+    Bypasses argostranslate.translate, which imports stanza → PyTorch only to
+    split sentences (we split with a regex)."""
+    key = (src, tgt)
+    with _ct2_lock:
+        if key in _ct2_cache:
+            return _ct2_cache[key]
+        import argostranslate.package
+        import ctranslate2
+        pkg = next((p for p in argostranslate.package.get_installed_packages()
+                    if p.from_code == src and p.to_code == tgt), None)
+        if pkg is None:
+            raise LookupError(f"Argos package {src}->{tgt} is not installed")
+        device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+        tr = ctranslate2.Translator(str(pkg.package_path / "model"), device=device,
+                                    inter_threads=1, intra_threads=0,
+                                    # "auto" picks int8 on many CPUs, which turns some
+                                    # Argos models (es→en) into garbage loops.
+                                    compute_type="default")
+        _ct2_cache[key] = (pkg, tr)
+        return pkg, tr
+
+
+ARGOS_BEAM = 4   # argostranslate's default (num_hypotheses=4)
+
+
+def _translate_pair(text: str, src: str, tgt: str) -> str:
+    pkg, tr = _argos_translator(src, tgt)
+    sentences = _split_sentences(text.strip())
+    tokens = [pkg.tokenizer.encode(s) for s in sentences]
+    prefix = [[pkg.target_prefix]] * len(tokens) if pkg.target_prefix else None
+    res = tr.translate_batch(tokens, target_prefix=prefix, replace_unknowns=True,
+                             max_batch_size=32, batch_type="tokens",
+                             beam_size=ARGOS_BEAM, num_hypotheses=1, length_penalty=0.2)
+    out = []
+    for r in res:
+        v = pkg.tokenizer.decode(r.hypotheses[0])
+        if pkg.target_prefix and v.startswith(pkg.target_prefix):
+            v = v[len(pkg.target_prefix):]
+        out.append(v.strip())
+    return " ".join(o for o in out if o)
 
 
 def _download_argos_pair(src: str, tgt: str) -> None:
@@ -567,29 +687,27 @@ def setup_argos(src: str, tgt: str) -> None:
 
 
 def do_translate(text: str, src: str, tgt: str) -> str:
-    """Traduz texto; pivot automático via inglês quando par direto não existe."""
-    import argostranslate.translate
+    """Traduz texto; pivot automático via inglês quando par direto não existe.
+    Translates; pivots through English when there is no direct pair."""
     if src == tgt:
         return text
     if src != "en" and tgt != "en":
-        en_text = argostranslate.translate.translate(text, src, "en")
-        return argostranslate.translate.translate(en_text, "en", tgt)
-    return argostranslate.translate.translate(text, src, tgt)
+        return _translate_pair(_translate_pair(text, src, "en"), "en", tgt)
+    return _translate_pair(text, src, tgt)
 
 
-def load_whisper(model_name: str):
-    from faster_whisper import WhisperModel
+def load_whisper(model_name: str, device: str | None = None):
+    """Loads Whisper on the best backend for this machine (see praxis_accel):
+    CUDA (NVIDIA) · MLX (Apple Silicon) · whisper.cpp GPU build · CPU fallback."""
+    import praxis_accel as accel
 
-    console.print(f"[dim]Whisper ({model_name})...[/dim]", end=" ")
-    try:
-        m = WhisperModel(model_name, device="cuda", compute_type="int8_float16")
-        # Valida GPU com inferência real — cuBLAS é carregado na primeira chamada
-        dummy = np.zeros(1600, dtype=np.float32)
-        list(m.transcribe(dummy, language="pt")[0])
-        console.print("[green]GPU[/green]")
-    except Exception:
-        m = WhisperModel(model_name, device="cpu", compute_type="int8")
-        console.print("[yellow]CPU[/yellow]")
+    backend, why = accel.choose_asr(device or os.environ.get("PRAXIS_DEVICE", "auto"))
+    console.print(f"[dim]Whisper ({model_name})…[/dim]", end=" ")
+    m = accel.load_asr(model_name, backend, log=lambda msg: console.print(f"[yellow]{msg}[/yellow]"))
+    used = getattr(m, "backend", backend)
+    color = "yellow" if used == "cpu" else "green"
+    console.print(f"[{color}]{used.upper()}[/{color}] [dim]({why})[/dim]")
+    _emit({"e": "accel", "asr": used, "reason": why})
     return m
 
 
@@ -598,14 +716,20 @@ class OmniVoiceEngine:
     Zero-shot wrapper using k2-fsa/OmniVoice — no training, just a reference audio clip.
 
     Interface compatível com PiperVoice / PiperVoice-compatible interface.
-    Usa globals _ov_src_audio_path e _ov_src_text definidos pelo pipeline antes da síntese.
-    Uses globals _ov_src_audio_path and _ov_src_text set by the pipeline before synthesis.
+    O pipeline passa o áudio fonte atual via set_live_reference() antes da síntese.
+    The pipeline passes the live source audio via set_live_reference() before synthesis.
     """
 
     def __init__(self, wav_path: str):
         self._wav_path = wav_path          # referência fixa (clone gravado) / fixed reference (recorded clone)
         self._model    = None              # carregado na primeira síntese / loaded on first synthesis
         self.config    = type("cfg", (), {"sample_rate": 24000})()
+        self._live_ref: str = ""           # live source audio (set per segment)
+        self._live_text: str = ""
+
+    def set_live_reference(self, wav_path: str, text: str) -> None:
+        """Uses the speaker's current utterance as voice reference."""
+        self._live_ref, self._live_text = wav_path, text
 
     def _load_model(self):
         """Carrega OmniVoice uma vez e mantém em cache. Loads OmniVoice once and caches."""
@@ -613,7 +737,8 @@ class OmniVoiceEngine:
             return
         from omnivoice import OmniVoice
         import torch
-        device = "cuda" if _has_cuda() else "cpu"
+        import praxis_accel as accel
+        device = accel.choose_clone_device()          # cuda · mps (Apple/AMD Mac) · cpu
         dtype  = torch.float16 if device == "cuda" else torch.float32
         self._model = OmniVoice.from_pretrained(
             "k2-fsa/OmniVoice", device_map=device, dtype=dtype)
@@ -621,15 +746,12 @@ class OmniVoiceEngine:
     def synthesize(self, text: str):
         """Gera áudio com OmniVoice usando áudio de referência e transcrição globais.
         Generates audio with OmniVoice using global reference audio and transcription."""
-        import numpy as np
-        import soundfile as sf, tempfile, os
-
         self._load_model()
 
         # Referência: usa áudio fonte capturado pelo pipeline se disponível, senão usa clone fixo
         # Reference: uses source audio captured by pipeline if available, else uses fixed clone
-        ref_audio = _ov_src_audio_path or self._wav_path
-        ref_text  = _ov_src_text.strip() or "Olá, estou usando o sistema Praxis."
+        ref_audio = self._live_ref or self._wav_path
+        ref_text  = self._live_text.strip() or "Olá, estou usando o sistema Praxis."
 
         try:
             audio = self._model.generate(
@@ -640,7 +762,8 @@ class OmniVoiceEngine:
             pcm_f32 = audio[0]  # float32, sr=24000
             pcm_i16 = (np.clip(pcm_f32, -1.0, 1.0) * 32767).astype(np.int16)
         except Exception:
-            import traceback; traceback.print_exc()
+            import traceback
+            traceback.print_exc()
             pcm_i16 = np.zeros(100, dtype=np.int16)
 
         class _Chunk:
@@ -650,16 +773,11 @@ class OmniVoiceEngine:
         yield _Chunk(pcm_i16)
 
 
-# Globals do pipeline: áudio fonte atual + transcrição para referência do OmniVoice
-# Pipeline globals: current source audio + transcription for OmniVoice reference
-_ov_src_audio_path: str = ""   # caminho para WAV do áudio fonte / path to source audio WAV
-_ov_src_text:       str = ""   # transcrição do áudio fonte / source audio transcription
-
-
 def _has_cuda() -> bool:
+    """CUDA availability without importing PyTorch (see OnnxSileroVAD)."""
     try:
-        import torch
-        return torch.cuda.is_available()
+        import ctranslate2
+        return ctranslate2.get_cuda_device_count() > 0
     except Exception:
         return False
 
@@ -680,8 +798,8 @@ def load_piper(path: str):
                 # OmniVoice zero-shot — usa o WAV do clone como referência fixa
                 # OmniVoice zero-shot — uses the clone WAV as fixed reference
                 return OmniVoiceEngine(path)
-    from piper import PiperVoice
-    return PiperVoice.load(path)
+    import praxis_accel as accel
+    return accel.load_piper_accelerated(path)
 
 
 def start_ptt_listener(key_str: str) -> None:
@@ -720,22 +838,60 @@ def start_ptt_listener(key_str: str) -> None:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def check_environment() -> dict:
+    """Smoke check: which optional components are importable + audio backend.
+
+    Used by `praxis.py --check` (CI and support). Never loads models."""
+    import importlib.util
+    mods = ["numpy", "rich", "sounddevice", "soundfile", "torch", "faster_whisper",
+            "argostranslate", "piper", "pynput", "customtkinter", "omnivoice"]
+    report: dict = {
+        "platform": plat.SYSTEM,
+        "python": sys.version.split()[0],
+        "modules": {m: importlib.util.find_spec(m) is not None for m in mods},
+        "ffmpeg": plat.ffmpeg_exe() is not None,
+    }
+    try:
+        import praxis_accel as accel
+        pl = accel.plan()
+        report["acceleration"] = {
+            "gpus": list(pl.gpus), "asr": pl.asr, "asr_reason": pl.asr_reason,
+            "mt": pl.mt_device, "tts_providers": pl.tts_providers or ["CPUExecutionProvider"],
+            "clone": pl.clone_device, "cuda_devices": accel.cuda_device_count(),
+            "mlx_whisper": accel._has("mlx_whisper"),
+            "whispercpp_gpu": accel.whispercpp_gpu_backend(),
+        }
+    except Exception as e:
+        report["acceleration"] = {"error": str(e)}
+    try:
+        b = _get_backend()
+        report["audio_backend"] = b.name
+        report["inputs"] = len(b.list_inputs())
+        report["outputs"] = len(b.list_outputs())
+        report["can_create_virtual_devices"] = b.can_create_virtual_devices
+        report["setup_hint"] = b.setup_hint()
+    except Exception as e:
+        report["audio_backend"] = None
+        report["audio_error"] = str(e)
+    return report
+
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Praxis — tradutor de voz em tempo real")
     parser.add_argument("--src",       default="pt",
                         help="Idioma que você fala (padrão: pt)")
     parser.add_argument("--tgt",       default="en",
                         help="Idioma de saída (padrão: en)")
-    parser.add_argument("--voice-out", required=True, dest="voice_out",
-                        help="Voz Piper para sua fala traduzida (.onnx)")
+    parser.add_argument("--voice-out", default=None, dest="voice_out",
+                        help="Voz Piper para sua fala traduzida (.onnx) — obrigatório")
     parser.add_argument("--voice-in",  default=None,  dest="voice_in",
                         help="Voz Piper para fala deles traduzida (.onnx) — ativa bilateral")
     parser.add_argument("--model",     default="small",
                         choices=["tiny", "base", "small", "medium", "large-v2"])
     parser.add_argument("--mic",    default=None,
-                        help="Nome da fonte de áudio (pactl list short sources)")
+                        help="Dispositivo de entrada (veja --list-devices)")
     parser.add_argument("--output", default=None,
-                        help="Nome do sink de saída para monitor (pactl list short sinks)")
+                        help="Dispositivo de saída para monitor (veja --list-devices)")
     parser.add_argument("--monitor", action="store_true",
                         help="Tocar tradução na saída selecionada (--output)")
     parser.add_argument("--json-out", action="store_true", dest="json_out",
@@ -746,7 +902,37 @@ def main() -> None:
                         help="Threshold RMS para modo gate (0.0–1.0, padrão 0.10)")
     parser.add_argument("--ptt-key", default="", dest="ptt_key",
                         help="Tecla/botão PTT. Ex: 'keyboard:ctrl_r', 'mouse:right'")
-    args = parser.parse_args()
+    parser.add_argument("--list-devices", action="store_true", dest="list_devices",
+                        help="Lista dispositivos de áudio e sai")
+    parser.add_argument("--check", action="store_true",
+                        help="Verifica dependências/áudio (JSON) e sai")
+    parser.add_argument("--device", default=None,
+                        choices=["auto", "cpu", "cuda", "mlx", "whispercpp"],
+                        help="Aceleração do Whisper (padrão: auto / PRAXIS_DEVICE)")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_parser()
+    args = parser.parse_args(argv)
+
+    if args.check:
+        print(json.dumps(check_environment(), indent=2, ensure_ascii=False))
+        return 0
+    if args.list_devices:
+        b = _get_backend()
+        print(f"# backend: {b.name}")
+        print("# inputs")
+        for dev_id, label in b.list_inputs():
+            print(f"{dev_id}\t{label}")
+        print("# outputs")
+        for dev_id, label in b.list_outputs():
+            print(f"{dev_id}\t{label}")
+        return 0
+    if not args.voice_out:
+        parser.error("--voice-out é obrigatório / --voice-out is required")
+    if not 0.0 <= args.gate_threshold <= 1.0:
+        parser.error("--gate-threshold deve estar entre 0 e 1")
 
     global _json_out, console
     _json_out = args.json_out
@@ -756,23 +942,38 @@ def main() -> None:
     bilateral = args.voice_in is not None
     _ui_state.update(src=args.src, tgt=args.tgt, bilateral=bilateral)
 
-    console.rule("[cyan]✦ Praxis[/cyan]")
-    _emit({"e": "progress", "pct": 0, "msg": "Configurando dispositivos…"})
-    setup_virtual_devices(bilateral)
-
     def _shutdown(sig, frame):
         _stop.set()
 
     signal.signal(signal.SIGINT,  _shutdown)
     signal.signal(signal.SIGTERM, _shutdown)
 
+    console.rule("[cyan]✦ Praxis[/cyan]")
+    try:
+        _emit({"e": "progress", "pct": 0, "msg": "Configurando dispositivos…"})
+        setup_virtual_devices(bilateral)
+        return _run(args, bilateral)
+    except SystemExit as e:
+        if e.code not in (0, None):
+            _emit({"e": "error", "msg": str(e.code)})
+        raise
+    except Exception as e:
+        _emit({"e": "error", "msg": f"{type(e).__name__}: {e}"})
+        console.print(f"[red]Erro:[/red] {e}")
+        return 1
+    finally:
+        # Always remove virtual devices, even if startup failed halfway
+        teardown_virtual_devices()
+
+
+def _run(args: argparse.Namespace, bilateral: bool) -> int:
     _emit({"e": "progress", "pct": 20, "msg": "Carregando tradução…"})
     setup_argos(args.src, args.tgt)
     if bilateral:
         setup_argos(args.tgt, args.src)
 
     _emit({"e": "progress", "pct": 50, "msg": "Carregando Whisper…"})
-    whisper   = load_whisper(args.model)
+    whisper   = load_whisper(args.model, args.device)
     _emit({"e": "progress", "pct": 75, "msg": "Carregando voz…"})
     piper_out = load_piper(args.voice_out)
     _piper_out_ref[0] = piper_out
@@ -803,10 +1004,15 @@ def main() -> None:
     ]
 
     if bilateral:
+        # The peer is never gated by the user's PTT key — PTT only applies to
+        # the user's own microphone, so the peer direction always uses VAD.
+        peer_mode = "vad" if args.mode == "ptt" else args.mode
         threads += [
             threading.Thread(target=monitor_worker, daemon=True),
             threading.Thread(target=vad_worker,
-                             args=(_in_audio_q, _in_seg_q, args.mode, args.gate_threshold),
+                             args=(_in_audio_q, _in_seg_q, peer_mode, args.gate_threshold),
+                             kwargs={"active": _peer_active,
+                                     "ptt_flush": threading.Event()},
                              daemon=True),
             threading.Thread(target=pipeline_worker,
                              args=(_in_seg_q, whisper, piper_in,
@@ -819,7 +1025,7 @@ def main() -> None:
         t.start()
 
     if _json_out:
-        _emit({"e": "ready"})
+        _emit({"e": "ready", "mic": _vmic.mic_label, "peer": _vmic.peer_label})
 
         def _stdin_reader() -> None:
             """Lê comandos JSON do stdin para hot-swap de configurações."""
@@ -833,14 +1039,16 @@ def main() -> None:
                     continue
                 if cmd.get("cmd") == "reload_voice":
                     path = cmd.get("path", "")
-                    if path and Path(path).exists():
-                        try:
-                            new_piper = load_piper(path)
-                            with _piper_lock:
-                                _piper_out_ref[0] = new_piper
-                            _emit({"e": "voice_reloaded", "path": path})
-                        except Exception as ex:
-                            _emit({"e": "error", "msg": str(ex)})
+                    if not path or not Path(path).exists():
+                        _emit({"e": "error", "msg": f"voice not found: {path}"})
+                        continue
+                    try:
+                        new_piper = load_piper(path)
+                        with _piper_lock:
+                            _piper_out_ref[0] = new_piper
+                        _emit({"e": "voice_reloaded", "path": path})
+                    except Exception as ex:
+                        _emit({"e": "error", "msg": str(ex)})
                 elif cmd.get("cmd") == "stop":
                     _stop.set()
                     break
@@ -859,9 +1067,9 @@ def main() -> None:
                 live.update(build_panel())
                 time.sleep(0.25)
 
-    teardown_virtual_devices()
     console.print("[cyan]✦[/cyan] Até mais!")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
