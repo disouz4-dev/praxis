@@ -226,3 +226,17 @@ def test_benchmark_normalisation_keeps_combining_marks():
     assert normalize("कुछ अणुओं में अस्थिर केंद्रक") == "कुछ अणुओं में अस्थिर केंद्रक"
     assert normalize("عاصفة مُسماة لموسم الأعاصير") == "عاصفة مسماة لموسم الاعاصير"
     assert normalize("Elle appela sa sœur, l’aînée!") == "elle appela sa soeur l aînée"
+
+
+def test_work_area_linux_fallback_without_window_manager(monkeypatch):
+    """CI / minimal Linux desktops have no window manager: wm_maxsize() came
+    back as 560 × 1048575 and the window was 'fitted' into nonsense."""
+    import types
+    monkeypatch.setattr(plat, "IS_LINUX", True)
+    monkeypatch.setattr(plat, "IS_MAC", False)
+    monkeypatch.setattr(plat, "IS_WIN", False)
+    monkeypatch.setattr(plat, "primary_monitor_geometry", lambda: (0, 0, 0, 0))
+    monkeypatch.setattr(plat, "_net_workarea", lambda: None)
+    root = types.SimpleNamespace(winfo_screenwidth=lambda: 1920, winfo_screenheight=lambda: 1080,
+                                 wm_maxsize=lambda: (560, 1048575))
+    assert plat.work_area(root) == (0, 0, 1920, 1080)

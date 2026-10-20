@@ -223,7 +223,11 @@ def work_area(tk_root=None, point: tuple[int, int] | None = None) -> tuple[int, 
         pass
     if tk_root is not None:
         try:
-            mw, mh = tk_root.wm_maxsize()
+            if IS_LINUX:
+                # Without a window manager (minimal desktops, CI) wm_maxsize() is
+                # meaningless (seen: 560 × 1048575); the whole screen is safe.
+                return 0, 0, int(tk_root.winfo_screenwidth()), int(tk_root.winfo_screenheight())
+            mw, mh = tk_root.wm_maxsize()       # excludes Dock/taskbar on Aqua/Windows
             return 0, 0, int(mw), int(mh)
         except Exception:
             pass
