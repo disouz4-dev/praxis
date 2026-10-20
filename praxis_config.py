@@ -95,7 +95,7 @@ def _tgt_langs_with_voices() -> list[tuple[str, str]]:
 LANGS = SRC_LANGS
 LANG_CODES  = [c for c, _ in LANGS]
 LANG_LABELS = [f"{n}  ({c})" for c, n in LANGS]
-MODELS      = ["tiny", "base", "small", "medium", "large-v2"]
+MODELS      = ["tiny", "base", "small", "medium", "large-v2", "large-v3", "large-v3-turbo"]
 
 
 def _catalog_filename(v: dict) -> str:
@@ -1834,18 +1834,20 @@ class ConfigWindow(ctk.CTk):
         return r + 1
 
     def _whisper(self, r: int) -> int:
-        """Seção de seleção do modelo Whisper (tiny/base/small/medium/large-v2).
-        Whisper model selection section."""
-        self.model_var = ctk.StringVar(value=self.cfg["model"])
-        _whisper_seg = ctk.CTkSegmentedButton(
+        """Seção de seleção do modelo Whisper (menu: cabe em qualquer largura).
+        Whisper model selection (dropdown — never overflows horizontally)."""
+        model = self.cfg.get("model", "small")
+        if model not in MODELS:          # saved value from an older/other version
+            model = "small"
+        self.model_var = ctk.StringVar(value=model)
+        _whisper_menu = ctk.CTkOptionMenu(
             self._card, values=MODELS, variable=self.model_var,
-            fg_color=self.SEG_BG,
-            selected_color=self.ACCENT, selected_hover_color=self.HOVER,
-            unselected_color=self.SEG_BG, unselected_hover_color=self.IBORDER,
-            text_color=self.MUTED, font=ctk.CTkFont(size=12),
+            fg_color=self.INPUT, button_color=self.SEG_BG,
+            button_hover_color=self.IBORDER, text_color=self.TEXT,
+            dropdown_fg_color=self.CARD, dropdown_text_color=self.TEXT,
+            font=ctk.CTkFont(size=12), dynamic_resizing=False,
         )
-        _whisper_seg.grid(row=r, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 16))
-        self._fix_seg_colors(_whisper_seg, unsel_tc=self.MUTED)
+        _whisper_menu.grid(row=r, column=0, columnspan=2, sticky="ew", padx=20, pady=(0, 16))
         return r + 1
 
     def _audio_section(self, r: int) -> int:

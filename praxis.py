@@ -891,7 +891,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--voice-in",  default=None,  dest="voice_in",
                         help="Voz Piper para fala deles traduzida (.onnx) — ativa bilateral")
     parser.add_argument("--model",     default="small",
-                        choices=["tiny", "base", "small", "medium", "large-v2"])
+                        choices=["tiny", "base", "small", "medium",
+                                 "large-v2", "large-v3", "large-v3-turbo"])
     parser.add_argument("--mic",    default=None,
                         help="Dispositivo de entrada (veja --list-devices)")
     parser.add_argument("--output", default=None,
