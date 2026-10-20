@@ -473,3 +473,10 @@ def test_voice_speeds_up_when_translated_speech_piles_up(engine):
     t.join(3)
     assert calls[0] is None                      # nothing queued yet → normal speed
     assert any(c is not None and c < 1.0 for c in calls[1:]), calls
+
+
+
+def test_transcribe_segment_strips_broken_characters():
+    """Whisper split a Devanagari character between tokens → "प्रद�" in Hindi."""
+    w = FakeWhisper("प्रद\ufffd तो  ग्रीनलैंड")
+    assert praxis.transcribe_segment(w, np.zeros(1600, np.float32), "hi") == "प्रद तो ग्रीनलैंड"

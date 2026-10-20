@@ -501,6 +501,9 @@ def transcribe_segment(whisper, audio_f32: np.ndarray, lang: str) -> str:
     text = " ".join(s.text for s in segs
                     if not (s.no_speech_prob > NO_SPEECH_DROP
                             and getattr(s, "avg_logprob", 0.0) < LOGPROB_DROP)).strip()
+    # Whisper can split a multi-byte character between tokens (seen in Hindi):
+    # never pass the resulting "�" on to translation and speech.
+    text = re.sub(r"\s{2,}", " ", text.replace("\ufffd", "")).strip()
     text = collapse_repetitions(text)
     return "" if text in _NOISE_ONLY else text
 

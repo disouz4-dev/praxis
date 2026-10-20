@@ -54,14 +54,23 @@ PIPER_VOICES = {   # lang → (locale, speaker, quality)
 
 # ── text normalisation + metrics ──────────────────────────────────────────────
 
+_ARABIC_TASHKEEL = re.compile("[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]")
+
+
 def normalize(text: str) -> str:
-    """Lowercase, strip accents-insensitive punctuation, collapse spaces.
-    Accents are kept (they distinguish words in pt/es)."""
+    """Lowercase, drop punctuation/symbols, collapse spaces — WITHOUT breaking
+    words of scripts that use combining marks (Hindi vowel signs, Thai…).
+
+    Arabic optional vowel marks (tashkeel) are removed and alef/yeh variants
+    unified, as references include them but speech recognisers do not.
+    Accents are kept (they distinguish words in pt/es/fr)."""
     t = unicodedata.normalize("NFKC", text).lower()
-    t = t.replace("’", "'")
-    t = re.sub(r"[^\w\s']", " ", t)
-    t = re.sub(r"\s+", " ", t).strip()
-    return t
+    t = t.replace("’", "'").replace("œ", "oe").replace("æ", "ae")
+    t = _ARABIC_TASHKEEL.sub("", t)
+    t = re.sub("[إأآٱ]", "ا", t).replace("ى", "ي")
+    # punctuation (P*) and symbols (S*) become spaces; marks (M*) stay attached
+    t = "".join(" " if unicodedata.category(ch)[0] in "PS" else ch for ch in t)
+    return re.sub(r"\s+", " ", t).strip()
 
 
 def wer_cer(refs: list[str], hyps: list[str]) -> tuple[float, float]:

@@ -213,3 +213,16 @@ def test_work_area_returns_usable_rect():
     if w == 0:
         pytest.skip("no display / work-area API on this runner")
     assert w > 0 and h > 0
+
+
+
+def test_benchmark_normalisation_keeps_combining_marks():
+    """Hindi vowel signs and Arabic letters must not be split into fragments
+    (that inflated/hid errors in the real-speech benchmark)."""
+    import sys
+    from conftest import ROOT
+    sys.path.insert(0, str(ROOT / "benchmarks"))
+    from run_benchmarks import normalize
+    assert normalize("कुछ अणुओं में अस्थिर केंद्रक") == "कुछ अणुओं में अस्थिर केंद्रक"
+    assert normalize("عاصفة مُسماة لموسم الأعاصير") == "عاصفة مسماة لموسم الاعاصير"
+    assert normalize("Elle appela sa sœur, l’aînée!") == "elle appela sa soeur l aînée"
