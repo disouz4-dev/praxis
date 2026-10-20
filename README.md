@@ -7,6 +7,9 @@
 **[🇧🇷 Português](README.md)** · [🇺🇸 English](docs/README.en.md) · [🇪🇸 Español](docs/README.es.md) · [🇫🇷 Français](docs/README.fr.md) · [🇩🇪 Deutsch](docs/README.de.md) · [🇮🇹 Italiano](docs/README.it.md) · [🇷🇺 Русский](docs/README.ru.md) · [🇨🇳 中文](docs/README.zh.md) · [🇳🇱 Nederlands](docs/README.nl.md) · [🇵🇱 Polski](docs/README.pl.md) · [🇺🇦 Українська](docs/README.uk.md) · [🇹🇷 Türkçe](docs/README.tr.md) · [🇸🇦 العربية](docs/README.ar.md) · [🇮🇳 हिन्दी](docs/README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
+[![macOS](https://img.shields.io/badge/macOS-BlackHole-informational?logo=apple)](https://github.com/disouz4-dev/praxis)
+[![Windows](https://img.shields.io/badge/Windows-VB--Cable-informational?logo=windows)](https://github.com/disouz4-dev/praxis)
+[![CI](https://github.com/disouz4-dev/praxis/actions/workflows/ci.yml/badge.svg)](https://github.com/disouz4-dev/praxis/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
 [![License](https://img.shields.io/badge/Licença-MIT-green)](LICENSE)
 [![Offline](https://img.shields.io/badge/100%25-offline-success)](https://github.com/disouz4-dev/praxis)
@@ -54,9 +57,10 @@ O Praxis cria um **microfone virtual** no sistema operacional. Você fala no seu
 ```
 Microfone real  →  VAD  →  Whisper ASR  →  Argos Translate  →  Piper TTS
                                                                       ↓
-                                                              Sink virtual (Praxis_Out)
+                                                          Microfone virtual
+                                              Linux: Praxis_Microfone · macOS: BlackHole · Windows: VB-Cable
                                                                       ↓
-                                                          Praxis_Microfone  ←  Discord / Meet / OBS
+                                                          Discord / Meet / Zoom / OBS
 ```
 
 Tudo roda **100% local**, sem internet, sem nuvem, sem enviar nada para fora da sua máquina.
@@ -104,20 +108,36 @@ Português · English · Español · Français · Deutsch · Italiano · 日本�
 
 ## Instalação
 
+### Linux / macOS
+
 ```bash
 git clone https://github.com/disouz4-dev/praxis.git
 cd praxis
-chmod +x install.sh && ./install.sh
+./install.sh
 ```
 
-O instalador cria um ambiente virtual isolado, instala todas as dependências (PyTorch, Whisper, Argos, Piper) e disponibiliza o comando `praxis` globalmente.
+### Windows (PowerShell)
+
+```powershell
+git clone https://github.com/disouz4-dev/praxis.git
+cd praxis
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+O instalador cria um ambiente virtual isolado, instala as dependências (Whisper, Argos, Piper — **sem PyTorch**), baixa uma voz padrão e cria o atalho do app com ícone (menu de aplicativos no Linux, `~/Applications/Praxis.app` no macOS, Menu Iniciar no Windows). Clonagem de voz (OmniVoice, requer PyTorch) é opcional: `PRAXIS_WITH_CLONE=1 ./install.sh`.
 
 ### Requisitos
 
-- Linux com PulseAudio ou PipeWire
-- Python 3.10+
-- `pulseaudio-utils` (`pactl`, `parec`)
-- GPU NVIDIA com CUDA (recomendado) ou CPU
+| | Linux | macOS | Windows |
+|---|---|---|---|
+| Python | 3.10+ | 3.10+ (Homebrew) | 3.10+ (python.org) |
+| Microfone virtual | criado automaticamente (PulseAudio/PipeWire) | [BlackHole 2ch](https://existential.audio/blackhole/) — instalado pelo `install.sh` | [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) |
+| Modo bilateral | automático | + BlackHole 16ch | + VB-Cable A+B |
+| GPU (automático) | NVIDIA CUDA · AMD/Intel via Vulkan¹ | Apple Silicon via MLX · Intel: CPU² | NVIDIA CUDA · AMD/Intel via Vulkan¹ |
+
+¹ opt-in: `PRAXIS_GPU=vulkan ./install.sh` (compila o whisper.cpp; requer Vulkan SDK). ² Medido: em Macs Intel+AMD o whisper.cpp/Metal transcreve errado e é mais lento que a CPU. A clonagem (OmniVoice) usa CUDA ou MPS. Force um backend com `--device cpu|cuda|mlx|whispercpp` ou `PRAXIS_DEVICE`.
+
+Diagnóstico rápido: `python praxis.py --check` (dependências + áudio) e `python praxis.py --list-devices`.
 
 ---
 
@@ -134,7 +154,7 @@ Na janela de configuração, selecione:
 4. **Voz** de saída (baixe vozes adicionais com o botão ⬇ Baixar)
 5. Clique em **✦ Iniciar**
 
-No app de chamada, selecione **Praxis_Microfone** como dispositivo de entrada de áudio.
+No app de chamada, selecione o microfone virtual: **Praxis_Microfone** (Linux), **BlackHole 2ch** (macOS) ou **CABLE Output** (Windows).
 
 ---
 
@@ -142,11 +162,26 @@ No app de chamada, selecione **Praxis_Microfone** como dispositivo de entrada de
 
 | Etapa | Ferramenta | Detalhes |
 |-------|-----------|----------|
-| Segmentação de fala | **Silero VAD** | Corte por silêncio (200ms) ou duração máxima (4s) |
-| Transcrição | **faster-whisper** | Modelo `small` padrão; GPU int8_float16 / CPU int8 |
-| Tradução | **Argos Translate** | 100% offline; baixa pares de idiomas no primeiro uso |
-| Síntese de voz | **Piper TTS** | Modelos `.onnx` leves e rápidos; síntese por sentença em paralelo |
-| Saída de áudio | **pacat + PulseAudio** | Injeção direta no sink virtual |
+| Segmentação de fala | **Silero VAD (ONNX)** | Corte por silêncio (200 ms) ou no ponto mais silencioso após 4s; 250 ms de pre-roll |
+| Transcrição | **faster-whisper** | Modelo `small` padrão; GPU int8_float16 / CPU int8; filtro de alucinações repetidas |
+| Tradução | **Argos Translate** (CTranslate2) | 100% offline; pivot via inglês; baixa pares no primeiro uso |
+| Síntese de voz | **Piper TTS** | Modelos `.onnx` leves; síntese por sentença em paralelo |
+| Saída de áudio | **PulseAudio** (Linux) · **PortAudio** (macOS/Windows) | Injeção no microfone virtual |
+
+---
+
+## Testes e qualidade
+
+```bash
+pip install -r requirements-dev.txt && pip install --no-deps argostranslate
+pytest                                   # unidade + smoke + GUI (rápido, sem modelos)
+python benchmarks/fetch_speech_corpus.py # áudios reais (LibriSpeech/MLS, CC BY 4.0)
+pytest -m slow                           # qualidade da transcrição (WER) + latência
+python benchmarks/run_benchmarks.py asr --models small --langs pt en es
+python benchmarks/run_benchmarks.py latency --model small
+```
+
+O CI roda em Linux, macOS e Windows a cada push. Resultados e relatório de QA: [`benchmarks/results/`](benchmarks/results/) · [`docs/QA_REPORT.md`](docs/QA_REPORT.md).
 
 ---
 
@@ -181,7 +216,9 @@ A aba **"Clonar minha voz"** permite clonar qualquer voz em segundos — basta g
 - [ ] Tradução bidirecional completa (ouvir o interlocutor traduzido)
 - [ ] Tray icon e atalho global para pausar/retomar
 - [ ] Streaming speech-to-speech para latência menor ainda
-- [ ] Empacotamento `.deb` / `.desktop`
+- [x] Multiplataforma: Linux, macOS e Windows
+- [x] Testes automatizados, CI e benchmarks de qualidade/latência com fala real
+- [ ] Empacotamento `.deb` / `.dmg` / `.msi`
 - [ ] Modo servidor LAN para apresentações e conferências
 
 ---
