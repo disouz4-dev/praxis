@@ -381,3 +381,30 @@ def test_next_segment_is_processed_while_previous_translation_plays(engine):
     assert len(asr_starts) == 2 and len(plays) == 2
     assert asr_starts[1] < plays[0][1], "2nd segment waited for the 1st translation to finish playing"
     assert plays[1][0] >= plays[0][1] - 0.01, "translations overlapped"
+
+
+# ── long unpunctuated input must be split before translation ──────────────────
+
+def test_chunk_for_mt_keeps_short_sentences():
+    assert praxis._chunk_for_mt("uma frase curta.") == ["uma frase curta."]
+
+
+def test_chunk_for_mt_splits_long_unpunctuated_text():
+    """A 175-word unpunctuated passage made the translator output a loop."""
+    text = " ".join(f"palavra{i}" for i in range(175))
+    pieces = praxis._chunk_for_mt(text)
+    assert all(len(p.split()) <= praxis.MT_MAX_WORDS for p in pieces)
+    assert " ".join(pieces).split() == text.split()            # nothing lost or reordered
+
+
+def test_chunk_for_mt_prefers_commas_and_merges_tiny_pieces():
+    text = ", ".join(" ".join(f"w{i}_{j}" for j in range(12)) for i in range(5)) + ", fim"
+    pieces = praxis._chunk_for_mt(text)
+    assert len(pieces) == 5 and pieces[-1].endswith("fim")
+
+
+def test_chunk_for_mt_handles_scripts_without_spaces():
+    text = "这是一个很长的句子" * 20
+    pieces = praxis._chunk_for_mt(text)
+    assert all(len(p) <= praxis.MT_MAX_CHARS_NOSPACE + 8 for p in pieces)
+    assert "".join(pieces) == text

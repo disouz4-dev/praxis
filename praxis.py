@@ -631,11 +631,48 @@ def _argos_translator(src: str, tgt: str):
 
 
 ARGOS_BEAM = 4   # argostranslate's default (num_hypotheses=4)
+MT_MAX_WORDS = 30          # longer "sentences" are split before translation
+MT_MAX_CHARS_NOSPACE = 60  # same limit for scripts without spaces (zh, ja)
+_SOFT_BREAK = re.compile(r"(?<=[,;:，、；：])\s*")
+
+
+def _chunk_for_mt(sentence: str) -> list[str]:
+    """Splits an over-long sentence into translatable pieces.
+
+    The translation models degenerate on very long inputs without
+    punctuation (found with real speech: a 175-word unpunctuated Italian
+    passage came out as "I have not been able to do so…" repeated).
+    Pieces are cut at commas/semicolons first, then by length."""
+    words = sentence.split()
+    spaced = len(words) > 1
+    too_long = (len(words) > MT_MAX_WORDS) if spaced else (len(sentence) > MT_MAX_CHARS_NOSPACE)
+    if not too_long:
+        return [sentence]
+    pieces: list[str] = []
+    for part in _SOFT_BREAK.split(sentence):
+        if not part.strip():
+            continue
+        if spaced:
+            w = part.split()
+            for i in range(0, len(w), MT_MAX_WORDS):
+                pieces.append(" ".join(w[i:i + MT_MAX_WORDS]))
+        else:
+            for i in range(0, len(part), MT_MAX_CHARS_NOSPACE):
+                pieces.append(part[i:i + MT_MAX_CHARS_NOSPACE])
+    # merge tiny pieces back into their neighbour so context isn't lost
+    merged: list[str] = []
+    for piece in pieces:
+        small = len(piece.split()) < 4 if spaced else len(piece) < 8
+        if merged and small:
+            merged[-1] = f"{merged[-1]} {piece}" if spaced else merged[-1] + piece
+        else:
+            merged.append(piece)
+    return merged
 
 
 def _translate_pair(text: str, src: str, tgt: str) -> str:
     pkg, tr = _argos_translator(src, tgt)
-    sentences = _split_sentences(text.strip())
+    sentences = [c for s in _split_sentences(text.strip()) for c in _chunk_for_mt(s)]
     tokens = [pkg.tokenizer.encode(s) for s in sentences]
     prefix = [[pkg.target_prefix]] * len(tokens) if pkg.target_prefix else None
     res = tr.translate_batch(tokens, target_prefix=prefix, replace_unknowns=True,
