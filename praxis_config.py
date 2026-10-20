@@ -1252,6 +1252,8 @@ class ConfigWindow(ctk.CTk):
     MON_ON  = "#18181B"
     MON_OFF = "#F0F1F3"
 
+    WIN_W, WIN_H = 560, 720    # tamanho padrão / default window size (logical px)
+
     def __init__(self) -> None:
         """Inicializa a janela principal de configuração do Praxis.
         Initializes the main Praxis configuration window."""
@@ -1286,11 +1288,13 @@ class ConfigWindow(ctk.CTk):
         self.resizable(True, True)
         self.configure(fg_color=self.BG)
 
-        # Cabe SEMPRE na área útil do monitor (sem passar por baixo do Dock/menu do
-        # macOS, da barra de tarefas do Windows ou de painéis do Linux).
-        # Always fits the monitor's usable area (title bar included), any DPI.
+        # App de meio de tela: tamanho médio fixo, centralizado — nunca esticado até
+        # a altura da tela. Só encolhe se não couber na área útil (Dock, menu,
+        # barra de tarefas), nunca vaza na vertical. O conteúdo rola por dentro.
+        # Mid-screen app: medium size, centred, never stretched to full height;
+        # shrinks only when the usable area is smaller. Content scrolls inside.
         self.minsize(420, 480)
-        place_window(self, 560, 900)
+        place_window(self, self.WIN_W, self.WIN_H)
 
         self.withdraw()  # oculta a janela principal durante o carregamento / hide main window during load
 

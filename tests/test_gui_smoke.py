@@ -197,6 +197,24 @@ def test_main_window_fits_usable_screen(app):
     _assert_on_screen(w)
 
 
+def test_main_window_is_mid_screen_not_stretched(app):
+    """Medium, centred window — not stretched to the screen height."""
+    w, errors = app
+    import praxis_config as pc
+    import praxis_platform as plat
+    pc.place_window(w, pc.ConfigWindow.WIN_W, pc.ConfigWindow.WIN_H)
+    w.deiconify()
+    w.update()
+    wx, wy, ww, wh = plat.work_area(w)
+    if not ww:
+        pytest.skip("work area unknown")
+    assert w.winfo_height() <= pc.ConfigWindow.WIN_H + 2
+    assert w.winfo_width() <= pc.ConfigWindow.WIN_W + 2
+    if wh > pc.ConfigWindow.WIN_H + 100:          # room to spare → visibly centred
+        cy = w.winfo_rooty() + w.winfo_height() // 2
+        assert abs(cy - (wy + wh // 2)) < 60, "window not centred vertically"
+
+
 @pytest.mark.parametrize("scale", [1.0, 1.5])
 def test_windows_fit_screen_at_any_display_scale(app, scale):
     """Main window, engine panel expansion (1120 px) and dialogs stay on screen."""
@@ -206,14 +224,14 @@ def test_windows_fit_screen_at_any_display_scale(app, scale):
     try:
         ctk.set_window_scaling(scale)
         w.deiconify()
-        pc.place_window(w, 560, 900)
+        pc.place_window(w, 560, 720)
         _assert_on_screen(w)
         y0 = w.winfo_rooty()
-        pc.place_window(w, 1120, 900, keep_position=True)     # engine started
+        pc.place_window(w, 1120, 720, keep_position=True)     # engine started
         _assert_on_screen(w)
         for _ in range(3):                                    # start/stop must not drift
-            pc.place_window(w, 560, 900, keep_position=True)
-            pc.place_window(w, 1120, 900, keep_position=True)
+            pc.place_window(w, 560, 720, keep_position=True)
+            pc.place_window(w, 1120, 720, keep_position=True)
         w.update()
         assert abs(w.winfo_rooty() - y0) <= 2, "window drifts on start/stop"
         dlg = ctk.CTkToplevel(w)
@@ -224,4 +242,4 @@ def test_windows_fit_screen_at_any_display_scale(app, scale):
         _assert_on_screen(w)
     finally:
         ctk.set_window_scaling(1.0)
-        pc.place_window(w, 560, 900)
+        pc.place_window(w, 560, 720)
