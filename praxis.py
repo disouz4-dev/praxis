@@ -1011,9 +1011,11 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Voz Piper para sua fala traduzida (.onnx) — obrigatório")
     parser.add_argument("--voice-in",  default=None,  dest="voice_in",
                         help="Voz Piper para fala deles traduzida (.onnx) — ativa bilateral")
-    parser.add_argument("--model",     default="small",
-                        choices=["tiny", "base", "small", "medium",
-                                 "large-v2", "large-v3", "large-v3-turbo"])
+    parser.add_argument("--model",     default="auto",
+                        choices=["auto", "tiny", "base", "small", "medium",
+                                 "large-v2", "large-v3", "large-v3-turbo"],
+                        help="auto = melhor modelo medido para este hardware "
+                             "(placa de vídeo: large-v3-turbo; processador: small)")
     parser.add_argument("--mic",    default=None,
                         help="Dispositivo de entrada (veja --list-devices)")
     parser.add_argument("--output", default=None,
@@ -1106,7 +1108,14 @@ def _run(args: argparse.Namespace, bilateral: bool) -> int:
         setup_argos(args.tgt, args.src)
 
     _emit({"e": "progress", "pct": 50, "msg": "Carregando Whisper…"})
-    whisper   = load_whisper(args.model, args.device)
+    model = args.model
+    if model == "auto":
+        import praxis_accel as accel
+        backend, _ = accel.choose_asr(args.device or os.environ.get("PRAXIS_DEVICE", "auto"))
+        model, note = accel.recommend_model(args.src, backend)
+        _emit({"e": "model", "model": model, "note": note})
+        console.print(f"[dim]Modelo automático: {model}[/dim]" + (f" [yellow]({note})[/yellow]" if note else ""))
+    whisper   = load_whisper(model, args.device)
     _emit({"e": "progress", "pct": 75, "msg": "Carregando voz…"})
     piper_out = load_piper(args.voice_out)
     _piper_out_ref[0] = piper_out

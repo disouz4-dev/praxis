@@ -207,3 +207,25 @@ def test_calibration_is_applied_on_top_of_adaptive_rate():
 
 def test_german_default_voice_is_the_fast_one(cfg_module):
     assert cfg_module._best_catalog_voice("de")["speaker"] == "thorsten"
+
+
+# ── automatic model choice ────────────────────────────────────────────────────
+
+def test_recommend_model_per_hardware():
+    assert accel.recommend_model("pt", "cuda")[0] == "large-v3-turbo"
+    assert accel.recommend_model("pt", "mlx")[0] == "large-v3-turbo"
+    assert accel.recommend_model("pt", "cpu")[0] == "small"
+
+
+def test_recommend_model_warns_on_poor_languages():
+    model, note = accel.recommend_model("hi", "cpu")
+    assert model == "small" and "hi" in note and "70%" in note
+    _, note = accel.recommend_model("fr", "cpu")
+    assert "placa de vídeo" in note                 # suggests the GPU fix
+    assert accel.recommend_model("pt", "cuda")[1] == ""
+    assert accel.recommend_model("xx", "cpu")[1] == ""
+
+
+def test_engine_cli_accepts_auto_model():
+    import praxis
+    assert praxis.build_parser().parse_args(["--voice-out", "v.onnx"]).model == "auto"

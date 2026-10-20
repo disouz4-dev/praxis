@@ -95,7 +95,7 @@ def _tgt_langs_with_voices() -> list[tuple[str, str]]:
 LANGS = SRC_LANGS
 LANG_CODES  = [c for c, _ in LANGS]
 LANG_LABELS = [f"{n}  ({c})" for c, n in LANGS]
-MODELS      = ["tiny", "base", "small", "medium", "large-v2", "large-v3", "large-v3-turbo"]
+MODELS      = ["auto", "tiny", "base", "small", "medium", "large-v2", "large-v3", "large-v3-turbo"]
 
 
 def _catalog_filename(v: dict) -> str:
@@ -816,7 +816,7 @@ DEFAULT_CFG: dict = {
     "tgt":            "en",
     "voice_out":      str(VOICES_DIR / "en_US-lessac-medium.onnx"),
     "voice_in":       "",
-    "model":          "small",
+    "model":          "auto",       # melhor modelo medido para o hardware
     "mic":            "",
     "output":         "",
     "monitor":        False,
@@ -1843,7 +1843,7 @@ class ConfigWindow(ctk.CTk):
         Whisper model selection (dropdown — never overflows horizontally)."""
         model = self.cfg.get("model", "small")
         if model not in MODELS:          # saved value from an older/other version
-            model = "small"
+            model = "auto"
         self.model_var = ctk.StringVar(value=model)
         _whisper_menu = ctk.CTkOptionMenu(
             self._card, values=MODELS, variable=self.model_var,
@@ -4847,6 +4847,10 @@ class ConfigWindow(ctk.CTk):
                 pct = ev.get("pct", 0) / 100
                 msg = ev.get("msg", "")
                 self._post(self._set_progress, pct, msg)
+            elif etype == "model":
+                note = ev.get("note") or ""
+                self._post(self._log_append, f"[modelo] {ev.get('model')} (automático)"
+                           + (f" — ⚠ {note}" if note else ""))
             elif etype == "accel":
                 self._post(self._log_append,
                            f"[aceleração] Whisper: {ev.get('asr', '?').upper()} — {ev.get('reason', '')}")

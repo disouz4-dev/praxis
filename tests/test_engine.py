@@ -137,7 +137,7 @@ def test_load_piper_dispatches_omnivoice_clone(tmp_path):
 
 def test_parser_defaults_and_choices():
     a = praxis.build_parser().parse_args(["--voice-out", "v.onnx"])
-    assert (a.src, a.tgt, a.mode, a.model, a.gate_threshold) == ("pt", "en", "vad", "small", 0.10)
+    assert (a.src, a.tgt, a.mode, a.model, a.gate_threshold) == ("pt", "en", "vad", "auto", 0.10)
     with pytest.raises(SystemExit):
         praxis.build_parser().parse_args(["--mode", "bogus"])
 

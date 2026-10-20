@@ -217,6 +217,41 @@ def plan(requested_asr: str | None = None) -> AccelPlan:
                      gpus=gpu_names())
 
 
+# ── Automatic model choice (from the real-speech streaming test on lab2) ──────
+# Live transcription error rate (words; characters for zh/ja), ~1 min of
+# continuous real speech per language, fed in real time. Source:
+# benchmarks/results/stream-cuda-large-v3-turbo.json / stream-cpu-small.json.
+MEASURED_ERROR = {
+    "gpu": {"model": "large-v3-turbo",
+            "pt": .05, "en": .01, "es": .03, "fr": .08, "de": .18, "it": .14, "ru": .07, "zh": .13,
+            "nl": .12, "pl": .03, "uk": .08, "tr": .12, "ar": .13, "hi": .34, "ja": .14, "ko": .27},
+    "cpu": {"model": "small",
+            "pt": .08, "en": .03, "es": .03, "fr": .25, "de": .29, "it": .32, "ru": .16, "zh": .33,
+            "nl": .21, "pl": .16, "uk": .19, "tr": .24, "ar": .31, "hi": .70, "ja": .22, "ko": .37},
+}
+POOR_QUALITY = 0.20      # above this share of errors the user is warned
+
+
+def recommend_model(src_lang: str, asr_backend: str) -> tuple[str, str]:
+    """→ (Whisper model, plain-language note) for this hardware and language.
+
+    GPU: large-v3-turbo — most accurate and keeps up with continuous speech in
+    all 16 languages. CPU: small — the most accurate model that still keeps up
+    (medium/large-v3-turbo lag 4–26 s behind on a CPU)."""
+    kind = "cpu" if asr_backend == "cpu" else "gpu"
+    table = MEASURED_ERROR[kind]
+    model = table["model"]
+    err = table.get(src_lang)
+    note = ""
+    if err is not None and err > POOR_QUALITY:
+        if kind == "cpu" and MEASURED_ERROR["gpu"].get(src_lang, 1) <= POOR_QUALITY:
+            note = (f"transcrição de '{src_lang}' neste computador sem placa de vídeo erra ~{err:.0%} "
+                    f"das palavras; com placa de vídeo cai para ~{MEASURED_ERROR['gpu'][src_lang]:.0%}")
+        else:
+            note = f"transcrição de '{src_lang}' ainda erra ~{err:.0%} das palavras neste hardware"
+    return model, note
+
+
 # ── ASR adapters: same .transcribe() contract as faster_whisper.WhisperModel ──
 
 class _Seg:
