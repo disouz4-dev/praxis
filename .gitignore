@@ -8,3 +8,8 @@ contexto.md
 config.json
 /voices/
 .env
+.venv*/
+benchmarks/data/
+.pytest_cache/
+.ruff_cache/
+*.part
