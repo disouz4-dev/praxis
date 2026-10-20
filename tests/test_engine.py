@@ -576,3 +576,43 @@ def test_clonagem_fora_do_mac_nao_muda_nada(tmp_path, monkeypatch):
     monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
     assert praxis.prepare_clone_on_mac(_clone(tmp_path)) is False
     assert "OMP_NUM_THREADS" not in os.environ
+
+
+# ── eco e laços sem espaço ────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("texto,esperado", [
+    ("少し少し少し少し少しスターバー", "少し少しスターバー"),
+    ("अपना बवाश्वावावावावावावावा", "अपना बवाश्वावा"),
+    ("hahaha que engraçado", "hahaha que engraçado"),          # 3 repetições: normal, fica
+    ("custou 1000000 de reais em 2000", "custou 1000000 de reais em 2000"),   # números intactos
+])
+def test_guarda_pega_lacos_sem_espaco(texto, esperado):
+    """Medido com eco: laços dentro de uma 'palavra' em escritas sem espaço."""
+    assert praxis.collapse_repetitions(texto) == esperado
+
+
+def test_trava_de_eco_ignora_o_microfone_enquanto_o_alto_falante_toca():
+    """Com a tradução tocando no alto-falante, o que chega ao microfone é tratado
+    como silêncio (medido sem a trava: erro 18% → 104% e laços sem fim)."""
+    praxis._speaker_busy_until[0] = time.monotonic() + 60
+    try:
+        audio_q, seg_q = queue.Queue(), queue.Queue()
+        active = threading.Event()
+        active.set()
+        praxis._stop.clear()
+        t = threading.Thread(target=praxis.vad_worker, args=(audio_q, seg_q, "vad", 0.1),
+                             kwargs=dict(active=active, ptt_flush=threading.Event(),
+                                         vad_factory=FakeVAD, echo_gate=True), daemon=True)
+        t.start()
+        for c in _speech(40) + _silence(5):
+            audio_q.put(c)
+        time.sleep(0.4)
+        praxis._stop.set()
+        t.join(2)
+        assert seg_q.empty(), "o eco virou um trecho para traduzir"
+    finally:
+        praxis._speaker_busy_until[0] = 0.0
+
+
+def test_parser_aceita_fones():
+    assert praxis.build_parser().parse_args(["--voice-out", "v", "--fones"]).fones is True

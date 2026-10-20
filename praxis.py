@@ -49,6 +49,14 @@ _backend: "plat.AudioBackend | None" = None
 _vmic: "plat.VirtualMic" = plat.VirtualMic(target=SINK_OUT, mic_label=SRC_DESC)
 _clone_mode_mac = False      # modo de compatibilidade da clonagem no Mac (ver prepare_clone_on_mac)
 
+# Trava de eco: enquanto o Praxis toca áudio no ALTO-FALANTE (modo bilateral ou
+# "ouvir a tradução"), o microfone do usuário é ignorado e por mais ECHO_TAIL_S.
+# Sem isso, a tradução vaza para o microfone e o Praxis traduz a própria voz
+# (medido: erro médio de 18% → 104% e laços sem fim). Quem usa fone pode desligar.
+ECHO_GATE = True
+ECHO_TAIL_S = 0.35
+_speaker_busy_until = [0.0]
+
 # Filas de áudio bruto (blocos do detector de fala)
 _out_audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)  # microfone do usuário
 _in_audio_q:  "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)  # áudio do interlocutor
@@ -302,7 +310,8 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
                vad_factory=None,
                max_seg_s:     "float | None" = None,
                smart_cut:     bool = True,
-               preroll_s:     "float | None" = None) -> None:
+               preroll_s:     "float | None" = None,
+               echo_gate:     bool = False) -> None:
     """Detecta trechos de fala com o detector Silero e os enfileira em seg_q.
 
     Modos:
@@ -412,6 +421,8 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
                     vad.reset_states()  # sem fala: limpa o estado do detector para não vazar
                 continue
 
+        if echo_gate and time.monotonic() < _speaker_busy_until[0]:
+            chunk = np.zeros_like(chunk)          # áudio do alto-falante vazando: tratado como silêncio
         i16 = (chunk * 32767).clip(-32768, 32767).astype(np.int16)
         ev = vad(chunk, return_seconds=False)
         if ev and "start" in ev and not speaking:
@@ -459,6 +470,10 @@ def collapse_repetitions(text: str, max_repeats: int = 2) -> str:
 
     Qualquer frase de 1 a 8 palavras repetida em sequência mais de `max_repeats`
     vezes é mantida só `max_repeats` vezes."""
+    # Laços dentro de uma "palavra" em escritas sem espaço (medido com eco:
+    # "वावावावा…", "少し少し少し…"): um pedaço de 1–8 caracteres repetido 4+ vezes vira 2.
+    # (nunca em números: "1000000" tem que continuar igual)
+    text = re.sub(r"((?:(?!\d).){1,8}?)\1{3,}", r"\1\1", text)
     words = text.split()
     if len(words) < 4:
         return text
@@ -605,6 +620,10 @@ def pipeline_worker(
             if item is None:
                 return
             pcm, rate = item
+            if ECHO_GATE and any(t != _vmic.target for t in targets):
+                # vai tocar num alto-falante: o microfone do usuário fica surdo até o fim + folga
+                _speaker_busy_until[0] = max(_speaker_busy_until[0],
+                                             time.monotonic() + len(pcm) / 2 / rate + ECHO_TAIL_S)
             play_pcm(pcm, rate, *targets)
             with backlog_lock:
                 backlog["s"] = max(0.0, backlog["s"] - len(pcm) / 2 / rate)
@@ -870,6 +889,9 @@ def setup_argos(src: str, tgt: str) -> None:
     """Instala pares de tradução. Usa o inglês como intermediário quando o par direto não existe."""
     if src == tgt:
         return
+    if TRANSLATOR == "nllb":
+        _load_nllb()                     # um único modelo cobre todos os pares
+        return
     if src != "en" and tgt != "en":
         _download_argos_pair(src, "en")
         _download_argos_pair("en", tgt)
@@ -877,10 +899,62 @@ def setup_argos(src: str, tgt: str) -> None:
         _download_argos_pair(src, tgt)
 
 
+# ── Tradutor NLLB-200 (Meta), opcional ────────────────────────────────────────
+# Traduz direto entre os 16 idiomas (sem passar pelo inglês). ATENÇÃO: a licença
+# dos pesos do NLLB-200 (CC-BY-NC 4.0) NÃO permite uso comercial.
+TRANSLATOR = os.environ.get("PRAXIS_TRADUTOR", "argos")      # "argos" | "nllb"
+NLLB_MODEL = os.environ.get("PRAXIS_NLLB", "nllb-200-distilled-600M-ct2")
+NLLB_CODES = {"pt": "por_Latn", "en": "eng_Latn", "es": "spa_Latn", "fr": "fra_Latn",
+              "de": "deu_Latn", "it": "ita_Latn", "ru": "rus_Cyrl", "zh": "zho_Hans",
+              "nl": "nld_Latn", "pl": "pol_Latn", "uk": "ukr_Cyrl", "tr": "tur_Latn",
+              "ar": "arb_Arab", "hi": "hin_Deva", "ja": "jpn_Jpan", "ko": "kor_Hang"}
+_nllb: tuple | None = None
+_nllb_lock = threading.Lock()
+
+
+def nllb_dir() -> Path:
+    p = Path(NLLB_MODEL)
+    return p if p.is_absolute() else plat.data_dir() / "modelos" / NLLB_MODEL
+
+
+def _load_nllb():
+    global _nllb
+    with _nllb_lock:
+        if _nllb is None:
+            import ctranslate2
+            import sentencepiece as spm
+            d = nllb_dir()
+            if not (d / "model.bin").exists():
+                raise SemInternet(f"O tradutor NLLB não está instalado em {d}. "
+                                  "Use o tradutor padrão (Argos) ou instale o modelo NLLB.")
+            device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+            if device == "cuda":
+                import praxis_accel
+                praxis_accel.ensure_cuda_libs()
+            tr = ctranslate2.Translator(str(d), device=device, compute_type="default",
+                                        inter_threads=1, intra_threads=0)
+            sp = spm.SentencePieceProcessor(model_file=str(d / "sentencepiece.bpe.model"))
+            _nllb = (tr, sp)
+        return _nllb
+
+
+def _translate_pair_nllb(text: str, src: str, tgt: str) -> str:
+    tr, sp = _load_nllb()
+    s, t = NLLB_CODES[src], NLLB_CODES[tgt]
+    sentences = [c for x in _split_sentences(text.strip()) for c in _chunk_for_mt(x)]
+    batch = [[s] + sp.encode(x, out_type=str) + ["</s>"] for x in sentences]
+    res = tr.translate_batch(batch, target_prefix=[[t]] * len(batch), beam_size=ARGOS_BEAM,
+                             max_batch_size=32, replace_unknowns=True)
+    out = [sp.decode([tok for tok in r.hypotheses[0] if tok != t]).strip() for r in res]
+    return " ".join(o for o in out if o)
+
+
 def do_translate(text: str, src: str, tgt: str) -> str:
     """Traduz texto; passa pelo inglês automaticamente quando não existe o par direto."""
     if src == tgt:
         return text
+    if TRANSLATOR == "nllb":
+        return _translate_pair_nllb(text, src, tgt)          # direto, sem passar pelo inglês
     if src != "en" and tgt != "en":
         return _translate_pair(_translate_pair(text, src, "en"), "en", tgt)
     return _translate_pair(text, src, tgt)
@@ -1138,6 +1212,11 @@ def build_parser() -> argparse.ArgumentParser:
                         help="Verifica dependências e áudio (em JSON) e sai")
     parser.add_argument("--max-segment", type=float, default=None, dest="max_segment",
                         help=f"Duração máxima de fala sem pausa antes do corte (s, padrão {MAX_SEG_S:g})")
+    parser.add_argument("--fones", action="store_true",
+                        help="estou de fone: desliga a trava de eco (o microfone não fica surdo "
+                             "enquanto a tradução toca no alto-falante)")
+    parser.add_argument("--tradutor", default=None, choices=["argos", "nllb"],
+                        help="tradutor: argos (padrão) ou nllb (Meta NLLB-200, melhor, uso NÃO comercial)")
     parser.add_argument("--device", default=None,
                         choices=["auto", "cpu", "cuda", "mlx", "whispercpp"],
                         help="Aceleração do Whisper (padrão: auto / PRAXIS_DEVICE)")
@@ -1208,8 +1287,12 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(args: argparse.Namespace, bilateral: bool) -> int:
-    global _clone_mode_mac
+    global _clone_mode_mac, TRANSLATOR, ECHO_GATE
     _clone_mode_mac = prepare_clone_on_mac(args.voice_out, args.voice_in)
+    if args.fones:
+        ECHO_GATE = False
+    if args.tradutor:
+        TRANSLATOR = args.tradutor
     _emit({"e": "progress", "pct": 20, "msg": "Carregando tradução…"})
     setup_argos(args.src, args.tgt)
     if bilateral:
@@ -1245,7 +1328,7 @@ def _run(args: argparse.Namespace, bilateral: bool) -> int:
         threading.Thread(target=mic_worker,  args=(mic_device,), daemon=True),
         threading.Thread(target=vad_worker,
                          args=(_out_audio_q, _out_seg_q, args.mode, args.gate_threshold),
-                         daemon=True),
+                         kwargs={"echo_gate": ECHO_GATE}, daemon=True),
         threading.Thread(target=pipeline_worker,
                          args=(_out_seg_q, whisper, piper_out,
                                args.src, args.tgt, "out",

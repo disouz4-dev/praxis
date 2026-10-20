@@ -295,10 +295,15 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
     praxis._emit = lambda d: None
     active = threading.Event()
     active.set()
+    # Com eco, a tradução toca também num alto-falante (como no modo bilateral ou
+    # "ouvir a tradução"), que é de onde ela vaza para o microfone.
+    speaker = "alto-falante" if ECHO_DB is not None else None
     vad_t = threading.Thread(target=praxis.vad_worker, args=(audio_q, seg_q, "vad", 0.1),
-                             kwargs={"active": active, "ptt_flush": threading.Event()}, daemon=True)
+                             kwargs={"active": active, "ptt_flush": threading.Event(),
+                                     "echo_gate": praxis.ECHO_GATE}, daemon=True)
     pipe_t = threading.Thread(target=praxis.pipeline_worker,
-                              args=(seg_q, whisper, voice, src, tgt, "out"), daemon=True)
+                              args=(seg_q, whisper, voice, src, tgt, "out", speaker is not None, speaker),
+                              daemon=True)
     try:
         vad_t.start()
         pipe_t.start()
@@ -492,6 +497,8 @@ def main() -> None:
                     help="testa en → cada idioma de saída (tradução + voz de cada idioma)")
     ap.add_argument("--eco", type=float, default=None, metavar="DB",
                     help="simula eco: a tradução tocada volta pelo microfone com este volume (ex.: -12)")
+    ap.add_argument("--sem-trava-de-eco", action="store_true",
+                    help="desliga a trava de eco do motor (para medir o problema sem a proteção)")
     ap.add_argument("--contexto", action="store_true",
                     help="liga o contexto entre trechos (o fim do que já foi dito vai como dica ao Whisper)")
     ap.add_argument("--data-dir", default=None,
@@ -503,6 +510,7 @@ def main() -> None:
         DATA = Path(a.data_dir)
     ECHO_DB = a.eco
     praxis.USE_CONTEXT = bool(a.contexto)
+    praxis.ECHO_GATE = not a.sem_trava_de_eco
     whisper = praxis.load_whisper(a.model, a.device)
     backend = getattr(whisper, "backend", a.device)
     rep = {"kind": "stream", "model": a.model, "backend": backend,

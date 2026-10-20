@@ -428,7 +428,12 @@ def significado(res: dict) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--n", type=int, default=60, help="número de frases (padrão 60)")
+    ap.add_argument("--tradutor", default=None, choices=["argos", "nllb"],
+                    help="tradutor do Praxis a medir (padrão: o configurado, Argos)")
+    ap.add_argument("--nome", default="traducao-vs-humano", help="nome dos arquivos de resultado")
     args = ap.parse_args()
+    if args.tradutor:
+        praxis.TRANSLATOR = args.tradutor
 
     print("Montando o conjunto de frases paralelas...", flush=True)
     ids, frases = montar_conjunto(args.n)
@@ -484,10 +489,10 @@ def main() -> None:
     res["significado"] = significado(res)
 
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / "traducao-vs-humano.json").write_text(
+    (RESULTS / f"{args.nome}.json").write_text(
         json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
-    (RESULTS / "traducao-vs-humano.md").write_text(relatorio(res), encoding="utf-8")
-    print(f"\nResultados em {RESULTS}/traducao-vs-humano.(json|md)")
+    (RESULTS / f"{args.nome}.md").write_text(relatorio(res), encoding="utf-8")
+    print(f"\nResultados em {RESULTS}/{args.nome}.(json|md)")
 
 
 if __name__ == "__main__":
