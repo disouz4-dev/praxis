@@ -1,0 +1,22 @@
+# Praxis runtime (all platforms). Install with:
+#   pip install -r requirements.txt
+#   pip install --no-deps argostranslate     # see note below
+#
+# argostranslate is installed WITHOUT dependencies on purpose: its stanza
+# dependency drags in PyTorch (~550 MB) only for sentence splitting, which
+# Praxis does itself. PyTorch + CTranslate2 in the same process also crash
+# Whisper on macOS (duplicate OpenMP runtimes).
+numpy>=1.24
+rich>=13
+sounddevice>=0.4.6
+soundfile>=0.12
+customtkinter>=5.2
+pillow>=10
+pynput>=1.7
+faster-whisper>=1.1
+piper-tts>=1.2
+ctranslate2>=4.0
+sentencepiece>=0.2
+sacremoses>=0.1
+requests>=2.31
+packaging>=23
