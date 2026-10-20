@@ -161,7 +161,7 @@ In your call app, select the virtual microphone: **Praxis_Microfone** (Linux), *
 
 | Stage | Tool | Details |
 |-------|------|---------|
-| Speech segmentation | **Silero VAD (ONNX)** | Cut on silence (200 ms) or at the quietest point after 4s; 250 ms pre-roll |
+| Speech segmentation | **Silero VAD (ONNX)** | Cut on silence (200 ms) or at the quietest point after 6s; 250 ms pre-roll |
 | Transcription | **faster-whisper** | `small` model by default; GPU int8_float16 / CPU int8; repetition-loop filter |
 | Translation | **Argos Translate** (CTranslate2) | 100% offline; English pivot; downloads pairs on first use |
 | Voice synthesis | **Piper TTS** | Lightweight `.onnx` models; per-sentence parallel synthesis |

@@ -9,11 +9,11 @@ transcription-quality and latency benchmarks on real human speech._
 |---|---|---|
 | Platforms | Linux only (PulseAudio/PipeWire) | Linux · macOS · Windows |
 | GPU | NVIDIA CUDA only | NVIDIA CUDA · Apple Silicon (MLX) · AMD/Intel (whisper.cpp Vulkan, opt-in) · auto-detected |
-| Automated tests | none | 86 fast tests (unit, smoke, GUI) + slow quality/latency gates |
+| Automated tests | none | 115 fast tests (unit, smoke, GUI) + slow quality/latency gates |
 | CI | none | GitHub Actions: Linux/macOS/Windows × Python 3.10/3.12 + benchmarks |
-| Live transcription WER (pt, Whisper `small`) | **26.4%** | **19.4%** |
-| Live transcription WER (en / es) | 8.7% / 13.8% | 7.8% / 11.6% |
-| End-to-end latency (end of speech → first audio, p50, CPU) | — | pending (benchmark not run yet — see Latency) |
+| Live transcription WER (pt, Whisper `small`) | **26.4%** | **16.7%** |
+| Live transcription WER (en / es) | 8.7% / 13.8% | 5.3% / 6.9% |
+| End-to-end latency (end of speech → first audio, p50, CPU) | — | **1.8–2.1 s** (Intel i9 CPU, `small`) |
 | PyTorch required | yes (~550 MB) | no (only for optional voice cloning) |
 
 ## How it was tested
@@ -36,7 +36,7 @@ transcription-quality and latency benchmarks on real human speech._
 |---|---|---|---|---|
 | 1 | engine | PyTorch (Silero VAD, Argos→stanza) and CTranslate2 (Whisper) load **two OpenMP runtimes** | **Segfault on the first transcription on macOS** | Engine is now torch-free: Silero VAD on ONNX Runtime, Argos models run directly on CTranslate2 |
 | 2 | engine | Argos/CTranslate2 `compute_type="auto"` picks int8 on many CPUs | **es→en (and every es→X pivot) outputs garbage** ("mainstremainstre…") — also affects v0.1.0 | `compute_type="default"`; translation sanity gate in CI |
-| 3 | engine | Speech cut every 4 s mid-word, VAD state reset at each cut | Live WER pt 26.4% vs 15.5% for the same audio in one piece | Cut at the quietest point of the last 1.5 s without resetting VAD; limit tuned with data (below) |
+| 3 | engine | Speech cut every 4 s mid-word, VAD state reset at each cut | Live WER pt 26.4% vs 15.5% for the same audio in one piece | Cut at the quietest point of the last 1.5 s without resetting VAD; limit raised to 6 s (measured below) |
 | 4 | engine | No pre-roll: buffer starts *after* the VAD triggers | First syllable of every phrase lost ("a soberba" → "sobre a") | 250 ms pre-roll |
 | 5 | engine | Whisper hallucination loops on short cut segments | Up to 991% WER on a single clip ("o que é o que é …" ×100), translated and spoken aloud | Repetition guard on every transcript |
 | 6 | UI | `pw-metadata` called unguarded at startup and close | **App can't start** without PipeWire (any macOS/Windows, PulseAudio-only Linux); can't close if it hangs | Platform layer, no-op elsewhere |
@@ -103,16 +103,36 @@ _Machine: Intel Core i9-9980HK (MacBook Pro 2019), CPU int8, Python 3.12. RTF = 
 
 | Variant | pt | en | es |
 |---|---:|---:|---:|
-| A — ONNX VAD, hard 4 s cut (v0.1.0 segmentation) | 24.0% | 7.3% | 14.1% |
+| A — v0.1.0 segmentation (hard 4 s cut), ONNX VAD | 24.0% | 7.3% | 14.1% |
 | B — + repetition guard | 24.0% | 7.3% | 14.1% |
 | C — + 250 ms pre-roll | 19.4% | 7.8% | 11.6% |
-| D–G — smart cut at 4/6/8 s, Whisper internal VAD off | _running — results will be added to this report_ | | |
+| D — + smart cut, 4 s limit | 20.5% | 7.8% | 12.8% |
+| **E — smart cut, 6 s limit (new default)** | **16.7%** | **5.3%** | **6.9%** |
+| F — smart cut, 8 s limit | 14.3% | 5.3% | 6.6% |
+| G — D without Whisper's internal VAD filter | 20.5% | 7.8% | 12.8% |
 
-Whole-utterance WER (upper bound): pt 15.5% · en 3.9% · es 11.0%. The guard changes nothing for `small` (no loops) but removes the catastrophic `base` loops. The pre-roll alone recovers 4.6 WER points in Portuguese.
+Whole-utterance WER (upper bound): pt 15.5% · en 3.9% · es 11.0%. Pre-roll recovers the first syllable (−4.6 pts pt). The smart cut only pays off with a longer limit: at 4 s it still splits most sentences; at 6 s live WER drops 30% (pt), 27% (en), 51% (es) vs v0.1.0. 8 s is ~2 pts better in pt but adds up to 2 s of waiting during uninterrupted speech, so 6 s is the default (`--max-segment` to change). The repetition guard changes nothing for `small` but removes the catastrophic `base` loops; disabling Whisper's internal VAD filter has no effect.
 
 ## Latency
 
-The latency benchmark (`python benchmarks/run_benchmarks.py latency`) and the slow CI gates (`pytest -m slow`) are in place but have **not been run yet** in this round; results will be added here. Unit-level: orchestration overhead (queues, threads, sentence split) between a segment and its first audio is asserted < 50 ms in `test_pipeline_overhead_latency`.
+_Machine: macOS-26.6.2-x86_64-i386-64bit · i386 · 16 cores · Python 3.12.15 · CUDA False_
+
+Whisper model: `small` · backend: `cpu`
+
+| Pair | N | VAD tail | ASR | MT | TTS 1st | **Total p50** | **Total p95** |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| pt->en | 10 | 288 | 1666 | 56 | 110 | **2112 ms** | **2595 ms** |
+| en->pt | 10 | 272 | 1392 | 48 | 92 | **1841 ms** | **1921 ms** |
+| es->en | 10 | 256 | 1467 | 135 | 108 | **1962 ms** | **2182 ms** |
+
+Stage values are p50 in ms. Total = end of speech → first translated audio sample ready (playback start).
+
+End of speech → first translated audio, measured on the last live segment of 10 real utterances
+per pair. ASR is ~80% of the total on this CPU; GPU backends (CUDA / MLX) are expected to cut that
+stage several-fold but are not measured here. The VAD tail (256–288 ms) is the 200 ms silence the
+VAD waits for plus 32 ms chunk granularity. Orchestration overhead (queues, threads, sentence split)
+is asserted < 50 ms in `test_pipeline_overhead_latency`. All slow gates pass (`pytest -m slow`:
+10 passed — live WER thresholds, no hallucination loops, translation sanity for 4 pairs, latency).
 
 ## GPU support
 
