@@ -143,8 +143,33 @@ def test_loading_splash_is_built_around_logo(app):
         assert sp.winfo_reqwidth() >= logo.width()
         img_lbl = next(c for c in sp.winfo_children() if str(c.cget("image")) == str(logo))
         assert (img_lbl.winfo_reqwidth(), img_lbl.winfo_reqheight()) >= (logo.width(), logo.height())
+        # no fixed geometry: the window wraps its content on every OS / DPI scale
+        sp.update()
+        assert sp.winfo_width() >= max(c.winfo_reqwidth() for c in sp.winfo_children())
+        assert sp.winfo_height() >= sum(c.winfo_reqheight() for c in sp.winfo_children())
     finally:
         sp.destroy()
+
+
+def test_splash_wraps_content_under_display_scaling(app):
+    """Windows 150% / HiDPI: scaled widgets must not be cropped and the logo
+    must keep its aspect ratio."""
+    w, errors = app
+    import customtkinter as ctk
+    old = ctk.ScalingTracker.window_scaling
+    try:
+        ctk.set_window_scaling(1.5)
+        ctk.set_widget_scaling(1.5)
+        sp, prog, lbl = w._create_loading_splash()
+        sp.update()
+        logo = w._loading_photo
+        assert abs(logo.width() / logo.height() - 1.0) < 0.02
+        assert sp.winfo_width() >= prog.winfo_reqwidth()
+        assert sp.winfo_height() >= sum(c.winfo_reqheight() for c in sp.winfo_children())
+        sp.destroy()
+    finally:
+        ctk.set_window_scaling(old)
+        ctk.set_widget_scaling(1.0)
 
 
 def tk_png_size(path):

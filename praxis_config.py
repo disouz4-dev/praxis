@@ -1495,43 +1495,40 @@ class ConfigWindow(ctk.CTk):
         except Exception:
             return None
 
+    def _ui_scaling(self) -> float:
+        """Display scaling CustomTkinter applies (Windows 125/150%, HiDPI Linux)."""
+        try:
+            return float(ctk.ScalingTracker.get_window_scaling(self)) or 1.0
+        except Exception:
+            return 1.0
+
     def _create_loading_splash(self) -> "tuple[tk.Toplevel, ctk.CTkProgressBar, ctk.CTkLabel]":
         """Cria e exibe a splash de carregamento com logo + barra de progresso.
-        Creates and shows the loading splash with logo + progress bar."""
+        Creates and shows the loading splash with logo + progress bar.
+
+        Regra (todos os sistemas): a logo nunca é distorcida — ela é reduzida
+        mantendo a proporção e a JANELA é dimensionada pelo conteúdo, nunca o
+        contrário. Nada tem tamanho fixo em pixels, então a escala de tela do
+        Windows/Linux (125%, 150%, HiDPI) não corta nem estica nada.
+        Rule (every OS): the window is sized from its content, never the logo
+        from the window; no fixed pixel geometry, so display scaling is safe."""
         BAR_H = 6
-        logo = self._load_logo(380)
+        logo = self._load_logo(int(380 * self._ui_scaling()))
         self._loading_photo = logo
-        LOGO_W = logo.width() if logo else 380
-        LOGO_H = logo.height() if logo else 120
-        WIDTH = max(LOGO_W, 320)
-
-        ox, oy, sw, sh = _get_primary_monitor()
-        if sw == 0:
-            sw = self.winfo_screenwidth()
-            sh = self.winfo_screenheight()
-            ox = oy = 0
-
-        total_h = LOGO_H + 64  # logo (tamanho real) + label + barra
-        x = ox + (sw - WIDTH) // 2
-        y = oy + max(0, (sh - total_h) // 2)
 
         sp = tk.Toplevel(self)
+        sp.withdraw()                       # build first, measure, then show centred
         sp.overrideredirect(True)
         sp.configure(bg=self.SPLASH_BG)
-        sp.geometry(f"{WIDTH}x{total_h}+{x}+{y}")
-        sp.lift()
-        sp.attributes("-topmost", True)
 
         # Logo na proporção original; a janela é que se ajusta a ela
-        # Logo at its original aspect ratio — the window is sized around it
         if logo:
             tk.Label(sp, image=logo, bg=self.SPLASH_BG, bd=0,
-                     width=LOGO_W, height=LOGO_H).pack()
+                     highlightthickness=0).pack()
         else:
             tk.Label(sp, text="Praxis", font=(_UI_FONT, 28, "bold"),
-                     fg="white", bg=self.SPLASH_BG).pack(pady=(LOGO_H // 2 - 20, 0))
+                     fg="white", bg=self.SPLASH_BG).pack(padx=80, pady=60)
 
-        # Label de status / status label
         status_lbl = ctk.CTkLabel(
             sp, text="Iniciando…",
             font=ctk.CTkFont(size=12), text_color="#A1A1AA",
@@ -1539,15 +1536,27 @@ class ConfigWindow(ctk.CTk):
         )
         status_lbl.pack(pady=(8, 4))
 
-        # Barra de progresso / progress bar
+        # Barra estica até a largura da logo (fill), não define a largura da janela
+        # The bar stretches to the logo's width instead of dictating the window width
         prog = ctk.CTkProgressBar(
-            sp, width=min(WIDTH, LOGO_W) - 48, height=BAR_H,
+            sp, width=40, height=BAR_H,
             progress_color="#7C3AED", fg_color="#27272A",
             corner_radius=3
         )
         prog.set(0.05)
-        prog.pack(padx=24, pady=(0, 16))
+        prog.pack(fill="x", padx=24, pady=(0, 16))
 
+        # Mede o conteúdo e centraliza no monitor principal
+        sp.update_idletasks()
+        w, h = sp.winfo_reqwidth(), sp.winfo_reqheight()
+        ox, oy, sw, sh = _get_primary_monitor()
+        if sw == 0:
+            sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+            ox = oy = 0
+        sp.geometry(f"+{ox + max(0, (sw - w) // 2)}+{oy + max(0, (sh - h) // 2)}")
+        sp.deiconify()
+        sp.lift()
+        sp.attributes("-topmost", True)
         sp.update_idletasks()
         return sp, prog, status_lbl
 
