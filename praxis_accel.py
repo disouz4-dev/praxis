@@ -220,11 +220,12 @@ def plan(requested_asr: str | None = None) -> AccelPlan:
 # ── ASR adapters: same .transcribe() contract as faster_whisper.WhisperModel ──
 
 class _Seg:
-    __slots__ = ("text", "no_speech_prob")
+    __slots__ = ("text", "no_speech_prob", "avg_logprob")
 
-    def __init__(self, text: str, no_speech_prob: float = 0.0) -> None:
+    def __init__(self, text: str, no_speech_prob: float = 0.0, avg_logprob: float = 0.0) -> None:
         self.text = text
         self.no_speech_prob = no_speech_prob
+        self.avg_logprob = avg_logprob
 
 
 MLX_REPOS = {"tiny": "mlx-community/whisper-tiny-mlx", "base": "mlx-community/whisper-base-mlx",
@@ -253,7 +254,8 @@ class MLXWhisper:
             logprob_threshold=opts.get("log_prob_threshold", -1.0),
             compression_ratio_threshold=opts.get("compression_ratio_threshold", 2.4),
             verbose=None)
-        segs = [_Seg(s.get("text", ""), float(s.get("no_speech_prob", 0.0)))
+        segs = [_Seg(s.get("text", ""), float(s.get("no_speech_prob", 0.0)),
+                     float(s.get("avg_logprob", 0.0)))
                 for s in r.get("segments", [])]
         return iter(segs), {"language": r.get("language", language)}
 

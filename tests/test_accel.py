@@ -92,8 +92,9 @@ def test_mlx_adapter_contract(monkeypatch):
 
     def transcribe(audio, **kw):
         calls.update(kw)
-        return {"segments": [{"text": " olá", "no_speech_prob": 0.1},
-                             {"text": " mundo", "no_speech_prob": 0.9}], "language": "pt"}
+        return {"segments": [{"text": " olá", "no_speech_prob": 0.1, "avg_logprob": -0.2},
+                             {"text": " mundo", "no_speech_prob": 0.9, "avg_logprob": -1.5}],
+                "language": "pt"}
     fake.transcribe = transcribe
     monkeypatch.setitem(sys.modules, "mlx_whisper", fake)
     m = accel.MLXWhisper("small")
