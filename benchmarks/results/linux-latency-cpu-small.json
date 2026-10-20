@@ -1,0 +1,405 @@
+{
+  "kind": "latency",
+  "machine": {
+    "os": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+    "cpu": "x86_64",
+    "cores": 16,
+    "python": "3.12.3",
+    "cuda": true,
+    "faster_whisper": "1.2.1"
+  },
+  "model": "small",
+  "results": [
+    {
+      "pair": "pt->en",
+      "n": 10,
+      "p50_ms": {
+        "vad_tail": 288.0,
+        "asr": 1206.1,
+        "mt": 20.6,
+        "tts_first": 42.5,
+        "total": 1531.6
+      },
+      "p95_ms": {
+        "vad_tail": 340.8,
+        "asr": 1386.6,
+        "mt": 38.2,
+        "tts_first": 85.6,
+        "total": 1777.9
+      },
+      "samples": [
+        {
+          "file": "pt_000027.wav",
+          "seg_s": 4.26,
+          "text": "que bem fariam a cor, o perfume e o sabor das coisas.",
+          "translation": "that would do well the color, the perfume and the taste of things.",
+          "vad_tail": 288.0,
+          "asr": 1414.4,
+          "mt": 31.3,
+          "tts_first": 85.2,
+          "total": 1819.0
+        },
+        {
+          "file": "pt_000103.wav",
+          "seg_s": 2.27,
+          "text": "Onde está a nossa fortuna pública?",
+          "translation": "Where's our public fortune?",
+          "vad_tail": 288.0,
+          "asr": 1178.1,
+          "mt": 16.3,
+          "tts_first": 39.0,
+          "total": 1521.3
+        },
+        {
+          "file": "pt_000171.wav",
+          "seg_s": 2.98,
+          "text": "mas de repente, como um falno antigo.",
+          "translation": "But suddenly, like an old falno.",
+          "vad_tail": 384.0,
+          "asr": 1237.9,
+          "mt": 25.0,
+          "tts_first": 46.8,
+          "total": 1693.6
+        },
+        {
+          "file": "pt_000271.wav",
+          "seg_s": 2.27,
+          "text": "foi um homem de estado que fez romances.",
+          "translation": "It was a man of state who made novels.",
+          "vad_tail": 256.0,
+          "asr": 1194.6,
+          "mt": 21.4,
+          "tts_first": 45.9,
+          "total": 1517.8
+        },
+        {
+          "file": "pt_000345.wav",
+          "seg_s": 3.49,
+          "text": "o ranger dos moitões e cabos do velame desfraudado.",
+          "translation": "the grinding of the moitões and cables of the defrauded velam.",
+          "vad_tail": 256.0,
+          "asr": 1319.6,
+          "mt": 42.4,
+          "tts_first": 67.3,
+          "total": 1685.3
+        },
+        {
+          "file": "pt_000460.wav",
+          "seg_s": 1.86,
+          "text": "da sua existência.",
+          "translation": "of its existence.",
+          "vad_tail": 288.0,
+          "asr": 1112.9,
+          "mt": 10.2,
+          "tts_first": 31.3,
+          "total": 1442.4
+        },
+        {
+          "file": "pt_000529.wav",
+          "seg_s": 3.04,
+          "text": "volta quando tu voltas à alegria.",
+          "translation": "Come back when you come back to joy.",
+          "vad_tail": 256.0,
+          "asr": 1213.5,
+          "mt": 19.9,
+          "tts_first": 37.5,
+          "total": 1527.0
+        },
+        {
+          "file": "pt_000600.wav",
+          "seg_s": 1.22,
+          "text": "A saudades.",
+          "translation": "I miss you.",
+          "vad_tail": 288.0,
+          "asr": 1110.5,
+          "mt": 9.8,
+          "tts_first": 25.3,
+          "total": 1433.5
+        },
+        {
+          "file": "pt_000701.wav",
+          "seg_s": 4.0,
+          "text": "De ferrino, de semilha olhando para the light Ferrino é eu?",
+          "translation": "From ferrino, from the semin looking at the light Ferrino is me?",
+          "vad_tail": 256.0,
+          "asr": 1352.8,
+          "mt": 33.0,
+          "tts_first": 86.0,
+          "total": 1727.8
+        },
+        {
+          "file": "pt_000796.wav",
+          "seg_s": 2.37,
+          "text": "e triunfarês de todos.",
+          "translation": "and triumph over all.",
+          "vad_tail": 288.0,
+          "asr": 1198.7,
+          "mt": 11.2,
+          "tts_first": 38.4,
+          "total": 1536.3
+        }
+      ]
+    },
+    {
+      "pair": "en->pt",
+      "n": 10,
+      "p50_ms": {
+        "vad_tail": 272.0,
+        "asr": 1182.0,
+        "mt": 17.5,
+        "tts_first": 59.9,
+        "total": 1552.7
+      },
+      "p95_ms": {
+        "vad_tail": 358.4,
+        "asr": 1240.8,
+        "mt": 24.4,
+        "tts_first": 75.3,
+        "total": 1607.4
+      },
+      "samples": [
+        {
+          "file": "en_000000.wav",
+          "seg_s": 3.46,
+          "text": "Concord returned to its place amidst the tents.",
+          "translation": "Concord voltou ao seu lugar no meio das tendas.",
+          "vad_tail": 256.0,
+          "asr": 1237.6,
+          "mt": 26.1,
+          "tts_first": 69.1,
+          "total": 1588.8
+        },
+        {
+          "file": "en_000078.wav",
+          "seg_s": 2.69,
+          "text": "difficulties and danger he was about to incur.",
+          "translation": "dificuldades e perigo que ele estava prestes a correr.",
+          "vad_tail": 288.0,
+          "asr": 1210.7,
+          "mt": 22.4,
+          "tts_first": 79.0,
+          "total": 1600.1
+        },
+        {
+          "file": "en_000144.wav",
+          "seg_s": 1.98,
+          "text": "and in his own apartment.",
+          "translation": "e no seu próprio apartamento.",
+          "vad_tail": 416.0,
+          "asr": 1150.0,
+          "mt": 13.7,
+          "tts_first": 33.7,
+          "total": 1613.4
+        },
+        {
+          "file": "en_000216.wav",
+          "seg_s": 1.63,
+          "text": "several hours sleep.",
+          "translation": "várias horas de sono.",
+          "vad_tail": 288.0,
+          "asr": 1115.0,
+          "mt": 12.9,
+          "tts_first": 34.3,
+          "total": 1450.2
+        },
+        {
+          "file": "en_000288.wav",
+          "seg_s": 2.72,
+          "text": "May 12, 1856.",
+          "translation": "12 de Maio de 1856.",
+          "vad_tail": 256.0,
+          "asr": 1174.1,
+          "mt": 16.3,
+          "tts_first": 66.4,
+          "total": 1512.8
+        },
+        {
+          "file": "en_000360.wav",
+          "seg_s": 3.07,
+          "text": "I want to have a consultation with him about horses.",
+          "translation": "Quero ter uma consulta com ele sobre cavalos.",
+          "vad_tail": 256.0,
+          "asr": 1243.4,
+          "mt": 18.6,
+          "tts_first": 65.8,
+          "total": 1583.8
+        },
+        {
+          "file": "en_000432.wav",
+          "seg_s": 0.9,
+          "text": "No.",
+          "translation": "Não.",
+          "vad_tail": 288.0,
+          "asr": 1128.6,
+          "mt": 8.5,
+          "tts_first": 18.6,
+          "total": 1443.7
+        },
+        {
+          "file": "en_000504.wav",
+          "seg_s": 1.79,
+          "text": "They are opposed to him.",
+          "translation": "Opõem-se a ele.",
+          "vad_tail": 256.0,
+          "asr": 1148.0,
+          "mt": 16.2,
+          "tts_first": 30.0,
+          "total": 1450.3
+        },
+        {
+          "file": "en_000576.wav",
+          "seg_s": 3.2,
+          "text": "meter, roughly one yard three inches.",
+          "translation": "metro, aproximadamente um metro três polegadas.",
+          "vad_tail": 256.0,
+          "asr": 1190.0,
+          "mt": 20.9,
+          "tts_first": 70.7,
+          "total": 1537.6
+        },
+        {
+          "file": "en_000648.wav",
+          "seg_s": 3.04,
+          "text": "which is what constitutes knowledge memory.",
+          "translation": "que é o que constitui a memória do conhecimento.",
+          "vad_tail": 288.0,
+          "asr": 1205.4,
+          "mt": 20.3,
+          "tts_first": 54.1,
+          "total": 1567.7
+        }
+      ]
+    },
+    {
+      "pair": "es->en",
+      "n": 10,
+      "p50_ms": {
+        "vad_tail": 256.0,
+        "asr": 1251.7,
+        "mt": 30.9,
+        "tts_first": 52.5,
+        "total": 1600.8
+      },
+      "p95_ms": {
+        "vad_tail": 288.0,
+        "asr": 1333.4,
+        "mt": 49.8,
+        "tts_first": 90.4,
+        "total": 1746.9
+      },
+      "samples": [
+        {
+          "file": "es_000007.wav",
+          "seg_s": 0.96,
+          "text": "¡Pero él!",
+          "translation": "But him!",
+          "vad_tail": 256.0,
+          "asr": 1112.3,
+          "mt": 13.1,
+          "tts_first": 22.7,
+          "total": 1404.1
+        },
+        {
+          "file": "es_000135.wav",
+          "seg_s": 4.0,
+          "text": "pues sus gustos, sus salud y sus medios.",
+          "translation": "for their tastes, their health and their means.",
+          "vad_tail": 256.0,
+          "asr": 1237.4,
+          "mt": 30.4,
+          "tts_first": 47.0,
+          "total": 1570.7
+        },
+        {
+          "file": "es_000266.wav",
+          "seg_s": 2.46,
+          "text": "y os contaré el motivo de su pena.",
+          "translation": "And I will tell you the reason for his grief.",
+          "vad_tail": 256.0,
+          "asr": 1215.6,
+          "mt": 31.5,
+          "tts_first": 65.0,
+          "total": 1568.1
+        },
+        {
+          "file": "es_000468.wav",
+          "seg_s": 2.85,
+          "text": "porque ya tenían del noticia por su historia.",
+          "translation": "Because they already had the news for their story.",
+          "vad_tail": 288.0,
+          "asr": 1218.1,
+          "mt": 27.6,
+          "tts_first": 52.5,
+          "total": 1586.1
+        },
+        {
+          "file": "es_000535.wav",
+          "seg_s": 4.48,
+          "text": "por tener lugar de preguntarle de espacio por Don Quijote y sus hazañas.",
+          "translation": "for having a place to ask him about space for Don Quixote and his exploits.",
+          "vad_tail": 288.0,
+          "asr": 1331.7,
+          "mt": 60.5,
+          "tts_first": 98.9,
+          "total": 1779.2
+        },
+        {
+          "file": "es_000668.wav",
+          "seg_s": 2.82,
+          "text": "que no me ha dejado guardar el término que debía.",
+          "translation": "He didn't let me keep the term I should.",
+          "vad_tail": 256.0,
+          "asr": 1293.1,
+          "mt": 32.5,
+          "tts_first": 47.2,
+          "total": 1628.8
+        },
+        {
+          "file": "es_000794.wav",
+          "seg_s": 4.1,
+          "text": "y en el cielo suceden las cosas lo mismo que en la tierra.",
+          "translation": "And in heaven things happen as they do on earth.",
+          "vad_tail": 256.0,
+          "asr": 1298.9,
+          "mt": 33.4,
+          "tts_first": 52.4,
+          "total": 1640.7
+        },
+        {
+          "file": "es_000925.wav",
+          "seg_s": 3.3,
+          "text": "y cada pueblo se fue haciendo libre y nombrando su rey.",
+          "translation": "And every people went free and named their king.",
+          "vad_tail": 256.0,
+          "asr": 1266.0,
+          "mt": 30.4,
+          "tts_first": 63.1,
+          "total": 1615.5
+        },
+        {
+          "file": "es_001058.wav",
+          "seg_s": 4.54,
+          "text": "antiguos amigos de la familia que su mujer le enviaba como embajadores.",
+          "translation": "former family friends his wife sent him as ambassadors.",
+          "vad_tail": 256.0,
+          "asr": 1334.8,
+          "mt": 36.6,
+          "tts_first": 80.1,
+          "total": 1707.5
+        },
+        {
+          "file": "es_001125.wav",
+          "seg_s": 3.01,
+          "text": "y los dos hombres, marineros ante todo,",
+          "translation": "and the two men, sailors first,",
+          "vad_tail": 256.0,
+          "asr": 1216.4,
+          "mt": 27.7,
+          "tts_first": 52.2,
+          "total": 1552.2
+        }
+      ]
+    }
+  ],
+  "backend": "cpu"
+}

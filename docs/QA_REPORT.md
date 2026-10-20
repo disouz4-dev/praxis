@@ -8,10 +8,11 @@ transcription-quality and latency benchmarks on real human speech._
 | Area | v0.1.0 | v0.2.0 |
 |---|---|---|
 | Platforms | Linux only (PulseAudio/PipeWire) | Linux · macOS · Windows |
+| Real-time continuous speech, all 16 languages (round 2) | not tested | GPU `large-v3-turbo`: 12% avg error, 0.8–2.3 s, keeps up 16/16 · CPU `small`: 24%, 1.8–3.0 s, 16/16 |
 | GPU | NVIDIA CUDA only | NVIDIA CUDA · Apple Silicon (MLX) · AMD/Intel (whisper.cpp Vulkan, opt-in) · auto-detected |
 | Automated tests | none | 115 fast tests (unit, smoke, GUI) + slow quality/latency gates |
 | CI | none | GitHub Actions: Linux/macOS/Windows × Python 3.10/3.12 + benchmarks |
-| Live transcription WER (pt, Whisper `small`) | **26.4%** | **16.7%** |
+| Live transcription WER (pt, Whisper `small`, round 1) | **26.4%** | **16.7%** |
 | Live transcription WER (en / es) | 8.7% / 13.8% | 5.3% / 6.9% |
 | End-to-end latency (end of speech → first audio, p50, CPU) | — | **1.8–2.1 s** (Intel i9 CPU, `small`) |
 | PyTorch required | yes (~550 MB) | no (only for optional voice cloning) |
@@ -134,6 +135,63 @@ VAD waits for plus 32 ms chunk granularity. Orchestration overhead (queues, thre
 is asserted < 50 ms in `test_pipeline_overhead_latency`. All slow gates pass (`pytest -m slow`:
 10 passed — live WER thresholds, no hallucination loops, translation sanity for 4 pairs, latency).
 
+## Round 2 — real-time continuous speech, all 16 languages
+
+_Machine: lab2 — Linux Mint 22.3, NVIDIA RTX 3050 6 GB, 16-thread CPU. Tool: `benchmarks/stream_test.py`._
+
+**Method.** For every language Praxis understands (14 output languages + ja, ko as input only) a
+~60–75 s recording of continuous real speech is fed to the real engine workers in real time,
+32 ms at a time, exactly like a microphone. pt/es/fr/de/it/nl/pl use one audiobook reader with the
+original pauses (Multilingual LibriSpeech), en a LibriSpeech chapter, and ru/zh/uk/tr/ar/hi/ja/ko
+consecutive FLEURS sentences (speakers alternate). The test knows the script in advance and
+monitors every segment: transcription errors (substituted / skipped / invented), how much the ASR
+errors change the translation, the delay from the end of each speech segment to the first
+translated audio, where that time goes (queue, transcription, translation, voice, waiting for the
+previous speech), and whether the engine keeps up: typical delay ≤ 4 s, no growth between the
+first and second half, ≤ 8 s of translation left when the speaker stops. Translated speech is
+"played" for its real duration, so slow voices and long translations show up as lag.
+Then `en →` each of the 13 other output languages tests translation + voice for every language.
+
+| Hardware | Model | Avg error, 16 langs | pt | en | es | Typical delay | Keeps up |
+|---|---|---:|---:|---:|---:|---:|---:|
+| GPU (RTX 3050) | tiny | 48% | 29% | 6% | 19% | 0.4–1.6 s | 16/16 |
+| GPU (RTX 3050) | base | 37% | 16% | 3% | 11% | 0.4–1.7 s | 15/16 |
+| GPU (RTX 3050) | small | 24% | 8% | 2% | 3% | 0.5–2.0 s | 16/16 |
+| GPU (RTX 3050) | medium | 17% | 5% | 4% | 5% | 0.8–2.3 s | 16/16 |
+| GPU (RTX 3050) | large-v3 | 12% | 6% | 3% | 3% | 1.1–2.7 s | 16/16 |
+| GPU (RTX 3050) | **large-v3-turbo** | 12% | 5% | 1% | 3% | 0.8–2.3 s | 16/16 |
+| CPU (lab2) | tiny | 53% | 32% | 7% | 18% | 0.6–1.6 s | 16/16 |
+| CPU (lab2) | base | 39% | 14% | 6% | 12% | 0.8–2.2 s | 15/16 |
+| CPU (lab2) | **small** | 24% | 8% | 3% | 3% | 1.8–3.0 s | 16/16 |
+| CPU (lab2) | medium | 16% | 5% | 5% | 5% | 4.2–16.0 s | 0/16 |
+| CPU (lab2) | large-v3-turbo | 12% | 5% | 2% | 3% | 6.8–25.7 s | 0/16 |
+
+Error = share of words transcribed wrong, skipped or invented (characters for zh/ja), averaged over 16 languages.
+**Bold** = what `--model auto` now picks: `large-v3-turbo` with a GPU, `small` on CPU.
+
+### Problems the test exposed — and what was done
+
+| # | Problem (how it showed up) | Fix | Before → after |
+|---|---|---|---|
+| 1 | The engine waited for each translation to finish **playing** before transcribing the next segment (CPU `small`: 4–6 s delay, growing +38…+94 ms per second) | Ordered player thread: transcription of the next segment overlaps playback | delay 5.1 → 2.0 s (pt), keeps up 0/3 → 16/16 |
+| 2 | Long unpunctuated passages broke **translation** into a loop ("I have not been able to do so…") | Sentences > 30 words (60 chars zh/ja) split at commas, then by length | it→en fidelity 8.5 → 54.9 |
+| 3 | A filter dropped **real speech** whenever Whisper's no-speech score was ≥ 0.5 (0.53–0.59 on real phrases) | Whisper's own rule: drop only if not-speech **and** low confidence | lost phrases restored (pt, it, uk) |
+| 4 | 0.1–0.8 s leftovers after a cut came back **empty**, losing syllables ("Professor" → "ofessor") | Leftovers glued to the next segment (or sent after 1 s of silence) | empty segments 10 → 3 |
+| 5 | **German** translation spoken at 146% of the original length → 38 s backlog | Default German voice "MLS" (10.8 letters/s) → "Thorsten" (19.9); slow voices auto-calibrated to ≥ 15 letters/s | 146% → 82%, keeps up |
+| 6 | **Arabic / Hindi / Dutch** translations longer than the speech, falling behind | Adaptive speaking rate: the voice speeds up (×1.15 → ×1.4) as playback piles up | en→ar 121% → 102%, en→nl 111% → 92%, all 13 keep up |
+| 7 | Broken characters "�" from Whisper reached translation and speech (Hindi) | Stripped before translation | — |
+| 8 | Our own metric split Hindi/Arabic words at vowel marks (hid real errors) | Normalisation keeps combining marks; results re-scored | hi 46% → 70% (true value) |
+| 9 | `medium` skipped whole phrases in Spanish | Resolved by #3/#4 | 0 skipped phrases in any language |
+
+### Still limited (model quality, not engine bugs)
+
+- On a CPU the most accurate real-time model is `small`: fine for pt/en/es (3–8% errors) but
+  16–37% in fr, de, it, zh, nl, tr, ar, ja, ko and ~70% in Hindi. The app now warns about this and
+  points to the GPU numbers (e.g. fr 25% on CPU vs 8% with a GPU).
+- Even `large-v3-turbo` on a GPU errs 27% in Korean and 34% in Hindi (`large-v3`: 24% / 26%).
+- A single segment can still spike to 4–7 s when a long sentence is followed by more speech.
+- Corpus: ~1 min per language, read speech. Spontaneous, noisy call audio will score worse.
+
 ## GPU support
 
 `praxis_accel.py` picks the backend per machine (override: `--device` / `PRAXIS_DEVICE`):
@@ -144,7 +202,9 @@ available; OmniVoice uses CUDA or MPS.
 Measured on this machine (Intel i9 + AMD Radeon Pro 5500M): whisper.cpp **Metal** returned `","`
 for a 4 s Portuguese sentence and took 2.85 s vs 2.10 s on CPU — so Intel Macs are pinned to CPU.
 CI has no GPUs: selection logic is tested for every hardware family with mocks
-(`tests/test_accel.py`); CUDA, MLX and Vulkan execution are **not yet verified on real hardware**.
+(`tests/test_accel.py`). **CUDA was verified on real hardware** (lab2, RTX 3050) — which exposed that the
+pip-installed cuBLAS/cuDNN were not found without `LD_LIBRARY_PATH` (Whisper silently fell back to CPU;
+fixed by `ensure_cuda_libs()`). MLX and Vulkan remain unverified on real hardware.
 
 ## Known issues (not fixed in this round)
 

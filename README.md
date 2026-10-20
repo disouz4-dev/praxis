@@ -163,7 +163,7 @@ No app de chamada, selecione o microfone virtual: **Praxis_Microfone** (Linux), 
 | Etapa | Ferramenta | Detalhes |
 |-------|-----------|----------|
 | Segmentação de fala | **Silero VAD (ONNX)** | Corte por silêncio (200 ms) ou no ponto mais silencioso após 6s; 250 ms de pre-roll |
-| Transcrição | **faster-whisper** | Modelo `small` padrão; GPU int8_float16 / CPU int8; filtro de alucinações repetidas |
+| Transcrição | **faster-whisper** | Modelo automático: `large-v3-turbo` com placa de vídeo, `small` no processador (medido em 16 idiomas); filtro de alucinações |
 | Tradução | **Argos Translate** (CTranslate2) | 100% offline; pivot via inglês; baixa pares no primeiro uso |
 | Síntese de voz | **Piper TTS** | Modelos `.onnx` leves; síntese por sentença em paralelo |
 | Saída de áudio | **PulseAudio** (Linux) · **PortAudio** (macOS/Windows) | Injeção no microfone virtual |

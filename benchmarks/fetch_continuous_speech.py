@@ -7,6 +7,11 @@ on, with the exact reference text and the time each sentence is spoken.
           pause between segments (end → next begin) is kept.
   en      LibriSpeech test-clean: consecutive utterance ids of one chapter
           joined with a 0.4 s pause (utterances were cut at pauses).
+  ru zh uk tr ar hi ja ko
+          FLEURS (test): real read sentences, one recording per sentence,
+          joined with a 0.4 s pause. Speakers alternate between sentences
+          (FLEURS has no long single-speaker readings for these languages).
+          Only the first few MB of each language archive are streamed.
 
 All CC BY 4.0. Output: benchmarks/data/continuous/<lang>.wav (16 kHz mono) and
 <lang>.json = {text, speaker, source, license, duration, segments:[{start, end, text}]}
@@ -31,7 +36,13 @@ import soundfile as sf
 API = "https://datasets-server.huggingface.co"
 OUT = Path(__file__).resolve().parent / "data" / "continuous"
 SR = 16000
-MLS = {"pt": "portuguese", "es": "spanish", "fr": "french", "de": "german", "it": "italian"}
+MLS = {"pt": "portuguese", "es": "spanish", "fr": "french", "de": "german", "it": "italian",
+       "nl": "dutch", "pl": "polish"}
+FLEURS = {"ru": "ru_ru", "zh": "cmn_hans_cn", "uk": "uk_ua", "tr": "tr_tr", "ar": "ar_eg",
+          "hi": "hi_in", "ja": "ja_jp", "ko": "ko_kr"}
+FLEURS_BASE = "https://huggingface.co/datasets/google/fleurs/resolve/main/data"
+ALL_LANGS = ["pt", "en", "es", "fr", "de", "it", "nl", "pl", "ru", "zh", "uk", "tr", "ar", "hi",
+             "ja", "ko"]
 
 
 def _get(url: str, tries: int = 7) -> bytes:
@@ -89,9 +100,50 @@ def _mls_chain(lang: str, seconds: float, max_gap: float = 1.2, scan_rows: int =
     return best
 
 
+def _fleurs(lang: str, seconds: float):
+    """Streams the FLEURS test archive and stops as soon as `seconds` of
+    distinct sentences were collected (downloads only a prefix)."""
+    import csv
+    import tarfile
+    cfg = FLEURS[lang]
+    tsv = _get(f"{FLEURS_BASE}/{cfg}/test.tsv").decode("utf-8")
+    meta = {}
+    for row in csv.reader(io.StringIO(tsv), delimiter="\t", quoting=csv.QUOTE_NONE):
+        if len(row) >= 4:
+            meta[row[1]] = (row[0], row[2], row[3])          # file → (sentence id, raw, normalized)
+    out, used, total = [], set(), 0.0
+    with urllib.request.urlopen(f"{FLEURS_BASE}/{cfg}/audio/test.tar.gz", timeout=300) as resp, \
+            tarfile.open(fileobj=resp, mode="r|gz") as tar:
+        for m in tar:
+            name = m.name.rsplit("/", 1)[-1]
+            if not m.isfile() or name not in meta or meta[name][0] in used:
+                continue
+            a, sr = sf.read(io.BytesIO(tar.extractfile(m).read()), dtype="float32", always_2d=True)
+            a = a.mean(axis=1)
+            if sr != SR:
+                a = np.interp(np.linspace(0, len(a) - 1, int(round(len(a) * SR / sr))),
+                              np.arange(len(a)), a).astype(np.float32)
+            used.add(meta[name][0])
+            out.append((a, meta[name][1]))
+            total += len(a) / SR + 0.4
+            if total >= seconds:
+                break
+    return out
+
+
 def build(lang: str, seconds: float) -> dict:
     pieces, segments, texts, t = [], [], [], 0.0
-    if lang == "en":
+    if lang in FLEURS:
+        speaker, source = "multiple (FLEURS)", "google/fleurs (test)"
+        for a, text in _fleurs(lang, seconds):
+            if pieces:
+                pieces.append(np.zeros(int(0.4 * SR), np.float32))
+                t += 0.4
+            segments.append({"start": round(t, 3), "end": round(t + len(a) / SR, 3), "text": text})
+            pieces.append(a)
+            texts.append(text)
+            t += len(a) / SR
+    elif lang == "en":
         rows = _rows("openslr/librispeech_asr", "clean", 0, 100)
         first = rows[0]
         chap = [r for r in rows if r["chapter_id"] == first["chapter_id"]
@@ -137,11 +189,17 @@ def build(lang: str, seconds: float) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--langs", nargs="+", default=["pt", "en", "es"])
+    ap.add_argument("--langs", nargs="+", default=ALL_LANGS)
     ap.add_argument("--seconds", type=float, default=60.0)
     a = ap.parse_args()
     for lang in a.langs:
-        build(lang, a.seconds)
+        if (OUT / f"{lang}.json").exists():
+            print(f"{lang}: already built", file=sys.stderr)
+            continue
+        try:
+            build(lang, a.seconds)
+        except Exception as e:
+            print(f"{lang}: FAILED {type(e).__name__}: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

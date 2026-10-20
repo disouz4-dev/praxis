@@ -1,0 +1,452 @@
+{
+  "kind": "asr",
+  "machine": {
+    "os": "Linux-7.0.0-31-generic-x86_64-with-glibc2.39",
+    "cpu": "x86_64",
+    "cores": 16,
+    "python": "3.12.3",
+    "cuda": true,
+    "faster_whisper": "1.2.1"
+  },
+  "results": [
+    {
+      "model": "tiny",
+      "lang": "pt",
+      "n": 10,
+      "backend": "cpu",
+      "speakers": 10,
+      "audio_s": 111.4,
+      "wer": 0.3488,
+      "cer": 0.1193,
+      "rtf": 0.03,
+      "samples": [
+        {
+          "file": "pt_000027.wav",
+          "speaker": "11247",
+          "dur_s": 11.0,
+          "ref": "se todo esse sangue essas flores esses frutos não são bálsamos para aquela ferida estranha que bem fariam a cor o perfume e o sabor das coisas",
+          "hyp": "Se todo esse sangue, essas flores, esses frutos não são baústamos para aquela ferida estranha, que bem faria um acoro perfume e o sabor das coisas.",
+          "wer": 0.185,
+          "asr_s": 0.371,
+          "hyp_live": "Se todo esse sangue, essas flores, esses frutos não são baos, somos... para aquela ferida estranha. que bem faria um acordo perfume e sabor das coisas.",
+          "wer_live": 0.259
+        },
+        {
+          "file": "pt_000103.wav",
+          "speaker": "12626",
+          "dur_s": 10.97,
+          "ref": "qual é a verdadeira moeda que nos domina onde o nosso ouro para que serve o nosso miserável papel senão para comprar a libra inglesa onde está a nossa fortuna pública",
+          "hyp": "Qual é a verdadeira moeda aqui nos domina? Onde nosso mundo? Para que serve nosso miserável papel, se não para comprar ali bringleses? Onde está nosso fortuna pública?",
+          "wer": 0.355,
+          "asr_s": 0.339,
+          "hyp_live": "qual é a verdadeira moeda aqui nos domina onde nosso novo. Para que serve nosso miserável papel, se não para comprar ali brimbleza? onde está nosso portula pública.",
+          "wer_live": 0.387
+        },
+        {
+          "file": "pt_000171.wav",
+          "speaker": "12114",
+          "dur_s": 10.25,
+          "ref": "durante algum tempo ninguém se moveu e a música prosseguia solitária nos seus largos e chorosos compassos mas de repente como um fauno antigo",
+          "hyp": "Durante algum tempo ninguém se moviu e a música prosseguia solitária nos seus largos e chorosos com passos. Mas de repente, como um falo antigo...",
+          "wer": 0.167,
+          "asr_s": 0.325,
+          "hyp_live": "Durante algum tempo ninguém se moviu e a música prosseguia solitária nos seus largos e chorosos. com passos. Mas de repente, como um sal no antigo",
+          "wer_live": 0.208
+        },
+        {
+          "file": "pt_000271.wav",
+          "speaker": "12287",
+          "dur_s": 10.07,
+          "ref": "e todavia nada parece mais injustificado que uma tal apoteose lord beaconsfield por fim foi um homem de estado que fez romances",
+          "hyp": "E toda a ver, nada parece mais injustificado que matar o poder. Lordebe Concefio do Porfim foi normalmente estado que fez romances.",
+          "wer": 0.591,
+          "asr_s": 0.32,
+          "hyp_live": "E toda a viê! Nada parece mais injustificado que uma tal poteosa. Lá de beconjude por fim. e não é uma menistadra que fez româncias.",
+          "wer_live": 0.591
+        },
+        {
+          "file": "pt_000345.wav",
+          "speaker": "12670",
+          "dur_s": 11.51,
+          "ref": "e já os cigarros de ótimo bragança fumegavam enquanto ao arruído da palestra juntava-se à meia nau o ranger dos moitões e cabos do velame desfraldado",
+          "hyp": "E já os cigarros de ótimo bragança, fumegavam, enquanto ao arruído da palestra juntava-se a meia-nau, o rejermoitões e cabos do velhame desfraudado.",
+          "wer": 0.222,
+          "asr_s": 0.355,
+          "hyp_live": "E já os cigarros de ótimo bragança, fumegavam enquanto ao arruido da palestra. Juntava-se, a meia não. o rejermo e tons e cabos do velem de desfaldado.",
+          "wer_live": 0.333
+        },
+        {
+          "file": "pt_000460.wav",
+          "speaker": "13063",
+          "dur_s": 10.86,
+          "ref": "tinha ainda a mesma compostura esse apuramento que fazia rir os que não soubessem penetrar os dolorosos mistérios da sua existência",
+          "hyp": "tinha ainda a mesma compostura, esse apuramento que fazia riros que não soubesse empenetrar os dolorosos misterios da sua existência.",
+          "wer": 0.238,
+          "asr_s": 0.319,
+          "hyp_live": "Tinha ainda a mesma compostura. esse apuramento que fazia riros que não soubecem penetrar os dolorosos misterios. da sua existência.",
+          "wer_live": 0.19
+        },
+        {
+          "file": "pt_000529.wav",
+          "speaker": "3050",
+          "dur_s": 11.65,
+          "ref": "dentro da casa em que nasceste és tudo como tudo é feliz no fim do dia quando voltas das aulas e do estudo volta quando tu voltas a alegria",
+          "hyp": "dentro da casa em que na sexta é estudo, com tudo é feliz no fim do dia. Quando volta, vai usar o uso do estudo, volta quando to volta a alegria.",
+          "wer": 0.414,
+          "asr_s": 0.321,
+          "hyp_live": "dentro da casa em que nasce estudo. Com a toda feliz no fim do dia. quando volta, vai a esa onze dos estudos. Volta quando tu voltas a alegria.",
+          "wer_live": 0.448
+        },
+        {
+          "file": "pt_000600.wav",
+          "speaker": "4405",
+          "dur_s": 11.44,
+          "ref": "continuamente vemos novidades diferentes em tudo da esperança do mal ficam as mágoas na lembrança e do bem se algum houve as saudades",
+          "hyp": "Continuamente vemos novidades diferentes em tudo das pernas, do mal ficam as magas na lembrança e do bem se algum ovo a saudades.",
+          "wer": 0.217,
+          "asr_s": 0.321,
+          "hyp_live": "Continuamente vemos novidades diferentes em tudo daspenas. do mal ficam as magas na lembrança. E do bem? Sabe um novo? A saudade.",
+          "wer_live": 0.348
+        },
+        {
+          "file": "pt_000701.wav",
+          "speaker": "5739",
+          "dur_s": 11.97,
+          "ref": "uns aborrecem as laranjas outros aborrecem os amores agora se o aborrecimento vem por causa das cascas não sei o que é certo é que é assim é ferino disse emília olhando para adelaide ferino eu",
+          "hyp": "Um, a borraça em nas larantes. Outros, a borraça em nos amores. Agora, sua borraça em mente vem por causa das cascas, não sei. O que é certo é que é assim. É firino de semenha olhando para a deláte. Ferino, é eu.",
+          "wer": 0.556,
+          "asr_s": 0.354,
+          "hyp_live": "Ust! A borxasinas larantes. Ou que o borxas não é um bordo. Agora, sua borxas se mantivem por causa das cascas, você. Ok, certo. Aqui é assim. Descerindo de sebinha olhando para a deláter. Serindo é o.",
+          "wer_live": 0.889
+        },
+        {
+          "file": "pt_000796.wav",
+          "speaker": "7925",
+          "dur_s": 11.67,
+          "ref": "a soberba não perdoa a humildade não se vinga homens aprendei a vencer-vos e triunfareis de todos",
+          "hyp": "A soberbana perdoa, a unidade não se vinga. Pô, mas a prendem a vincervos e trinfarês de todos.",
+          "wer": 0.5,
+          "asr_s": 0.317,
+          "hyp_live": "A soberbana perdova. A Unmildade não se vinga. Ormes. Aprendeia-vincervos. E treinho faria isso de todos.",
+          "wer_live": 0.611
+        }
+      ],
+      "wer_live": 0.4419,
+      "cer_live": 0.1694,
+      "live_segments": 38
+    },
+    {
+      "model": "tiny",
+      "lang": "en",
+      "n": 12,
+      "backend": "cpu",
+      "speakers": 12,
+      "audio_s": 82.6,
+      "wer": 0.0825,
+      "cer": 0.0424,
+      "rtf": 0.041,
+      "samples": [
+        {
+          "file": "en_000000.wav",
+          "speaker": "6930",
+          "dur_s": 3.5,
+          "ref": "CONCORD RETURNED TO ITS PLACE AMIDST THE TENTS",
+          "hyp": "Concord return to its place amidst the tents.",
+          "wer": 0.125,
+          "asr_s": 0.278,
+          "hyp_live": "Concord returned to its place amidst the tents.",
+          "wer_live": 0.0
+        },
+        {
+          "file": "en_000078.wav",
+          "speaker": "1320",
+          "dur_s": 7.83,
+          "ref": "NOTWITHSTANDING THE HIGH RESOLUTION OF HAWKEYE HE FULLY COMPREHENDED ALL THE DIFFICULTIES AND DANGER HE WAS ABOUT TO INCUR",
+          "hyp": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the difficulties and danger he was about to incur.",
+          "wer": 0.0,
+          "asr_s": 0.301,
+          "hyp_live": "Notwithstanding the high resolution of Hawkeye, he fully comprehended all the diff... difficulties and danger he was about to incur.",
+          "wer_live": 0.053
+        },
+        {
+          "file": "en_000144.wav",
+          "speaker": "5639",
+          "dur_s": 5.83,
+          "ref": "MEANWHILE RODOLFO HAD LEOCADIA SAFE IN HIS CUSTODY AND IN HIS OWN APARTMENT",
+          "hyp": "Meanwhile Rudolfo had located his safe and his custody and in his own apartment.",
+          "wer": 0.308,
+          "asr_s": 0.258,
+          "hyp_live": "Meanwhile, Rudolf or Hadley Okadeya safe in his custody. and in his own apartment.",
+          "wer_live": 0.308
+        },
+        {
+          "file": "en_000216.wav",
+          "speaker": "260",
+          "dur_s": 7.0,
+          "ref": "THESE THOUGHTS AGITATED ME ALL DAY AND MY IMAGINATION SCARCELY CALMED DOWN AFTER SEVERAL HOURS SLEEP",
+          "hyp": "These thoughts agitated me all day, and my imagination scarcely calmed down after several hours sleep.",
+          "wer": 0.0,
+          "asr_s": 0.276,
+          "hyp_live": "These thoughts agitated me all day, and my imagination scarcely calmed down after... several hours leave.",
+          "wer_live": 0.062
+        },
+        {
+          "file": "en_000288.wav",
+          "speaker": "7729",
+          "dur_s": 5.91,
+          "ref": "FOOTNOTE SUMNER TO SHANNON MAY TWELFTH EIGHTEEN FIFTY SIX",
+          "hyp": "Footnote, Sumner to Shannon, May 12, 1856.",
+          "wer": 0.444,
+          "asr_s": 0.276,
+          "hyp_live": "Footnote Sumner to Shannon. May 12, 1856.",
+          "wer_live": 0.444
+        },
+        {
+          "file": "en_000360.wav",
+          "speaker": "2094",
+          "dur_s": 6.53,
+          "ref": "I MUST COME ANOTHER DAY AND SEE YOUR HUSBAND I WANT TO HAVE A CONSULTATION WITH HIM ABOUT HORSES",
+          "hyp": "I must come another day and see your husband. I want to have a consultation with him about horses.",
+          "wer": 0.0,
+          "asr_s": 0.272,
+          "hyp_live": "I must come another day and see your husband. I want to have a consultation with him about horses.",
+          "wer_live": 0.0
+        },
+        {
+          "file": "en_000432.wav",
+          "speaker": "7127",
+          "dur_s": 3.31,
+          "ref": "THE PRINCESS INQUIRED NO",
+          "hyp": "The princess inquired. No.",
+          "wer": 0.0,
+          "asr_s": 0.243,
+          "hyp_live": "The Princess Inquired. No.",
+          "wer_live": 0.0
+        },
+        {
+          "file": "en_000504.wav",
+          "speaker": "2961",
+          "dur_s": 7.64,
+          "ref": "BUT THEY HAVE NOTHING TO DO WITH THE INTERPRETATION OF PLATO AND IN SPIRIT THEY ARE OPPOSED TO HIM",
+          "hyp": "but they have nothing to do with the interpretation of Plato and in spirit they are opposed to him.",
+          "wer": 0.0,
+          "asr_s": 0.274,
+          "hyp_live": "but they have nothing to do with the interpretation of Plato and in spirit. they are opposed to him.",
+          "wer_live": 0.0
+        },
+        {
+          "file": "en_000576.wav",
+          "speaker": "8463",
+          "dur_s": 2.94,
+          "ref": "METER ROUGHLY ONE YARD THREE INCHES",
+          "hyp": "meter, roughly 1 yard 3 inches.",
+          "wer": 0.333,
+          "asr_s": 0.264,
+          "hyp_live": "meter, roughly one yard three inches.",
+          "wer_live": 0.0
+        },
+        {
+          "file": "en_000648.wav",
+          "speaker": "8230",
+          "dur_s": 12.66,
+          "ref": "THEY GIVE LAWS ACCORDING TO WHICH IMAGES OF PAST OCCURRENCES COME INTO OUR MINDS BUT DO NOT DISCUSS OUR BELIEF THAT THESE IMAGES REFER TO PAST OCCURRENCES WHICH IS WHAT CONSTITUTES KNOWLEDGE MEMORY",
+          "hyp": "They give laws according to which images of past occurrences come into our minds, but do not discuss our belief that these images refer to past occurrences, which is what constitutes knowledge memory.",
+          "wer": 0.0,
+          "asr_s": 0.327,
+          "hyp_live": "They give laws according to which images of past occurrences come into our minds. but do not discuss our belief that these images refer to past occurrences. which is what constitutes knowledge memory.",
+          "wer_live": 0.0
+        },
+        {
+          "file": "en_000720.wav",
+          "speaker": "7176",
+          "dur_s": 15.0,
+          "ref": "LIKE HIS UNFORTUNATE LITTLE COUSIN THE TEAL HE TOO HAD FELT THE FEAR OF DEATH SMITTEN INTO HIS HEART AND WAS HEADING DESPERATELY FOR THE REFUGE OF SOME DARK OVERHANGING BANK DEEP FRINGED WITH WEEDS WHERE THE DREADFUL EYE OF THE HAWK SHOULD NOT DISCERN HIM",
+          "hyp": "Like his unfortunate little cousin, the Teele, he too had felt the fear of death smitten into his heart. And was heading desperately for the refuge of some dark, over-hanging bank, deep fringe with weeds, where the dreadful eye of the hawk should not discern him.",
+          "wer": 0.087,
+          "asr_s": 0.346,
+          "hyp_live": "Like his unfortunate little cousin, the Tiel, he too had felt the fear of death smitten into his heart. and was heading desperately for the refuge of some dark over hanging bank. deep fringe with weeds where the dreadful eye of the hawk should not discern him.",
+          "wer_live": 0.087
+        },
+        {
+          "file": "en_000792.wav",
+          "speaker": "1995",
+          "dur_s": 4.49,
+          "ref": "THE SQUARES OF COTTON SHARP EDGED HEAVY WERE JUST ABOUT TO BURST TO BOLLS",
+          "hyp": "The squares of cotton sharp edge heavy were just about to burst to bowls.",
+          "wer": 0.143,
+          "asr_s": 0.277,
+          "hyp_live": "The squares of cotton, sharp edge, heavy were just about to burst to bowls.",
+          "wer_live": 0.143
+        }
+      ],
+      "wer_live": 0.0777,
+      "cer_live": 0.0416,
+      "live_segments": 24
+    },
+    {
+      "model": "tiny",
+      "lang": "es",
+      "n": 12,
+      "backend": "cpu",
+      "speakers": 12,
+      "audio_s": 129.5,
+      "wer": 0.2132,
+      "cer": 0.0829,
+      "rtf": 0.028,
+      "samples": [
+        {
+          "file": "es_000007.wav",
+          "speaker": "11266",
+          "dur_s": 10.49,
+          "ref": "tú has muerto en mansedumbre tú con dulzura entregándote á mí en la suprema sumisión de la vida pero él",
+          "hyp": "Tu asmarto en mancedumbre. Tú, con dulzura, entregándote a mí en la supremas umisión de la vida. Pero él?",
+          "wer": 0.35,
+          "asr_s": 0.309,
+          "hyp_live": "Tu asmarto en manse dumbre. tú conduzuras. entregándote a mí en la supremas sumisión de la vida. Pero él?",
+          "wer_live": 0.45
+        },
+        {
+          "file": "es_000135.wav",
+          "speaker": "12249",
+          "dur_s": 11.33,
+          "ref": "vivía ya con ellos harville había alquilado aquella casa por medio año pues sus gustos su salud y sus medios",
+          "hyp": "Viva ya con ellos. Harvard labía al que he dado a que ella casa por medio año, pues sus gustos, sus salud, sus medios.",
+          "wer": 0.6,
+          "asr_s": 0.312,
+          "hyp_live": "Vivía ya con ellos. Harvard lo había al que he dado a que ella casa por medio año. pues esos gustos sus salud, esos medios.",
+          "wer_live": 0.65
+        },
+        {
+          "file": "es_000266.wav",
+          "speaker": "12525",
+          "dur_s": 10.15,
+          "ref": "por eso hemos convenido en traer el arpa pues nos parece que ha de distraerlos mejor que el piano y os contaré el motivo de su pena",
+          "hyp": "Por eso hemos convenido entrar el arpa, pues nos parece que ha de destraerlos mejor que el piano. Y os contaré el motivo de su pena.",
+          "wer": 0.111,
+          "asr_s": 0.288,
+          "hyp_live": "Por eso hemos convenido entrar el arpa. pues nos parece que ha de destraerlos mejor que el piano. y os contaré el motivo de su pena.",
+          "wer_live": 0.111
+        },
+        {
+          "file": "es_000468.wav",
+          "speaker": "4096",
+          "dur_s": 10.58,
+          "ref": "y en un instante quedaron enteradas de quiénes eran don quijote y su escudero de que no poco contento recibieron porque ya tenían de él noticia por su historia",
+          "hyp": "Y era un instante quedaron enteradas de quienes eran donquijote y su escudero, de que no poco contento recibieron, porque ya tenían del noticia por su historia.",
+          "wer": 0.207,
+          "asr_s": 0.311,
+          "hyp_live": "Y era un instante quedaron enteradas de quienes eran donquijo de su escudero. de que no poco contento recibieron. porque ya tenían del noticia por su historia.",
+          "wer_live": 0.241
+        },
+        {
+          "file": "es_000535.wav",
+          "speaker": "3471",
+          "dur_s": 11.29,
+          "ref": "pero en efecto lo hubo de conceder por su mejora y el cura le llevó consigo de buena gana por tener lugar de preguntarle de espacio por don quijote y sus hazañas",
+          "hyp": "Pero, en efecto, lo hubo de considerar por su mejora y el cura le llevó consigo de buena gan, por tener lugar de preguntarle de espacio por Don Quigote y sus asañas.",
+          "wer": 0.125,
+          "asr_s": 0.314,
+          "hyp_live": "pero en efecto lo hubo de concebir por su mejora y el cura le llevó consigo de buena gana. por tener lugar de preguntarle de espacio por Don Quigote y sus asañas.",
+          "wer_live": 0.094
+        },
+        {
+          "file": "es_000668.wav",
+          "speaker": "3468",
+          "dur_s": 11.57,
+          "ref": "así es la verdad respondió la doncella pero sepan vuesas mercedes que la turbación que he tenido ha sido tanta que no me ha dejado guardar el término que debía",
+          "hyp": "Así es la verdad respondió la donsella, pero sepan vuezas Mercedes que la turvación que he tenido ha sido tanta que no me ha dejado guardar el término que debía.",
+          "wer": 0.1,
+          "asr_s": 0.301,
+          "hyp_live": "Así es la verdad respondió la donsella. pero se convues a desmercidez. que la tomación que he tenido ha sido tanta. que no me ha dejado guardar el término que debía.",
+          "wer_live": 0.2
+        },
+        {
+          "file": "es_000794.wav",
+          "speaker": "3503",
+          "dur_s": 11.27,
+          "ref": "en la ilíada están juntos siempre los dioses y los hombres como padres e hijos y en el cielo suceden las cosas lo mismo que en la tierra",
+          "hyp": "En la iliada están juntos siempre los dioses y los hombres, como padres e hijos. Y en el cielo suceden las cosas lo mismo que en la tierra.",
+          "wer": 0.036,
+          "asr_s": 0.287,
+          "hyp_live": "En la iliada están juntos siempre los dioses y los hombres. como padres e hijos. y en el cielo suceden las cosas lo mismo que en la tierra.",
+          "wer_live": 0.036
+        },
+        {
+          "file": "es_000925.wav",
+          "speaker": "4747",
+          "dur_s": 10.23,
+          "ref": "luego roma fue dueña de todos los países que tenía alrededor hasta que tuvo tantos pueblos que no los pudo gobernar y cada pueblo se fue haciendo libre y nombrando su rey",
+          "hyp": "Luego, Roma fue de baña de todos los países que tenían alrededor. Hasta que tuvo tantos pueblos que no los puedo gornar y cada pueblo se fue haciendo libre y no un brand su Rey.",
+          "wer": 0.25,
+          "asr_s": 0.305,
+          "hyp_live": "Luego, Roma fue de baña de todos los países que tenían rededor. hasta que tuvo tantos perilos que no lo puedo gobernar. y cada pueblo se fue haciendo libre y no un brano su rey.",
+          "wer_live": 0.312
+        },
+        {
+          "file": "es_001058.wav",
+          "speaker": "5870",
+          "dur_s": 11.16,
+          "ref": "por esto oponía la más terminante negativa a los señores respetables antiguos amigos de la familia que su mujer le enviaba como embajadores",
+          "hyp": "Por esto ponía la más terminante negativa a los señores respetables, antigos amigos de la familia, que su mujer le enviaba como embajadores.",
+          "wer": 0.087,
+          "asr_s": 0.317,
+          "hyp_live": "Por esto ponía la más terminante negativa a los señores respetables. antigos amigos de la familia que su mujer le enviaba como en bajadores.",
+          "wer_live": 0.174
+        },
+        {
+          "file": "es_001125.wav",
+          "speaker": "6306",
+          "dur_s": 10.15,
+          "ref": "el viento les favorecía pero la barca estaba inundada navegaba mal y los dos hombres marineros ante todo",
+          "hyp": "El viento les favorecía, pero la barca estaba inundada.",
+          "wer": 0.5,
+          "asr_s": 0.266,
+          "hyp_live": "El viento les favorecía. Pero la barca estaba inundada. ¿Nabeca a mamá? y los dos hombres marineros ante todo.",
+          "wer_live": 0.167
+        },
+        {
+          "file": "es_001194.wav",
+          "speaker": "5691",
+          "dur_s": 10.04,
+          "ref": "y siendo esto ansí antes quedaremos confusos que informados puesto que podamos usar del mismo artificio que sospechamos dándola al religioso por tercera persona",
+          "hyp": "Y siendo esto, antes que tenemos confusos que informados, puesto que podamos usar del mismo artificial que sospechamos, dando la religioso por tercera persona.",
+          "wer": 0.25,
+          "asr_s": 0.296,
+          "hyp_live": "Y siendo esto, antes quedaremos confusos que informados. pues te quedamos usar del mismo artificio que sospechamos, dando la religioso portércera persona.",
+          "wer_live": 0.333
+        },
+        {
+          "file": "es_001329.wav",
+          "speaker": "97",
+          "dur_s": 11.2,
+          "ref": "poco tengo yo que ver en eso respondió el ventero págueseme lo que se me debe y dejémonos de cuentos ni de caballerías que yo no tengo cuenta con otra cosa que con cobrar mi hacienda",
+          "hyp": "poco tengo yo que ver en eso respondió el ventero. Pague ese me lo que se me debe y dejémonos de cuentos ni de caballerías, que yo lo tengo cuenta con otra cosa que con cobrarme a sienta.",
+          "wer": 0.194,
+          "asr_s": 0.323,
+          "hyp_live": "poco tengo yo que ver en eso respondió el ventero. Pague ese me lo que se me debe y dejémonos de cuentos ni de caballerías, que yo lo tengo cuenta con otra... cosa que concobrar mi acienda.",
+          "wer_live": 0.194
+        }
+      ],
+      "wer_live": 0.232,
+      "cer_live": 0.0678,
+      "live_segments": 39
+    }
+  ],
+  "config": {
+    "seg": {},
+    "whisper": {
+      "beam_size": 1,
+      "condition_on_previous_text": false,
+      "without_timestamps": true,
+      "temperature": 0,
+      "no_speech_threshold": 0.5,
+      "log_prob_threshold": -1.0,
+      "compression_ratio_threshold": 2.4,
+      "vad_filter": true,
+      "vad_parameters": {
+        "min_silence_duration_ms": 300
+      }
+    },
+    "max_seg_s": 6.0
+  }
+}
