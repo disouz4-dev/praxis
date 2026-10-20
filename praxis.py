@@ -495,9 +495,36 @@ def pipeline_worker(
     """Pipeline completo: ASR (Whisper) → tradução (Argos) → TTS streaming por frase → play.
     Full pipeline: ASR (Whisper) → translation (Argos) → per-sentence streaming TTS → play.
 
-    Sintetiza a próxima frase enquanto a atual está tocando para reduzir latência percebida.
-    Synthesizes the next sentence while the current one is playing to reduce perceived latency.
+    O áudio traduzido toca numa thread própria (em ordem, sem sobreposição):
+    enquanto uma frase é falada, o Whisper já transcreve o próximo trecho.
+    Translated audio plays on its own thread (in order, never overlapping), so
+    Whisper transcribes the next segment while the previous one is spoken.
+    Measured with benchmarks/stream_test.py: in the old serial design (ASR →
+    MT → TTS → wait for playback → next) a CPU running `small` fell further
+    and further behind continuous speech (lag +38…+94 ms per second).
     """
+    if direction == "out":
+        targets = (_vmic.target, monitor_output) if monitor else (_vmic.target,)
+    else:
+        targets = (monitor_output,)
+    out_q: "queue.Queue[tuple[bytes, int] | None]" = queue.Queue()
+
+    def _player() -> None:
+        while True:
+            try:
+                item = out_q.get(timeout=0.2)
+            except queue.Empty:
+                if _stop.is_set():
+                    return
+                continue
+            if item is None:
+                return
+            pcm, rate = item
+            play_pcm(pcm, rate, *targets)
+
+    player = threading.Thread(target=_player, daemon=True)
+    player.start()
+
     while not _stop.is_set():
         try:
             segment = seg_q.get(timeout=0.2)
@@ -537,30 +564,19 @@ def pipeline_worker(
                 _cur_piper.set_live_reference(ref, text)
             except Exception as e:
                 console.print(f"[yellow]OmniVoice ref: {e}[/yellow]")
-        rate      = _cur_piper.config.sample_rate
-        play_q: "queue.Queue[bytes | None]" = queue.Queue()
-
-        def _synth(sents: list[str], _p=_cur_piper, play_q=play_q) -> None:
+        rate = _cur_piper.config.sample_rate
+        # Per-sentence TTS: the first sentence starts playing while the next is synthesized
+        for sent in sentences:
             try:
-                for s in sents:
-                    pcm = b"".join(c.audio_int16_bytes for c in _p.synthesize(s))
-                    play_q.put(pcm)
-            finally:
-                play_q.put(None)
+                pcm = b"".join(c.audio_int16_bytes for c in _cur_piper.synthesize(sent))
+            except Exception as e:
+                _emit({"e": "error", "msg": f"tts: {type(e).__name__}: {e}"})
+                continue
+            if pcm:
+                out_q.put((pcm, rate))
 
-        threading.Thread(target=_synth, args=(sentences,), daemon=True).start()
-
-        while True:
-            pcm = play_q.get()
-            if pcm is None:
-                break
-            if direction == "out":
-                if monitor:
-                    play_pcm(pcm, rate, _vmic.target, monitor_output)
-                else:
-                    play_pcm(pcm, rate, _vmic.target)
-            else:
-                play_pcm(pcm, rate, monitor_output)
+    out_q.put(None)
+    player.join(timeout=2)
 
 
 def input_worker(live: Live) -> None:

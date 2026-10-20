@@ -343,3 +343,41 @@ def test_onnx_silero_vad_detects_real_speech():
     assert evs and "start" in evs[0] and any("end" in e for e in evs)
     first_start = evs[0]["start"] / praxis.SR
     assert 0.7 < first_start < 2.2, f"speech start detected at {first_start:.2f}s"
+
+
+def test_next_segment_is_processed_while_previous_translation_plays(engine):
+    """Found by benchmarks/stream_test.py: the serial pipeline waited for each
+    translation to finish playing before transcribing the next segment, so a
+    CPU fell behind continuous speech. Playback now overlaps processing, keeps
+    order and never overlaps itself."""
+    p, fb = engine
+    plays = []
+
+    def slow_play(pcm, rate, devices):
+        start = time.perf_counter()
+        time.sleep(0.4)                                   # speaking the translation
+        plays.append((start, time.perf_counter(), pcm))
+    fb.play_pcm_multi = slow_play
+    asr_starts = []
+
+    class W(FakeWhisper):
+        def transcribe(self, audio, language=None, **kw):
+            asr_starts.append(time.perf_counter())
+            return super().transcribe(audio, language, **kw)
+
+    q = queue.Queue()
+    voice = FakeVoice()
+    p._piper_out_ref[0] = voice
+    t = threading.Thread(target=p.pipeline_worker,
+                         args=(q, W("uma frase."), voice, "pt", "en", "out"), daemon=True)
+    t.start()
+    q.put(np.ones(1600, np.int16))
+    q.put(np.ones(1600, np.int16))
+    deadline = time.time() + 5
+    while len(plays) < 2 and time.time() < deadline:
+        time.sleep(0.01)
+    p._stop.set()
+    t.join(3)
+    assert len(asr_starts) == 2 and len(plays) == 2
+    assert asr_starts[1] < plays[0][1], "2nd segment waited for the 1st translation to finish playing"
+    assert plays[1][0] >= plays[0][1] - 0.01, "translations overlapped"
