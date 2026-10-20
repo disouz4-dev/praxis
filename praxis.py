@@ -769,6 +769,19 @@ def _translate_pair(text: str, src: str, tgt: str) -> str:
     return " ".join(o for o in out if o)
 
 
+def _install_argos_package(path) -> None:
+    """Instala um pacote do Argos (.argosmodel, que é um zip) extraindo-o na pasta
+    de pacotes. Não usa install_from_path: depois de extrair, ela importa
+    argostranslate.translate → stanza → PyTorch, que o Praxis não instala, e a
+    primeira instalação de japonês/coreano falhava com "No module named 'stanza'"."""
+    import zipfile
+    import argostranslate.settings
+    if not zipfile.is_zipfile(path):
+        raise ValueError(f"pacote de tradução inválido (não é um arquivo zip): {path}")
+    with zipfile.ZipFile(path) as zf:
+        zf.extractall(path=argostranslate.settings.package_data_dir)
+
+
 def _download_argos_pair(src: str, tgt: str) -> None:
     """Baixa e instala um par de tradução Argos."""
     import argostranslate.package, tempfile, requests, base64
@@ -800,7 +813,7 @@ def _download_argos_pair(src: str, tgt: str) -> None:
             for chunk in dl.iter_content(65536):
                 f.write(chunk)
             tmp_path = f.name
-        argostranslate.package.install_from_path(tmp_path)
+        _install_argos_package(tmp_path)
         import os; os.unlink(tmp_path)
     except SystemExit:
         raise
@@ -811,7 +824,7 @@ def _download_argos_pair(src: str, tgt: str) -> None:
         pkg = next((p for p in available if p.from_code == src and p.to_code == tgt), None)
         if pkg is None:
             sys.exit(f"[erro] Par {src}→{tgt} não disponível.")
-        argostranslate.package.install_from_path(pkg.download())
+        _install_argos_package(pkg.download())
 
 
 def setup_argos(src: str, tgt: str) -> None:

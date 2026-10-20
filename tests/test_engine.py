@@ -495,3 +495,22 @@ def test_chines_tradicional_vira_simplificado():
     assert praxis.transcribe_segment(w, np.zeros(1600, np.float32), "zh") == "适当使用博客可以使学生变得更善于分析"
     w = FakeWhisper("學生")
     assert praxis.transcribe_segment(w, np.zeros(1600, np.float32), "ja") == "學生"   # japonês não muda
+
+
+
+def test_instala_pacote_de_traducao_sem_stanza(tmp_path, monkeypatch):
+    """Encontrado no teste de velocidade: a 1ª instalação de japonês/coreano
+    falhava com "No module named 'stanza'" (o Praxis não instala o PyTorch)."""
+    import zipfile
+    import argostranslate.settings
+    monkeypatch.setattr(argostranslate.settings, "package_data_dir", tmp_path / "pacotes")
+    monkeypatch.setitem(sys.modules, "stanza", None)        # simula o stanza ausente
+    pacote = tmp_path / "translate-ja_en.argosmodel"
+    with zipfile.ZipFile(pacote, "w") as zf:
+        zf.writestr("translate-ja_en/metadata.json", '{"from_code": "ja", "to_code": "en"}')
+    praxis._install_argos_package(pacote)
+    assert (tmp_path / "pacotes" / "translate-ja_en" / "metadata.json").exists()
+    falso = tmp_path / "falso.argosmodel"
+    falso.write_text("não é zip")
+    with pytest.raises(ValueError):
+        praxis._install_argos_package(falso)
