@@ -889,7 +889,7 @@ def setup_argos(src: str, tgt: str) -> None:
     """Instala pares de tradução. Usa o inglês como intermediário quando o par direto não existe."""
     if src == tgt:
         return
-    if TRANSLATOR == "nllb":
+    if translator_for(src, tgt) == "nllb":
         _load_nllb()                     # um único modelo cobre todos os pares
         return
     if src != "en" and tgt != "en":
@@ -902,7 +902,10 @@ def setup_argos(src: str, tgt: str) -> None:
 # ── Tradutor NLLB-200 (Meta), opcional ────────────────────────────────────────
 # Traduz direto entre os 16 idiomas (sem passar pelo inglês). ATENÇÃO: a licença
 # dos pesos do NLLB-200 (CC-BY-NC 4.0) NÃO permite uso comercial.
-TRANSLATOR = os.environ.get("PRAXIS_TRADUTOR", "argos")      # "argos" | "nllb"
+TRANSLATOR = os.environ.get("PRAXIS_TRADUTOR", "auto")       # "auto" | "argos" | "nllb"
+# Idiomas em que o NLLB ganha muito do Argos (medido contra tradução humana, +6 a +10
+# de fidelidade): no processador, só eles usam o NLLB (que lá é ~8× mais lento).
+NLLB_WEAK_LANGS = {"ar", "tr", "ko", "ja", "uk", "hi"}
 NLLB_MODEL = os.environ.get("PRAXIS_NLLB", "nllb-200-distilled-600M-ct2")
 NLLB_CODES = {"pt": "por_Latn", "en": "eng_Latn", "es": "spa_Latn", "fr": "fra_Latn",
               "de": "deu_Latn", "it": "ita_Latn", "ru": "rus_Cyrl", "zh": "zho_Hans",
@@ -949,11 +952,26 @@ def _translate_pair_nllb(text: str, src: str, tgt: str) -> str:
     return " ".join(o for o in out if o)
 
 
+def translator_for(src: str, tgt: str) -> str:
+    """Tradutor usado para um par: o pedido, ou no modo "auto" (padrão) — NLLB em
+    tudo com placa de vídeo; no processador, NLLB só nos idiomas em que ele ganha
+    muito; Argos no resto. Sem o NLLB instalado (licença não comercial, opcional),
+    sempre Argos."""
+    if TRANSLATOR in ("argos", "nllb"):
+        return TRANSLATOR
+    if not (nllb_dir() / "model.bin").exists():
+        return "argos"
+    import praxis_accel
+    if praxis_accel.cuda_device_count() > 0:
+        return "nllb"
+    return "nllb" if (src in NLLB_WEAK_LANGS or tgt in NLLB_WEAK_LANGS) else "argos"
+
+
 def do_translate(text: str, src: str, tgt: str) -> str:
     """Traduz texto; passa pelo inglês automaticamente quando não existe o par direto."""
     if src == tgt:
         return text
-    if TRANSLATOR == "nllb":
+    if translator_for(src, tgt) == "nllb":
         return _translate_pair_nllb(text, src, tgt)          # direto, sem passar pelo inglês
     if src != "en" and tgt != "en":
         return _translate_pair(_translate_pair(text, src, "en"), "en", tgt)
@@ -1215,8 +1233,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fones", action="store_true",
                         help="estou de fone: desliga a trava de eco (o microfone não fica surdo "
                              "enquanto a tradução toca no alto-falante)")
-    parser.add_argument("--tradutor", default=None, choices=["argos", "nllb"],
-                        help="tradutor: argos (padrão) ou nllb (Meta NLLB-200, melhor, uso NÃO comercial)")
+    parser.add_argument("--tradutor", default=None, choices=["auto", "argos", "nllb"],
+                        help="tradutor: auto (padrão: NLLB se instalado — tudo com placa de vídeo, só "
+                             "os idiomas fracos no processador), argos, ou nllb (Meta NLLB-200, uso NÃO comercial)")
     parser.add_argument("--device", default=None,
                         choices=["auto", "cpu", "cuda", "mlx", "whispercpp"],
                         help="Aceleração do Whisper (padrão: auto / PRAXIS_DEVICE)")

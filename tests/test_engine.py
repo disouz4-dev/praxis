@@ -616,3 +616,30 @@ def test_trava_de_eco_ignora_o_microfone_enquanto_o_alto_falante_toca():
 
 def test_parser_aceita_fones():
     assert praxis.build_parser().parse_args(["--voice-out", "v", "--fones"]).fones is True
+
+
+
+# ── escolha do tradutor ───────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("instalado,gpu,par,esperado", [
+    (False, True, ("pt", "en"), "argos"),          # sem NLLB instalado: sempre Argos
+    (True, True, ("pt", "en"), "nllb"),            # placa de vídeo: NLLB em tudo
+    (True, False, ("pt", "en"), "argos"),          # processador, par forte: Argos (8× mais rápido)
+    (True, False, ("en", "ar"), "nllb"),           # processador, idioma fraco: NLLB
+    (True, False, ("ko", "en"), "nllb"),
+])
+def test_tradutor_automatico(monkeypatch, tmp_path, instalado, gpu, par, esperado):
+    import praxis_accel
+    d = tmp_path / "nllb"
+    d.mkdir()
+    if instalado:
+        (d / "model.bin").write_bytes(b"x")
+    monkeypatch.setattr(praxis, "TRANSLATOR", "auto")
+    monkeypatch.setattr(praxis, "NLLB_MODEL", str(d))
+    monkeypatch.setattr(praxis_accel, "cuda_device_count", lambda: 1 if gpu else 0)
+    assert praxis.translator_for(*par) == esperado
+
+
+def test_tradutor_pedido_tem_prioridade(monkeypatch):
+    monkeypatch.setattr(praxis, "TRANSLATOR", "argos")
+    assert praxis.translator_for("en", "ar") == "argos"

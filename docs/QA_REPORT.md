@@ -236,6 +236,29 @@ Erro = parcela das palavras transcritas errado, puladas ou inventadas, média do
 - Um único trecho ainda pode ter um pico de 4–7 s quando uma frase longa é seguida de mais fala.
 - Corpus: ~1 min por idioma, fala lida. Áudio espontâneo e com ruído de chamadas terá resultado pior.
 
+## Rodada 3 — varredura geral dos pontos fracos
+
+Cada fragilidade prevista virou um teste com números. Processador = `small`, placa de vídeo = RTX 3050.
+
+| Fragilidade | Como foi testada | Resultado | O que foi feito |
+|---|---|---|---|
+| Qualidade real da tradução | 60 frases × 36 direções contra traduções **humanas** (FLEURS) | Argos: fidelidade 55,4 (46–69); en→ar deixa 10% em inglês; ja→en mistura caracteres japoneses em 10%; ru→uk inventou uma frase; passar pelo inglês custa −5,8 | Tradutor **NLLB-200 (Meta)** opcional e automático: fidelidade 58,2, melhor em 22 de 36 direções (+6 a +10 em ar, tr, ko, ja, uk, hi), saídas erradas 14 → 2; 0,2 s/frase na placa de vídeo, ~1,4 s no processador. **Licença não comercial.** |
+| Português de Portugal | marcas de pt-PT em en→pt | 1 frase em 60 (Argos), 0 (NLLB) | não é problema |
+| Silêncio e ruído de ambiente | 20 s sem fala | 0 palavras inventadas | — |
+| Falatório de fundo | 6 vozes em outros idiomas, sem fala do usuário | 25 palavras inventadas (modo pt) | pendente: descartar trecho em outro idioma; recomendar fone |
+| Fala com ruído | 16 idiomas com ruído fraco/médio/forte | erro 18,5% → 26% → 39% → 61% | pendente: filtro de redução de ruído |
+| Eco (alto-falante → microfone) | tradução vazando a −12 dB | sem proteção: erro 78%, 25 trechos de eco, laços sem fim | **trava de eco**: 0 trechos de eco, erro 49%; guarda de laços sem espaço. Pendente: cancelamento de eco |
+| Contexto entre trechos | com e sem, fala normal e pausada | piorou (18,5% → 20,2%) | mantido desligado |
+| Velocidade da fala | normal 20 s / 15 s, lenta e pausada; 11 combinações de modelo e computador | a lenta piorou em 11 de 11; a pausada em 10 de 11 | conclusão: falar devagar não ajuda; o problema é cortar a fala |
+| Primeiro uso sem internet | sem nada baixado e sem rede | recursão infinita / travado para sempre | mensagem clara em até 22 s |
+| Japonês/coreano na 1ª vez | instalação do pacote | quebrava ("No module named 'stanza'") | instalação própria do pacote |
+| Clonagem de voz no Mac | PyTorch junto com o Whisper | abortava/travava | modo de compatibilidade medido como estável |
+| Picos de atraso | análise de ~1.000 trechos | ~80% vêm de esperar a tradução longa anterior terminar de tocar | pendente: gerar a voz na hora de tocar |
+| Interface | varredura automática + defeitos conhecidos | 7 defeitos | corrigidos (tecla de letra no aperte-para-falar, cronômetro, clonagem carregando 2×, apagar clone, widgets fora da thread principal, pasta de clones) |
+| Idioma do sistema | — | o app abria sempre em português | herda o idioma do sistema na 1ª execução |
+
+**Pendências que continuam (por gravidade):** cancelamento de eco; redução de ruído; voz de fundo; picos de atraso; Windows nunca testado em máquina real; MLX e Vulkan sem hardware real.
+
 ## Suporte a placa de vídeo
 
 `praxis_accel.py` escolhe o backend de cada máquina (para forçar: `--device` / `PRAXIS_DEVICE`):
