@@ -602,6 +602,9 @@ def _argos_translator(src: str, tgt: str):
         if pkg is None:
             raise LookupError(f"Argos package {src}->{tgt} is not installed")
         device = "cuda" if ctranslate2.get_cuda_device_count() > 0 else "cpu"
+        if device == "cuda":
+            import praxis_accel
+            praxis_accel.ensure_cuda_libs()
         tr = ctranslate2.Translator(str(pkg.package_path / "model"), device=device,
                                     inter_threads=1, intra_threads=0,
                                     # "auto" picks int8 on many CPUs, which turns some

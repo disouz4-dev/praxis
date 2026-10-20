@@ -42,6 +42,43 @@ def _has(mod: str) -> bool:
 
 
 @functools.lru_cache(maxsize=1)
+def ensure_cuda_libs() -> list[str]:
+    """Makes cuBLAS/cuDNN installed from PyPI (nvidia-cublas-cu12,
+    nvidia-cudnn-cu12 — what the installers use) loadable by CTranslate2
+    without LD_LIBRARY_PATH: preloads them globally on Linux and registers
+    their DLL dirs on Windows. Returns the libraries/dirs it registered."""
+    import glob
+    import site
+    import sys
+    roots = [*site.getsitepackages(), site.getusersitepackages(), *sys.path]
+    done: list[str] = []
+    for root in dict.fromkeys(roots):
+        base = os.path.join(root, "nvidia")
+        if not os.path.isdir(base):
+            continue
+        if SYSTEM == "Windows":
+            for d in glob.glob(os.path.join(base, "*", "bin")):
+                try:
+                    os.add_dll_directory(d)
+                    os.environ["PATH"] = d + os.pathsep + os.environ.get("PATH", "")
+                    done.append(d)
+                except OSError:
+                    pass
+        elif SYSTEM == "Linux":
+            import ctypes
+            # order matters: cuBLASLt before cuBLAS, cuDNN core before its sub-libraries
+            for pat in ("cublas/lib/libcublasLt.so*", "cublas/lib/libcublas.so*",
+                        "cudnn/lib/libcudnn.so*", "cudnn/lib/libcudnn_*.so*"):
+                for lib in sorted(glob.glob(os.path.join(base, pat))):
+                    try:
+                        ctypes.CDLL(lib, mode=ctypes.RTLD_GLOBAL)
+                        done.append(lib)
+                    except OSError:
+                        pass
+    return done
+
+
+@functools.lru_cache(maxsize=1)
 def cuda_device_count() -> int:
     try:
         import ctranslate2
@@ -251,6 +288,7 @@ def load_asr(model_name: str, backend: str, log=print):
             log(f"whisper.cpp unavailable ({e}); falling back to CPU")
     elif backend == "cuda":
         try:
+            ensure_cuda_libs()
             m = WhisperModel(model_name, device="cuda", compute_type="int8_float16")
             import numpy as np
             list(m.transcribe(np.zeros(1600, dtype=np.float32), language="en")[0])

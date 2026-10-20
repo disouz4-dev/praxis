@@ -146,3 +146,18 @@ def test_whispercpp_adapter_real_speech():
     a, _ = sf.read(str(wavs[0]), dtype="float32")
     text = praxis.transcribe_segment(w, a, "en")
     assert len(text.split()) >= 3, text
+
+
+def test_ensure_cuda_libs_never_raises(tmp_path, monkeypatch):
+    """pip-installed cuBLAS/cuDNN must be registered without LD_LIBRARY_PATH
+    (found on lab2: CUDA Whisper silently fell back to CPU). With no nvidia
+    packages present it is a harmless no-op."""
+    accel.ensure_cuda_libs.cache_clear()
+    monkeypatch.setattr(sys, "path", [str(tmp_path)])
+    import site
+    monkeypatch.setattr(site, "getsitepackages", lambda: [str(tmp_path)])
+    monkeypatch.setattr(site, "getusersitepackages", lambda: str(tmp_path))
+    (tmp_path / "nvidia" / "cublas" / "lib").mkdir(parents=True)
+    (tmp_path / "nvidia" / "cublas" / "lib" / "libcublas.so.12").write_bytes(b"not a real lib")
+    assert isinstance(accel.ensure_cuda_libs(), list)       # bad .so is skipped, no crash
+    accel.ensure_cuda_libs.cache_clear()
