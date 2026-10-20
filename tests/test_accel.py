@@ -109,7 +109,7 @@ def test_carregar_reconhecimento_de_fala_recorre_a_cpu(monkeypatch):
     pytest.importorskip("faster_whisper")
 
     class FakeWM:
-        def __init__(self, name, device, compute_type):
+        def __init__(self, name, device, compute_type, cpu_threads=0):
             if device == "cuda":
                 raise RuntimeError("no CUDA")
             self.device = device

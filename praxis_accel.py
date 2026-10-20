@@ -344,7 +344,10 @@ def load_asr(model_name: str, backend: str, log=print):
             return m
         except Exception as e:
             log(f"Whisper com CUDA falhou ({type(e).__name__}: {e}); usando a CPU")
-    m = WhisperModel(model_name, device="cpu", compute_type="int8")
+    # Com OMP_NUM_THREADS=1 (modo de compatibilidade da clonagem no Mac) o Whisper
+    # ficaria 2× mais lento; o número de threads explícito devolve a velocidade.
+    threads = max(1, (os.cpu_count() or 2) // 2) if os.environ.get("OMP_NUM_THREADS") == "1" else 0
+    m = WhisperModel(model_name, device="cpu", compute_type="int8", cpu_threads=threads)
     m.backend = "cpu"
     return m
 

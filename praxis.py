@@ -47,6 +47,7 @@ _peer_active.set()
 # Backend de áudio da plataforma + dispositivos virtuais (definidos em main)
 _backend: "plat.AudioBackend | None" = None
 _vmic: "plat.VirtualMic" = plat.VirtualMic(target=SINK_OUT, mic_label=SRC_DESC)
+_clone_mode_mac = False      # modo de compatibilidade da clonagem no Mac (ver prepare_clone_on_mac)
 
 # Filas de áudio bruto (blocos do detector de fala)
 _out_audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=200)  # microfone do usuário
@@ -797,49 +798,72 @@ def _install_argos_package(path) -> None:
         zf.extractall(path=argostranslate.settings.package_data_dir)
 
 
+ARGOS_INDEX_URLS = (
+    # o mesmo índice em dois endereços: o da API do GitHub tem limite de acessos
+    "https://raw.githubusercontent.com/argosopentech/argospm-index/main/index.json",
+    "https://api.github.com/repos/argosopentech/argospm-index/contents/index.json",
+)
+
+
+class SemInternet(RuntimeError):
+    """Algo que só existe na internet ainda não foi baixado."""
+
+
 def _download_argos_pair(src: str, tgt: str) -> None:
-    """Baixa e instala um par de tradução Argos."""
-    import argostranslate.package, tempfile, requests, base64
+    """Baixa e instala um par de tradução do Argos (só na primeira vez).
+
+    Sem internet, explica isso ao usuário. Antes, o caminho alternativo do próprio
+    argostranslate entrava em recursão infinita (RecursionError) e, numa rede que
+    não responde, ficava travado para sempre em "Carregando tradução… 20%"."""
+    import argostranslate.package
+    import base64
+    import requests
+    import tempfile
 
     installed = {(p.from_code, p.to_code)
                  for p in argostranslate.package.get_installed_packages()}
     if (src, tgt) in installed:
         return
 
-    console.print(f"[dim]Baixando pacote Argos {src}→{tgt}...[/dim]")
+    _emit({"e": "progress", "pct": 20,
+           "msg": f"Baixando pacote de tradução {src}→{tgt} (~100 MB, só na primeira vez)…"})
+    console.print(f"[dim]Baixando pacote de tradução {src}→{tgt}…[/dim]")
 
+    index, ultimo_erro = None, None
+    for url in ARGOS_INDEX_URLS:
+        try:
+            r = requests.get(url, timeout=(10, 30))
+            r.raise_for_status()
+            data = r.json()
+            index = json.loads(base64.b64decode(data["content"]).decode()) \
+                if isinstance(data, dict) and "content" in data else data
+            break
+        except Exception as e:                     # noqa: PERF203
+            ultimo_erro = e
+    if index is None:
+        raise SemInternet(
+            f"Sem conexão com a internet: na primeira vez, o Praxis precisa baixar o pacote "
+            f"de tradução {src}→{tgt} (~100 MB). Conecte-se e tente de novo; depois disso "
+            f"ele funciona offline. (detalhe: {type(ultimo_erro).__name__})")
+
+    entry = next((p for p in index if p.get("from_code") == src and p.get("to_code") == tgt), None)
+    if entry is None:
+        sys.exit(f"[erro] Não existe pacote de tradução {src}→{tgt} no Argos Translate.")
     try:
-        r = requests.get(
-            "https://api.github.com/repos/argosopentech/argospm-index/contents/index.json",
-            timeout=15,
-        )
-        r.raise_for_status()
-        index = json.loads(base64.b64decode(r.json()["content"]).decode())
-        entry = next(
-            (p for p in index if p.get("from_code") == src and p.get("to_code") == tgt),
-            None,
-        )
-        if entry is None:
-            sys.exit(f"[erro] Par {src}→{tgt} não disponível no Argos Translate.")
-        url = entry["links"][0]
-        dl = requests.get(url, timeout=120, stream=True)
+        dl = requests.get(entry["links"][0], timeout=(10, 60), stream=True)
         dl.raise_for_status()
         with tempfile.NamedTemporaryFile(suffix=".argosmodel", delete=False) as f:
             for chunk in dl.iter_content(65536):
                 f.write(chunk)
             tmp_path = f.name
-        _install_argos_package(tmp_path)
-        import os; os.unlink(tmp_path)
-    except SystemExit:
-        raise
     except Exception as e:
-        console.print(f"[yellow]Usando o download padrão como alternativa: {e}[/yellow]")
-        argostranslate.package.update_package_index()
-        available = argostranslate.package.get_available_packages()
-        pkg = next((p for p in available if p.from_code == src and p.to_code == tgt), None)
-        if pkg is None:
-            sys.exit(f"[erro] Par {src}→{tgt} não disponível.")
-        _install_argos_package(pkg.download())
+        raise SemInternet(
+            f"O download do pacote de tradução {src}→{tgt} foi interrompido ({type(e).__name__}). "
+            f"Verifique a internet e tente de novo.") from e
+    try:
+        _install_argos_package(tmp_path)
+    finally:
+        os.unlink(tmp_path)
 
 
 def setup_argos(src: str, tgt: str) -> None:
@@ -869,7 +893,18 @@ def load_whisper(model_name: str, device: str | None = None):
 
     backend, why = accel.choose_asr(device or os.environ.get("PRAXIS_DEVICE", "auto"))
     console.print(f"[dim]Whisper ({model_name})…[/dim]", end=" ")
-    m = accel.load_asr(model_name, backend, log=lambda msg: console.print(f"[yellow]{msg}[/yellow]"))
+    try:
+        m = accel.load_asr(model_name, backend, log=lambda msg: console.print(f"[yellow]{msg}[/yellow]"))
+    except Exception as e:
+        texto = f"{type(e).__name__}: {e}"
+        if any(k in texto for k in ("LocalEntryNotFound", "internet", "Connect", "Offline", "Max retries")):
+            tamanho = {"tiny": "75 MB", "base": "145 MB", "small": "480 MB", "medium": "1,5 GB",
+                       "large-v2": "3 GB", "large-v3": "3 GB", "large-v3-turbo": "1,6 GB"}.get(model_name, "")
+            raise SemInternet(
+                f"Sem conexão com a internet: na primeira vez, o Praxis precisa baixar o modelo de "
+                f"reconhecimento de voz '{model_name}'" + (f" (~{tamanho})" if tamanho else "")
+                + ". Conecte-se e tente de novo; depois disso ele funciona offline.") from e
+        raise
     used = getattr(m, "backend", backend)
     color = "yellow" if used == "cpu" else "green"
     console.print(f"[{color}]{used.upper()}[/{color}] [dim]({why})[/dim]")
@@ -942,6 +977,31 @@ def _has_cuda() -> bool:
         return ctranslate2.get_cuda_device_count() > 0
     except Exception:
         return False
+
+
+def is_clone_voice(path: str | None) -> bool:
+    """Voz clonada (OmniVoice): um .wav com um .json de tipo "omnivoice" ao lado."""
+    if not path or not str(path).endswith(".wav"):
+        return False
+    jp = Path(path).with_suffix(".json")
+    try:
+        return jp.exists() and json.loads(jp.read_text()).get("type") == "omnivoice"
+    except Exception:
+        return False
+
+
+def prepare_clone_on_mac(*voice_paths: str | None) -> bool:
+    """No macOS, a clonagem (PyTorch) e o reconhecimento de voz (CTranslate2) trazem
+    cada um a sua cópia do motor de paralelismo OpenMP, e o processo aborta ou trava
+    (medido: código 134 na ordem do motor real). A única combinação estável medida é
+    KMP_DUPLICATE_LIB_OK=TRUE com OMP_NUM_THREADS=1, definida ANTES de carregar o
+    Whisper; o Whisper recupera a velocidade com cpu_threads explícito.
+    Retorna True se ativou o modo de compatibilidade."""
+    if not plat.IS_MAC or not any(is_clone_voice(p) for p in voice_paths):
+        return False
+    os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
+    os.environ["OMP_NUM_THREADS"] = "1"
+    return True
 
 
 def load_piper(path: str):
@@ -1134,6 +1194,10 @@ def main(argv: list[str] | None = None) -> int:
         if e.code not in (0, None):
             _emit({"e": "error", "msg": str(e.code)})
         raise
+    except SemInternet as e:
+        _emit({"e": "error", "msg": str(e)})
+        console.print(f"[red]{e}[/red]")
+        return 1
     except Exception as e:
         _emit({"e": "error", "msg": f"{type(e).__name__}: {e}"})
         console.print(f"[red]Erro:[/red] {e}")
@@ -1144,6 +1208,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(args: argparse.Namespace, bilateral: bool) -> int:
+    global _clone_mode_mac
+    _clone_mode_mac = prepare_clone_on_mac(args.voice_out, args.voice_in)
     _emit({"e": "progress", "pct": 20, "msg": "Carregando tradução…"})
     setup_argos(args.src, args.tgt)
     if bilateral:
@@ -1225,6 +1291,11 @@ def _run(args: argparse.Namespace, bilateral: bool) -> int:
                     path = cmd.get("path", "")
                     if not path or not Path(path).exists():
                         _emit({"e": "error", "msg": f"voz não encontrada: {path}"})
+                        continue
+                    if plat.IS_MAC and is_clone_voice(path) and not _clone_mode_mac:
+                        _emit({"e": "error", "msg": "No Mac, para usar uma voz clonada, pare e inicie "
+                                                    "o Praxis já com a voz clonada escolhida (trocar com "
+                                                    "ele rodando trava o reconhecimento de voz)."})
                         continue
                     try:
                         new_piper = load_piper(path)

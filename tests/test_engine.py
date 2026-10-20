@@ -1,5 +1,6 @@
 """Motor (praxis.py): funções auxiliares puras, linha de comando (CLI), divisão da fala em trechos pela detecção de voz (VAD) e o fluxo completo com componentes falsos."""
 import json
+import os
 import queue
 import subprocess
 import sys
@@ -515,3 +516,63 @@ def test_instala_pacote_de_traducao_sem_stanza(tmp_path, monkeypatch):
     falso.write_text("não é zip")
     with pytest.raises(ValueError):
         praxis._install_argos_package(falso)
+
+
+
+# ── primeiro uso sem internet ─────────────────────────────────────────────────
+
+def test_sem_internet_explica_em_vez_de_travar(monkeypatch):
+    """Antes: RecursionError (rede recusada) ou travado para sempre (rede muda)."""
+    pytest.importorskip("argostranslate")
+    import argostranslate.package
+    import requests
+    monkeypatch.setattr(argostranslate.package, "get_installed_packages", lambda: [])
+    eventos = []
+    monkeypatch.setattr(praxis, "_emit", eventos.append)
+
+    def sem_rede(*a, **k):
+        raise requests.ConnectionError("sem rede")
+    monkeypatch.setattr(requests, "get", sem_rede)
+    with pytest.raises(praxis.SemInternet) as erro:
+        praxis._download_argos_pair("fr", "en")
+    assert "internet" in str(erro.value) and "fr→en" in str(erro.value)
+    assert any("Baixando pacote de tradução" in e.get("msg", "") for e in eventos)
+
+
+def test_main_mostra_a_mensagem_de_sem_internet(engine, monkeypatch):
+    p, fb = engine
+    eventos = []
+    monkeypatch.setattr(p, "_emit", eventos.append)
+    monkeypatch.setattr(p.signal, "signal", lambda *a: None)
+    monkeypatch.setattr(p, "setup_argos", lambda s, t: (_ for _ in ()).throw(p.SemInternet("Sem conexão com a internet: teste")))
+    assert p.main(["--voice-out", "x.onnx", "--json-out"]) == 1
+    assert eventos[-1] == {"e": "error", "msg": "Sem conexão com a internet: teste"}
+    assert fb.torn_down
+
+
+# ── clonagem de voz no Mac ────────────────────────────────────────────────────
+
+def _clone(tmp_path):
+    wav = tmp_path / "eu.wav"
+    wav.write_bytes(b"RIFF")
+    (tmp_path / "eu.json").write_text(json.dumps({"type": "omnivoice"}))
+    return str(wav)
+
+
+def test_clonagem_no_mac_liga_o_modo_de_compatibilidade(tmp_path, monkeypatch):
+    import praxis_platform as plat
+    monkeypatch.setattr(plat, "IS_MAC", True)
+    monkeypatch.delenv("KMP_DUPLICATE_LIB_OK", raising=False)
+    monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
+    assert praxis.prepare_clone_on_mac("voz.onnx", None) is False          # voz comum: nada muda
+    assert "OMP_NUM_THREADS" not in os.environ
+    assert praxis.prepare_clone_on_mac(_clone(tmp_path)) is True
+    assert os.environ["KMP_DUPLICATE_LIB_OK"] == "TRUE" and os.environ["OMP_NUM_THREADS"] == "1"
+
+
+def test_clonagem_fora_do_mac_nao_muda_nada(tmp_path, monkeypatch):
+    import praxis_platform as plat
+    monkeypatch.setattr(plat, "IS_MAC", False)
+    monkeypatch.delenv("OMP_NUM_THREADS", raising=False)
+    assert praxis.prepare_clone_on_mac(_clone(tmp_path)) is False
+    assert "OMP_NUM_THREADS" not in os.environ
