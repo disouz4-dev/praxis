@@ -436,7 +436,8 @@ def test_chunk_for_mt_handles_scripts_without_spaces():
 
 # ── adaptive speaking rate ────────────────────────────────────────────────────
 
-@pytest.mark.parametrize("backlog,expected", [(0.0, 1.0), (1.5, 1.0), (2.0, 0.87), (4.0, 0.87), (9.0, 0.77)])
+@pytest.mark.parametrize("backlog,expected", [(0.0, 1.0), (1.5, 1.0), (2.0, 0.87), (4.0, 0.87),
+                                              (6.0, 0.77), (9.0, 0.7)])
 def test_speech_length_scale(backlog, expected):
     assert praxis.speech_length_scale(backlog) == expected
 

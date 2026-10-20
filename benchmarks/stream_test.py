@@ -224,6 +224,9 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
         def __init__(self, v):
             self.v, self.config = v, v.config
 
+        def __getattr__(self, name):           # e.g. praxis_rate_scale (voice calibration)
+            return getattr(self.v, name)
+
         def synthesize(self, text, **kw):
             s = segs[cur["i"]]
             t = clock()

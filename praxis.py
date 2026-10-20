@@ -516,7 +516,7 @@ def _split_sentences(text: str) -> list[str]:
 # Adaptive speaking rate: when translated speech piles up (languages whose
 # translation is longer than the original — e.g. en→ar measured at 121%), the
 # voice speaks faster to catch up instead of drifting further behind.
-RATE_STEPS = ((1.5, 1.0), (4.0, 0.87), (float("inf"), 0.77))   # (backlog ≤ s, length_scale)
+RATE_STEPS = ((1.5, 1.0), (4.0, 0.87), (8.0, 0.77), (float("inf"), 0.7))   # (backlog ≤ s, length_scale)
 
 
 def speech_length_scale(backlog_s: float) -> float:
