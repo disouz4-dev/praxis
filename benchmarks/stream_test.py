@@ -433,8 +433,13 @@ def main() -> None:
                     help="lista origem:destino; padrão = cada idioma de entrada → en (en → pt)")
     ap.add_argument("--output-langs", action="store_true",
                     help="testa en → cada idioma de saída (tradução + voz de cada idioma)")
+    ap.add_argument("--data-dir", default=None,
+                    help="pasta com <idioma>.wav/.json (padrão: benchmarks/data/continuous)")
     ap.add_argument("--name", default=None)
     a = ap.parse_args()
+    global DATA
+    if a.data_dir:
+        DATA = Path(a.data_dir)
     whisper = praxis.load_whisper(a.model, a.device)
     backend = getattr(whisper, "backend", a.device)
     rep = {"kind": "stream", "model": a.model, "backend": backend,
