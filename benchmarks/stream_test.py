@@ -108,6 +108,25 @@ def word_errors(ref: str, hyp: str, lang: str) -> dict:
             "invented": out.insertions, "longest_skipped_run": longest, "dropped_phrases": dropped}
 
 
+def keeps_up(r: dict) -> bool:
+    """Falls behind = latency in the second half of the speech is >1.5 s higher
+    than in the first half, or >8 s of translation is left when the speaker
+    stops, or the typical delay is above 4 s (too slow for a conversation).
+    (A slope over ~12 points flagged single spikes as "falling behind".)"""
+    pts = [(s["speech_end_s"], s["lat_audio_ms"]) for s in r.get("timeline", [])
+           if s.get("lat_audio_ms") is not None and s.get("speech_end_s") is not None]
+    if len(pts) < 2:
+        return False
+    half = r["speech_s"] / 2
+    first = [v for t, v in pts if t <= half] or [pts[0][1]]
+    second = [v for t, v in pts if t > half] or [pts[-1][1]]
+    trend = statistics.median(second) - statistics.median(first)
+    r["lag_trend_ms"] = round(trend, 0)
+    typical = statistics.median(v for _, v in pts)
+    # also unusable for conversation if the typical delay is above 4 s
+    return trend <= 1500 and r["drain_s"] <= 8.0 and typical <= 4000
+
+
 def findings(r: dict) -> list[str]:
     """Plain-language problems detected in one run (pt-BR, for the report)."""
     f = []
@@ -122,8 +141,9 @@ def findings(r: dict) -> list[str]:
     if e["invented"] > max(3, 0.05 * e["reference_units"]):
         f.append(f"inventou {e['invented']} {unit} que não foram faladas")
     if not r["keeps_up"]:
-        f.append(f"não acompanha o falante: o atraso cresce {r['lag_slope_ms_per_s']:+.0f} ms a cada segundo "
-                 f"e sobram {r['drain_s']:.0f} s de tradução quando ele para")
+        f.append(f"não acompanha o falante: atraso típico {(r['latency_audio_ms']['p50'] or 0) / 1000:.1f} s, "
+                 f"sobe {r.get('lag_trend_ms', 0) / 1000:+.1f} s da 1ª para a 2ª metade e sobram "
+                 f"{r['drain_s']:.0f} s de tradução quando ele para")
     if st.get("queue_wait_ms") and st["queue_wait_ms"] > 500:
         f.append(f"trechos esperam {st['queue_wait_ms']:.0f} ms na fila antes de serem transcritos "
                  "(a transcrição é mais lenta que a fala)")
@@ -335,12 +355,13 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
         "lag_slope_ms_per_s": round(slope, 1),
         "drain_s": round(max(0.0, last_audio_end - speech_over), 2),
         "translated_audio_s": round(sum(d for _, d in backend.played), 1),
-        "keeps_up": bool(lats and slope < 15 and max(lats) < 6000),
+        "keeps_up": False,                      # set below by keeps_up()
         "reference": meta["text"], "transcript": hyp,
         "translation": tr_hyp, "translation_of_reference": tr_ref,
         "timeline": [{k: (round(v, 3) if isinstance(v, float) else v) for k, v in s.items()}
                      for s in segs],
     }
+    res["keeps_up"] = keeps_up(res)
     res["findings"] = findings(res)
     if verbose:
         print(f"  {res['pair']}: error {res['error_rate']:.1%} ({res['error_metric']}) | chrF {res['translation_chrf']} | "
@@ -356,7 +377,7 @@ def to_markdown(rep: dict) -> str:
            f"Whisper `{rep['model']}` on `{rep['backend']}` — ~1 min of continuous real speech per pair, "
            "fed in real time", "",
            "| Pair | Speech | Error rate | Translation fidelity (0–100) | Typical latency | 1-in-20 worst | "
-           "Lag growth | Backlog when speaker stops | Translated / original speech | Keeps up |",
+           "Lag growth (2nd vs 1st half) | Backlog when speaker stops | Translated / original speech | Keeps up |",
            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for r in rep["results"]:
         if "error" in r and "latency_audio_ms" not in r:
@@ -366,7 +387,7 @@ def to_markdown(rep: dict) -> str:
         unit = "chars" if r["error_metric"] == "characters" else "words"
         out.append(f"| {r['pair']} | {r['speech_s']:.0f}s | {r['error_rate']:.1%} {unit} | {r['translation_chrf']} | "
                    f"{(la['p50'] or 0) / 1000:.1f} s | {(la['p95'] or 0) / 1000:.1f} s | "
-                   f"{r['lag_slope_ms_per_s']:+.0f} ms/s | {r['drain_s']:.1f} s | "
+                   f"{r.get('lag_trend_ms', 0) / 1000:+.1f} s | {r['drain_s']:.1f} s | "
                    f"{r['translated_speech_ratio']:.0%} | {'✅' if r['keeps_up'] else '❌'} |")
     out += ["", "### Where the time goes (typical, per segment)", "",
             "| Pair | Waiting in queue | Transcription | Translation | Voice (1st sentence) | Waiting for previous speech |",
