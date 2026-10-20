@@ -42,6 +42,25 @@ import praxis_platform as plat  # noqa: E402
 import run_benchmarks as rb  # noqa: E402
 
 DATA = ROOT / "benchmarks" / "data" / "continuous"
+CHAR_LANGS = {"zh", "ja"}          # no spaces between words → character error rate is the metric
+OUTPUT_LANGS = ["pt", "en", "es", "fr", "de", "it", "ru", "zh", "nl", "pl", "uk", "tr", "ar", "hi"]
+INPUT_LANGS = OUTPUT_LANGS + ["ja", "ko"]
+
+
+def voice_for(lang: str) -> str:
+    """Piper voice the app would pick for `lang` (best catalog voice), downloaded once."""
+    import urllib.request
+    import praxis_config as pc
+    v = pc._best_catalog_voice(lang)
+    if v is None:
+        raise LookupError(f"no Piper voice for {lang}")
+    rb.VOICES.mkdir(parents=True, exist_ok=True)
+    dest = rb.VOICES / pc._catalog_filename(v)
+    for ext in (".json", ""):
+        f = Path(str(dest) + ext)
+        if not f.exists():
+            urllib.request.urlretrieve(pc._catalog_url(v, ext), f)
+    return str(dest)
 RESULTS = ROOT / "benchmarks" / "results"
 
 
@@ -68,6 +87,58 @@ def chrf(hyp: str, ref: str) -> float:
         return float(sacrebleu.sentence_chrf(hyp, [ref]).score)
     except ImportError:
         return float("nan")
+
+
+def word_errors(ref: str, hyp: str, lang: str) -> dict:
+    """Kinds of transcription errors + the longest run of skipped words
+    (a run ≥ 6 means a whole phrase was dropped)."""
+    import jiwer
+    r, h = rb.normalize(ref), rb.normalize(hyp) or "<empty>"
+    if lang in CHAR_LANGS:                 # align characters, not "words"
+        r, h = " ".join(r.replace(" ", "")), " ".join(h.replace(" ", ""))
+    out = jiwer.process_words(r, h)
+    deletes = [c.ref_end_idx - c.ref_start_idx for c in out.alignments[0] if c.type == "delete"]
+    longest = max(deletes, default=0)
+    rw = r.split()
+    dropped = []
+    for chunk in out.alignments[0]:
+        if chunk.type == "delete" and chunk.ref_end_idx - chunk.ref_start_idx >= 6:
+            dropped.append(" ".join(rw[chunk.ref_start_idx:chunk.ref_end_idx]))
+    return {"reference_units": len(rw), "substituted": out.substitutions, "skipped": out.deletions,
+            "invented": out.insertions, "longest_skipped_run": longest, "dropped_phrases": dropped}
+
+
+def findings(r: dict) -> list[str]:
+    """Plain-language problems detected in one run (pt-BR, for the report)."""
+    f = []
+    e, st, la = r["errors"], r["stage_ms_p50"], r["latency_audio_ms"]
+    unit = "caracteres" if r["error_metric"] == "characters" else "palavras"
+    if r["error_rate"] > 0.20:
+        art = "dos" if unit == "caracteres" else "das"
+        f.append(f"transcrição ruim: {r['error_rate']:.0%} {art} {unit} erradas")
+    if e["dropped_phrases"]:
+        f.append(f"pulou {len(e['dropped_phrases'])} trecho(s) inteiro(s) da fala "
+                 f"(maior: {e['longest_skipped_run']} {unit} seguidas)")
+    if e["invented"] > max(3, 0.05 * e["reference_units"]):
+        f.append(f"inventou {e['invented']} {unit} que não foram faladas")
+    if not r["keeps_up"]:
+        f.append(f"não acompanha o falante: o atraso cresce {r['lag_slope_ms_per_s']:+.0f} ms a cada segundo "
+                 f"e sobram {r['drain_s']:.0f} s de tradução quando ele para")
+    if st.get("queue_wait_ms") and st["queue_wait_ms"] > 500:
+        f.append(f"trechos esperam {st['queue_wait_ms']:.0f} ms na fila antes de serem transcritos "
+                 "(a transcrição é mais lenta que a fala)")
+    if st.get("wait_for_speaker_ms") and st["wait_for_speaker_ms"] > 800:
+        f.append(f"a tradução pronta espera {st['wait_for_speaker_ms']:.0f} ms a fala anterior terminar de tocar")
+    if r["translated_speech_ratio"] > 0.95:
+        f.append(f"a fala traduzida dura {r['translated_speech_ratio']:.0%} da original — "
+                 "quase não sobra folga para acompanhar")
+    if r["forced_cuts"] > 0:
+        f.append(f"{r['forced_cuts']} trecho(s) cortado(s) no meio por excesso de duração sem pausa")
+    if r["empty_segments"] > 0:
+        f.append(f"{r['empty_segments']} trecho(s) com fala viraram texto vazio")
+    if la.get("p95") and la["p95"] > 3000 and r["keeps_up"]:
+        f.append(f"picos de atraso: 1 em cada 20 trechos demora mais de {la['p95'] / 1000:.1f} s")
+    return f
 
 
 def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict:
@@ -148,6 +219,26 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
         s["translation"] = out
         return out
 
+    class TimedVoice:
+        """Same voice; records when the first sentence of each segment is synthesized."""
+        def __init__(self, v):
+            self.v, self.config = v, v.config
+
+        def synthesize(self, text, **kw):
+            s = segs[cur["i"]]
+            t = clock()
+            first = True
+            if kw.get("syn_config") is not None:
+                s["sped_up"] = s.get("sped_up", 0) + 1     # adaptive speaking rate kicked in
+            for c in self.v.synthesize(text, **kw):
+                if first and "tts_first" not in s:
+                    s["tts_first"] = clock()
+                    s["tts_first_ms"] = (s["tts_first"] - t) * 1000
+                first = False
+                yield c
+
+    voice = TimedVoice(voice)
+    praxis._piper_out_ref[0] = voice
     praxis.transcribe_segment, praxis.do_translate = transcribe, translate
     praxis._emit = lambda d: None
     active = threading.Event()
@@ -199,18 +290,41 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
             s["lat_translation_ms"] = (s["mt_end"] - e) * 1000 if "mt_end" in s else None
             s["lat_audio_ms"] = (s["audio_start"] - e) * 1000 if "audio_start" in s else None
 
+    for s in segs:
+        if "asr_start" in s:
+            s["queue_wait_ms"] = (s["asr_start"] - s["emitted"]) * 1000          # waiting for the worker
+            s["asr_ms"] = (s["asr_end"] - s["asr_start"]) * 1000
+        if "mt_end" in s:
+            s["mt_ms"] = (s["mt_end"] - s["asr_end"]) * 1000
+        if "audio_start" in s and "tts_first" in s:
+            s["wait_for_speaker_ms"] = (s["audio_start"] - s["tts_first"]) * 1000  # previous speech still playing
+        s["forced_cut"] = s["dur"] >= praxis.MAX_SEG_S - 0.05                       # cut mid-speech by the limit
+
     hyp = " ".join(s.get("text", "") for s in segs if s.get("text"))
     wer, cer = rb.wer_cer([meta["text"]], [hyp])
+    errors = word_errors(meta["text"], hyp, src)
     tr_hyp = " ".join(s.get("translation", "") for s in segs if s.get("translation"))
     tr_ref = praxis.do_translate(meta["text"], src, tgt)
     lats = [s["lat_audio_ms"] for s in segs if s.get("lat_audio_ms") is not None]
     ends = [s["speech_end_s"] for s in segs if s.get("lat_audio_ms") is not None]
     slope = float(np.polyfit(ends, lats, 1)[0]) if len(lats) >= 3 else float("nan")  # ms of lag per s
     last_audio_end = max((st + d for st, d in backend.played), default=finished)
+    stage = {k: round(statistics.median([s[k] for s in segs if s.get(k) is not None]), 0)
+             if any(s.get(k) is not None for s in segs) else None
+             for k in ("queue_wait_ms", "asr_ms", "mt_ms", "tts_first_ms", "wait_for_speaker_ms")}
+    tts_ratio = sum(d for _, d in backend.played) / speech_over if speech_over else float("nan")
     res = {
         "pair": f"{src}->{tgt}", "speaker": meta["speaker"], "speech_s": round(speech_over, 1),
         "words": len(meta["text"].split()), "segments": len(segs),
         "wer": round(wer, 4), "cer": round(cer, 4),
+        "error_rate": round(cer if src in CHAR_LANGS else wer, 4),
+        "error_metric": "characters" if src in CHAR_LANGS else "words",
+        "errors": errors,
+        "stage_ms_p50": stage,
+        "translated_speech_ratio": round(tts_ratio, 2),
+        "forced_cuts": sum(1 for s in segs if s["forced_cut"]),
+        "empty_segments": sum(1 for s in segs if "text" in s and not s["text"]),
+        "sped_up_sentences": sum(s.get("sped_up", 0) for s in segs),
         "translation_chrf": round(chrf(tr_hyp, tr_ref), 1),
         "latency_audio_ms": {"p50": round(statistics.median(lats), 0) if lats else None,
                              "p95": round(rb.pct(lats, 0.95), 0) if lats else None,
@@ -224,8 +338,9 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
         "timeline": [{k: (round(v, 3) if isinstance(v, float) else v) for k, v in s.items()}
                      for s in segs],
     }
+    res["findings"] = findings(res)
     if verbose:
-        print(f"  {res['pair']}: WER {wer:.1%} | chrF {res['translation_chrf']} | "
+        print(f"  {res['pair']}: error {res['error_rate']:.1%} ({res['error_metric']}) | chrF {res['translation_chrf']} | "
               f"latency p50 {res['latency_audio_ms']['p50']} ms max {res['latency_audio_ms']['max']} ms | "
               f"lag slope {res['lag_slope_ms_per_s']} ms/s | drain {res['drain_s']} s | "
               f"{'KEEPS UP' if res['keeps_up'] else 'FALLS BEHIND'}", file=sys.stderr)
@@ -235,18 +350,38 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
 def to_markdown(rep: dict) -> str:
     m = rep["machine"]
     out = [f"_Machine: {m['os']} · {m['cpu']} · Python {m['python']} · CUDA {m['cuda']}_", "",
-           f"Whisper `{rep['model']}` on `{rep['backend']}` — ~1 min of continuous real speech per pair, fed in real time", "",
-           "| Pair | Speech | WER | chrF (translation) | Latency p50 | p95 | max | Lag drift | Drain after speaker stops | Keeps up |",
+           f"Whisper `{rep['model']}` on `{rep['backend']}` — ~1 min of continuous real speech per pair, "
+           "fed in real time", "",
+           "| Pair | Speech | Error rate | Translation fidelity (0–100) | Typical latency | 1-in-20 worst | "
+           "Lag growth | Backlog when speaker stops | Translated / original speech | Keeps up |",
            "|---|---:|---:|---:|---:|---:|---:|---:|---:|---|"]
     for r in rep["results"]:
+        if "error" in r and "latency_audio_ms" not in r:
+            out.append(f"| {r['pair']} | — | — | — | — | — | — | — | — | ⚠️ {r['error']} |")
+            continue
         la = r["latency_audio_ms"]
-        out.append(f"| {r['pair']} | {r['speech_s']:.0f}s | {r['wer']:.1%} | {r['translation_chrf']} | "
-                   f"{la['p50']:.0f} ms | {la['p95']:.0f} ms | {la['max']:.0f} ms | "
+        unit = "chars" if r["error_metric"] == "characters" else "words"
+        out.append(f"| {r['pair']} | {r['speech_s']:.0f}s | {r['error_rate']:.1%} {unit} | {r['translation_chrf']} | "
+                   f"{(la['p50'] or 0) / 1000:.1f} s | {(la['p95'] or 0) / 1000:.1f} s | "
                    f"{r['lag_slope_ms_per_s']:+.0f} ms/s | {r['drain_s']:.1f} s | "
-                   f"{'✅' if r['keeps_up'] else '❌'} |")
-    out += ["", "Latency = end of each speech segment → first translated audio. Lag drift = slope of latency "
-            "over the minute (≈0 means it keeps pace; positive means it falls further behind). "
-            "chrF compares the translation of what Whisper heard with the translation of the true script (100 = identical)."]
+                   f"{r['translated_speech_ratio']:.0%} | {'✅' if r['keeps_up'] else '❌'} |")
+    out += ["", "### Where the time goes (typical, per segment)", "",
+            "| Pair | Waiting in queue | Transcription | Translation | Voice (1st sentence) | Waiting for previous speech |",
+            "|---|---:|---:|---:|---:|---:|"]
+    for r in rep["results"]:
+        st = r.get("stage_ms_p50")
+        if not st:
+            continue
+        fmt = lambda v: "—" if v is None else f"{v:.0f} ms"  # noqa: E731
+        out.append(f"| {r['pair']} | {fmt(st['queue_wait_ms'])} | {fmt(st['asr_ms'])} | {fmt(st['mt_ms'])} | "
+                   f"{fmt(st['tts_first_ms'])} | {fmt(st['wait_for_speaker_ms'])} |")
+    out += ["", "### Problems found", ""]
+    for r in rep["results"]:
+        fs = r.get("findings") or []
+        out.append(f"- **{r['pair']}**: " + ("; ".join(fs) if fs else "nenhum problema detectado"))
+    out += ["", "Error rate = share of words (characters for zh/ja) transcribed wrong, skipped or invented. "
+            "Translation fidelity compares the translation of what was heard with the translation of the true "
+            "script. Latency = end of a speech segment → first translated audio. Lag growth ≈ 0 means it keeps pace."]
     return "\n".join(out) + "\n"
 
 
@@ -254,21 +389,41 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="small")
     ap.add_argument("--device", default="auto")
-    ap.add_argument("--pairs", nargs="+", default=["pt:en", "en:pt", "es:en"])
+    ap.add_argument("--pairs", nargs="+", default=None,
+                    help="src:tgt list; default = every input language → en (en → pt)")
+    ap.add_argument("--output-langs", action="store_true",
+                    help="test en → every output language (translation + voice of each language)")
     ap.add_argument("--name", default=None)
     a = ap.parse_args()
     whisper = praxis.load_whisper(a.model, a.device)
     backend = getattr(whisper, "backend", a.device)
     rep = {"kind": "stream", "model": a.model, "backend": backend,
            "machine": rb.machine_info(), "results": []}
-    for pair in a.pairs:
-        src, tgt = pair.split(":")
-        praxis.setup_argos(src, tgt)
-        voice = praxis.load_piper(rb.ensure_piper_voice(tgt))
-        praxis.do_translate("warm up.", src, tgt)
-        next(iter(voice.synthesize("warm up.")))
-        rep["results"].append(run_stream(src, tgt, whisper, voice))
-    name = a.name or f"stream-{backend}-{a.model}"
+    if a.pairs:
+        pairs = [tuple(p.split(":")) for p in a.pairs]
+    elif a.output_langs:
+        pairs = [("en", t) for t in OUTPUT_LANGS if t != "en"]
+    else:
+        pairs = [(s_, "pt" if s_ == "en" else "en") for s_ in INPUT_LANGS]
+    for src, tgt in pairs:
+        if not (DATA / f"{src}.json").exists():
+            rep["results"].append({"pair": f"{src}->{tgt}", "error": "no recording"})
+            continue
+        try:
+            praxis.setup_argos(src, tgt)
+            voice = praxis.load_piper(voice_for(tgt))
+            praxis.do_translate("warm up.", src, tgt)
+            next(iter(voice.synthesize("warm up.")))
+            rep["results"].append(run_stream(src, tgt, whisper, voice))
+        except Exception as e:                      # one broken language must not stop the run
+            import traceback
+            traceback.print_exc()
+            rep["results"].append({"pair": f"{src}->{tgt}", "error": f"{type(e).__name__}: {e}"})
+        save_report(rep, a, backend)
+
+
+def save_report(rep: dict, a, backend: str) -> None:
+    name = a.name or f"stream-{backend}-{a.model}" + ("-out" if a.output_langs else "")
     RESULTS.mkdir(parents=True, exist_ok=True)
     (RESULTS / f"{name}.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False,
                                                          default=lambda o: o.item() if hasattr(o, "item") else str(o)), encoding="utf-8")

@@ -510,6 +510,33 @@ def _split_sentences(text: str) -> list[str]:
     return parts or [text]
 
 
+# Adaptive speaking rate: when translated speech piles up (languages whose
+# translation is longer than the original — e.g. en→ar measured at 121%), the
+# voice speaks faster to catch up instead of drifting further behind.
+RATE_STEPS = ((1.5, 1.0), (4.0, 0.87), (float("inf"), 0.77))   # (backlog ≤ s, length_scale)
+
+
+def speech_length_scale(backlog_s: float) -> float:
+    """Piper length_scale for the current playback backlog (1.0 = normal speed)."""
+    for limit, scale in RATE_STEPS:
+        if backlog_s <= limit:
+            return scale
+    return RATE_STEPS[-1][1]
+
+
+def _synthesize(voice, text: str, length_scale: float):
+    """Voice synthesis at a given speed; voices without speed control
+    (OmniVoice, test doubles) fall back to their normal speed."""
+    if length_scale != 1.0:
+        try:
+            from piper.config import SynthesisConfig
+            base = getattr(getattr(voice, "config", None), "length_scale", None) or 1.0
+            return voice.synthesize(text, syn_config=SynthesisConfig(length_scale=base * length_scale))
+        except (ImportError, TypeError):
+            pass
+    return voice.synthesize(text)
+
+
 def pipeline_worker(
     seg_q: "queue.Queue[np.ndarray]",
     whisper,
@@ -536,6 +563,8 @@ def pipeline_worker(
     else:
         targets = (monitor_output,)
     out_q: "queue.Queue[tuple[bytes, int] | None]" = queue.Queue()
+    backlog = {"s": 0.0}                      # seconds of translated speech not yet played
+    backlog_lock = threading.Lock()
 
     def _player() -> None:
         while True:
@@ -549,6 +578,8 @@ def pipeline_worker(
                 return
             pcm, rate = item
             play_pcm(pcm, rate, *targets)
+            with backlog_lock:
+                backlog["s"] = max(0.0, backlog["s"] - len(pcm) / 2 / rate)
 
     player = threading.Thread(target=_player, daemon=True)
     player.start()
@@ -595,12 +626,16 @@ def pipeline_worker(
         rate = _cur_piper.config.sample_rate
         # Per-sentence TTS: the first sentence starts playing while the next is synthesized
         for sent in sentences:
+            with backlog_lock:
+                scale = speech_length_scale(backlog["s"])
             try:
-                pcm = b"".join(c.audio_int16_bytes for c in _cur_piper.synthesize(sent))
+                pcm = b"".join(c.audio_int16_bytes for c in _synthesize(_cur_piper, sent, scale))
             except Exception as e:
                 _emit({"e": "error", "msg": f"tts: {type(e).__name__}: {e}"})
                 continue
             if pcm:
+                with backlog_lock:
+                    backlog["s"] += len(pcm) / 2 / rate
                 out_q.put((pcm, rate))
 
     out_q.put(None)

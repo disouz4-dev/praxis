@@ -431,3 +431,45 @@ def test_chunk_for_mt_handles_scripts_without_spaces():
     pieces = praxis._chunk_for_mt(text)
     assert all(len(p) <= praxis.MT_MAX_CHARS_NOSPACE + 8 for p in pieces)
     assert "".join(pieces) == text
+
+
+
+# ── adaptive speaking rate ────────────────────────────────────────────────────
+
+@pytest.mark.parametrize("backlog,expected", [(0.0, 1.0), (1.5, 1.0), (2.0, 0.87), (4.0, 0.87), (9.0, 0.77)])
+def test_speech_length_scale(backlog, expected):
+    assert praxis.speech_length_scale(backlog) == expected
+
+
+def test_voice_speeds_up_when_translated_speech_piles_up(engine):
+    """en→ar translated speech lasts ~121% of the original, so playback piles up;
+    the voice must speed up instead of drifting further behind."""
+    p, fb = engine
+    pytest.importorskip("piper")
+    calls = []
+
+    def slow_play(pcm, rate, devices):
+        time.sleep(0.05)
+    fb.play_pcm_multi = slow_play
+    long_pcm = np.full(1000 * 3, 1000, np.int16).tobytes()   # 3 s of speech per sentence at 1 kHz
+
+    class LongVoice(FakeVoice):
+        def synthesize(self, text, syn_config=None):
+            calls.append(None if syn_config is None else syn_config.length_scale)
+            from conftest import FakeChunk
+            yield FakeChunk(long_pcm)
+    v = LongVoice(rate=1000)
+    q = queue.Queue()
+    p._piper_out_ref[0] = v
+    t = threading.Thread(target=p.pipeline_worker,
+                         args=(q, FakeWhisper("um. dois. três. quatro."), v, "pt", "en", "out"),
+                         daemon=True)
+    t.start()
+    q.put(np.ones(1600, np.int16))
+    deadline = time.time() + 3
+    while len(calls) < 4 and time.time() < deadline:
+        time.sleep(0.01)
+    p._stop.set()
+    t.join(3)
+    assert calls[0] is None                      # nothing queued yet → normal speed
+    assert any(c is not None and c < 1.0 for c in calls[1:]), calls
