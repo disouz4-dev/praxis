@@ -43,6 +43,7 @@ import praxis  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data" / "speech"
 ONLY_LIVE = False
+CONTEXT_LIVE = False
 RESULTS = Path(__file__).resolve().parent / "results"
 VOICES = Path(__file__).resolve().parent / "data" / "voices"
 
@@ -198,6 +199,7 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
                 continue
             refs, hyp_full, hyp_live, samples = [], [], [], []
             asr_t, audio_t, live_segs = 0.0, 0.0, 0
+            live_t = 0.0
             for it in corpus:
                 a = read16k(it["path"])
                 t0 = time.perf_counter()
@@ -209,9 +211,20 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
                 if live:
                     segs = live_segments(a)
                     live_segs += len(segs)
-                    hl = " ".join(filter(None, (
-                        praxis.transcribe_segment(whisper, s.astype(np.float32) / 32768.0, lang)
-                        for s in segs)))
+                    t1 = time.perf_counter()
+                    if CONTEXT_LIVE:
+                        # o fim do que já foi transcrito vai como dica para o próximo trecho
+                        parts: list[str] = []
+                        for s_ in segs:
+                            prev = " ".join(parts)[-praxis.CONTEXT_CHARS:] or None
+                            parts.append(praxis.transcribe_segment(whisper, s_.astype(np.float32) / 32768.0,
+                                                                   lang, prompt=prev))
+                        hl = " ".join(filter(None, parts))
+                    else:
+                        hl = " ".join(filter(None, (
+                            praxis.transcribe_segment(whisper, s.astype(np.float32) / 32768.0, lang)
+                            for s in segs)))
+                    live_t += time.perf_counter() - t1
                 refs.append(it["text"])
                 hyp_full.append(h)
                 hyp_live.append(hl)
@@ -233,7 +246,10 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
             if live:
                 wl, cl = wer_cer(refs, hyp_live)
                 row.update(wer_live=round(wl, 4), cer_live=round(cl, 4),
-                           live_segments=live_segs)
+                           live_segments=live_segs,
+                           # tempo de transcrição por segundo de fala, no modo ao vivo
+                           rtf_live=round(live_t / audio_t, 3),
+                           s_per_segment_live=round(live_t / max(live_segs, 1), 3))
             report["results"].append(row)
     return report
 
@@ -416,6 +432,7 @@ def main() -> None:
     a.add_argument("--max-seg", type=float, help="substitui MAX_SEG_S (duração máxima de um trecho, em s)")
     a.add_argument("--silence-ms", type=int, help="substitui SILENCE_MS (silêncio que encerra um trecho, em ms)")
     a.add_argument("--so-ao-vivo", action="store_true", help="só o modo ao vivo (pula a frase inteira)")
+    a.add_argument("--contexto", action="store_true", help="no modo ao vivo, passa o texto anterior como dica")
     a.add_argument("--feixe", type=int, help="substitui beam_size do Whisper (1 = guloso; 5 = compara 5 caminhos)")
     a.add_argument("--no-smart-cut", action="store_true", help="desliga o corte no ponto mais silencioso")
     a.add_argument("--preroll", type=float, help="substitui PREROLL_S (áudio guardado antes do início da fala, em s)")
@@ -440,8 +457,9 @@ def main() -> None:
             praxis.SILENCE_MS = args.silence_ms
         if args.feixe is not None:
             praxis.WHISPER_OPTS["beam_size"] = args.feixe
-        global ONLY_LIVE
+        global ONLY_LIVE, CONTEXT_LIVE
         ONLY_LIVE = args.so_ao_vivo
+        CONTEXT_LIVE = args.contexto
         if args.no_smart_cut:
             SEG_KW["smart_cut"] = False
         if args.preroll is not None:

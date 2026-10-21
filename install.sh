@@ -114,7 +114,7 @@ fi
 
 # ── Arquivos do app ───────────────────────────────────────────────────────────
 echo "==> Copiando arquivos..."
-cp "$SCRIPT_DIR/praxis.py" "$SCRIPT_DIR/praxis_config.py" "$SCRIPT_DIR/praxis_platform.py" "$INSTALL_DIR/"
+cp "$SCRIPT_DIR"/praxis*.py "$INSTALL_DIR/"      # motor, interface, plataforma, aceleração, eco, preparo
 rm -rf "$INSTALL_DIR/assets"
 cp -R "$SCRIPT_DIR/assets" "$INSTALL_DIR/assets"
 
@@ -196,3 +196,11 @@ else
 fi
 echo ""
 "$VPY" "$INSTALL_DIR/praxis.py" --check >/dev/null && echo "  Autoteste: OK" || echo "  ! O autoteste falhou: $VPY $INSTALL_DIR/praxis.py --check"
+
+# ── Deixa tudo pronto para os idiomas do sistema: vozes, Whisper, tradutores ──
+echo ""
+echo "==> Preparando o Praxis para já abrir funcionando (vozes, reconhecimento de fala, tradução)..."
+PRAXIS_NLLB_ARGS=()
+[[ "${PRAXIS_SEM_NLLB:-0}" == "1" ]] && PRAXIS_NLLB_ARGS=(--sem-nllb)
+"$VPY" "$INSTALL_DIR/praxis_preparar.py" ${PRAXIS_NLLB_ARGS[@]+"${PRAXIS_NLLB_ARGS[@]}"} || \
+    echo "  ! O preparo não terminou — o Praxis baixa o que faltar na primeira vez em que for usado."

@@ -78,7 +78,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--langs", nargs="+", default=list(CFG))
     ap.add_argument("--per-lang", type=int, default=40)
+    ap.add_argument("--saida", default=None, help="pasta de saída em benchmarks/data (padrão: speech_fleurs)")
     a = ap.parse_args()
+    global OUT
+    if a.saida:
+        OUT = OUT.parent / a.saida
     for lang in a.langs:
         try:
             print(f"{lang}: {fetch(lang, a.per_lang)} frases", file=sys.stderr)

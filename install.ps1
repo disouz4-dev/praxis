@@ -43,7 +43,8 @@ if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host "==> Copiando arquivos..."
-Copy-Item -Force (Join-Path $ScriptDir "praxis.py"), (Join-Path $ScriptDir "praxis_config.py"), (Join-Path $ScriptDir "praxis_platform.py") $InstallDir
+# motor, interface, plataforma, aceleração, eco e preparo
+Copy-Item -Force (Join-Path $ScriptDir "praxis*.py") $InstallDir
 Copy-Item -Recurse -Force (Join-Path $ScriptDir "assets") $InstallDir
 
 $VoiceFile = Join-Path $VoicesDir "en_US-lessac-medium.onnx"
@@ -76,3 +77,11 @@ if (-not $hasCable) {
 Write-Host "  No seu app de chamada, escolha 'CABLE Output' como microfone."
 & $VPy (Join-Path $InstallDir "praxis.py") --check | Out-Null
 if ($LASTEXITCODE -eq 0) { Write-Host "  Autoteste: OK" } else { Write-Host "  ! O autoteste falhou" }
+
+# Deixa tudo pronto para os idiomas do sistema: vozes, reconhecimento de fala, tradutores
+Write-Host ""
+Write-Host "==> Preparando o Praxis para já abrir funcionando (vozes, reconhecimento de fala, tradução)..."
+$prepArgs = @()
+if ($env:PRAXIS_SEM_NLLB -eq "1") { $prepArgs += "--sem-nllb" }
+& $VPy (Join-Path $InstallDir "praxis_preparar.py") @prepArgs
+if ($LASTEXITCODE -ne 0) { Write-Host "  ! O preparo não terminou — o Praxis baixa o que faltar na primeira vez em que for usado." }

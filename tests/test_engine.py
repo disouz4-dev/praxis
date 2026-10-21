@@ -682,3 +682,47 @@ def test_trecho_maximo_depende_do_hardware(monkeypatch, backend, pedido, esperad
     with pytest.raises(Parar):
         praxis._run(args, bilateral=False)
     assert praxis.MAX_SEG_S == esperado
+
+
+def _zip_nllb_falso(tmp_path):
+    import hashlib
+    import zipfile
+    z = tmp_path / "nllb.zip"
+    with zipfile.ZipFile(z, "w") as f:
+        f.writestr("nllb-200-distilled-600M-ct2/model.bin", b"pesos")
+        f.writestr("nllb-200-distilled-600M-ct2/sentencepiece.bpe.model", b"sp")
+    return z, hashlib.sha256(z.read_bytes()).hexdigest()
+
+
+def test_instalar_nllb_confere_a_impressao_digital(tmp_path, monkeypatch):
+    z, sha = _zip_nllb_falso(tmp_path)
+    destino = tmp_path / "modelos" / "nllb"
+    monkeypatch.setattr(praxis, "nllb_dir", lambda: destino)
+    monkeypatch.setattr(praxis, "NLLB_URL", z.as_uri())
+    monkeypatch.setattr(praxis, "NLLB_SHA256", "0" * 64)          # arquivo adulterado
+    with pytest.raises(RuntimeError, match="não confere"):
+        praxis.install_nllb(log=lambda m: None)
+    assert not destino.exists() and not list((tmp_path / "modelos").glob("*.part"))
+    monkeypatch.setattr(praxis, "NLLB_SHA256", sha)
+    assert praxis.install_nllb(log=lambda m: None) == destino
+    assert (destino / "model.bin").read_bytes() == b"pesos"
+    assert sorted(p.name for p in (tmp_path / "modelos").iterdir()) == ["nllb"]   # sem restos
+
+
+def test_preparar_continua_quando_uma_etapa_falha(monkeypatch, capsys):
+    import praxis_accel
+    import praxis_config as pc
+    import praxis_preparar
+    saved = {}
+    monkeypatch.setattr(pc, "load_cfg", lambda: {"src": "pt", "tgt": "en", "voice_out": "", "model": "small"})
+    monkeypatch.setattr(pc, "save_cfg", lambda c: saved.update(c))
+    monkeypatch.setattr(pc, "_download_voice_files", lambda v: None)
+    monkeypatch.setattr(praxis_accel, "resolve_asr", lambda *a, **k: ("cpu", "teste"))
+    monkeypatch.setattr(praxis_accel, "load_asr", lambda *a, **k: None)
+    monkeypatch.setattr(praxis, "install_nllb", lambda **k: (_ for _ in ()).throw(OSError("sem internet")))
+    monkeypatch.setattr(praxis, "setup_argos", lambda s, t: None)
+    assert praxis_preparar.main([]) == 0
+    out = capsys.readouterr().out
+    assert "! Tradutor NLLB" in out and "sem internet" in out and "✓ Tradutor Argos" in out
+    assert saved["voice_out"].endswith("en_US-lessac-medium.onnx")   # voz no idioma de destino
+    assert saved["model"] == "auto"

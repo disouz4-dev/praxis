@@ -10,6 +10,7 @@ import signal
 import sys
 import threading
 import time
+import urllib.request
 from collections import deque
 from pathlib import Path
 
@@ -973,6 +974,46 @@ NLLB_CODES = {"pt": "por_Latn", "en": "eng_Latn", "es": "spa_Latn", "fr": "fra_L
               "ar": "arb_Arab", "hi": "hin_Deva", "ja": "jpn_Jpan", "ko": "kor_Hang"}
 _nllb: tuple | None = None
 _nllb_lock = threading.Lock()
+# Modelo já convertido, publicado junto do Praxis (licença do modelo: CC BY-NC 4.0)
+NLLB_URL = os.environ.get("PRAXIS_NLLB_URL", "https://github.com/disouz4-dev/praxis/releases/download/"
+                          "modelos-nllb-v1/nllb-200-distilled-600M-ct2.zip")
+NLLB_SHA256 = "7b8208fbb38ca3eb565dc95efe4983b973912ab4298ce6fe887748ea4998a58d"
+
+
+def install_nllb(log=print, timeout: float = 60.0) -> Path:
+    """Baixa o NLLB convertido, confere a impressão digital (SHA-256) e instala em
+    nllb_dir(). Um download interrompido ou adulterado nunca fica instalado."""
+    import hashlib
+    import shutil
+    import zipfile
+    d = nllb_dir()
+    if (d / "model.bin").exists():
+        return d
+    d.parent.mkdir(parents=True, exist_ok=True)
+    part = d.parent / "nllb.zip.part"
+    log("Baixando o tradutor NLLB (Meta, ~580 MB; uso não comercial)…")
+    h = hashlib.sha256()
+    try:
+        with urllib.request.urlopen(NLLB_URL, timeout=timeout) as r, open(part, "wb") as f:
+            while True:
+                chunk = r.read(1 << 20)
+                if not chunk:
+                    break
+                h.update(chunk)
+                f.write(chunk)
+        if h.hexdigest() != NLLB_SHA256:
+            raise RuntimeError("o arquivo baixado do NLLB não confere (impressão digital diferente)")
+        tmp = d.parent / "nllb.tmp"
+        shutil.rmtree(tmp, ignore_errors=True)
+        with zipfile.ZipFile(part) as z:
+            z.extractall(tmp)
+        src = next(tmp.rglob("model.bin")).parent
+        shutil.rmtree(d, ignore_errors=True)
+        shutil.move(str(src), str(d))
+        shutil.rmtree(tmp, ignore_errors=True)
+    finally:
+        part.unlink(missing_ok=True)
+    return d
 
 
 def nllb_dir() -> Path:
