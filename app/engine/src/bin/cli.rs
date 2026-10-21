@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{bail, Result};
-use praxis_engine::{asr::WhisperAsr, audio};
+use praxis_engine::{asr::WhisperAsr, audio, mt};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -54,6 +54,47 @@ fn main() -> Result<()> {
                 "rtf": asr_s / audio_s.max(1e-9), "samples": samples}]});
             std::fs::write(pos[4], serde_json::to_string_pretty(&out)?)?;
             eprintln!("tempo de transcrição por segundo de fala: {:.3}", asr_s / audio_s.max(1e-9));
+        }
+        // mt <nllb|argos> <modelo ou pasta de pacotes> <origem> <destino> <entrada.txt> <saída.txt>
+        Some("mt") if pos.len() == 7 => {
+            let (src, tgt) = (pos[3].to_string(), pos[4].to_string());
+            let lines: Vec<String> = std::fs::read_to_string(pos[5])?.lines().map(String::from).collect();
+            // carrega e aquece antes de cronometrar (igual à medição do Python)
+            let f: Box<dyn Fn(&str) -> Result<String>> = match pos[1].as_str() {
+                "nllb" => {
+                    let m = mt::Nllb::load(pos[2].as_ref(), gpu)?;
+                    let (s2, t2) = (src.clone(), tgt.clone());
+                    Box::new(move |l| m.translate(l, &s2, &t2))
+                }
+                "argos" => {
+                    let dir = PathBuf::from(pos[2]);
+                    if src != "en" && tgt != "en" {
+                        // sem par direto: passa pelo inglês, como o Praxis em Python
+                        let a = mt::ArgosPair::load(&mt::argos_package(&dir, &src, "en")?, gpu)?;
+                        let b = mt::ArgosPair::load(&mt::argos_package(&dir, "en", &tgt)?, gpu)?;
+                        Box::new(move |l| b.translate(&a.translate(l)?))
+                    } else {
+                        let m = mt::ArgosPair::load(&mt::argos_package(&dir, &src, &tgt)?, gpu)?;
+                        Box::new(move |l| m.translate(l))
+                    }
+                }
+                k => bail!("tradutor desconhecido: {k}"),
+            };
+            if let Some(first) = lines.first() {
+                f(first)?;
+            }
+            let t0 = Instant::now();
+            let mut out = Vec::new();
+            let mut slowest = 0f32;
+            for l in &lines {
+                let t = Instant::now();
+                out.push(f(l)?);
+                slowest = slowest.max(t.elapsed().as_secs_f32());
+            }
+            std::fs::write(pos[6], out.join("\n") + "\n")?;
+            let total = t0.elapsed().as_secs_f32();
+            eprintln!("{} frases em {:.2} s (média {:.2} s, mais lenta {:.2} s)", lines.len(), total,
+                      total / lines.len().max(1) as f32, slowest);
         }
         _ => bail!("uso: praxis-cli asr <modelo> <áudio.wav> <idioma> | asr-corpus <modelo> <pasta> <idioma> <saída.json> [--gpu]"),
     }

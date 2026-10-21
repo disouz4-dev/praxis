@@ -2,3 +2,5 @@
 pub mod asr;
 pub mod audio;
 pub mod mel;
+pub mod mt;
+pub mod text;
