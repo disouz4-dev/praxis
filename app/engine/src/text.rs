@@ -90,6 +90,91 @@ pub fn mt_units(text: &str) -> Vec<String> {
     split_sentences(text.trim()).iter().flat_map(|s| chunk_for_mt(s)).collect()
 }
 
+/// Só pontuação: o Whisper às vezes devolve isso para ruído — não é fala.
+pub fn is_noise_only(text: &str) -> bool {
+    matches!(text.trim(), "" | "." | "," | "..." | "!" | "?" | "…")
+}
+
+/// Laços dentro de uma "palavra" em escritas sem espaço (medido com eco: "少し少し少し…",
+/// "वावावावा…"): um pedaço de 1–8 letras repetido 4+ vezes vira 2. Nunca mexe em números.
+fn collapse_char_loops(text: &str) -> String {
+    let c: Vec<char> = text.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    'outer: while i < c.len() {
+        for len in 1..=8usize {
+            if i + len > c.len() {
+                break;
+            }
+            let chunk = &c[i..i + len];
+            if chunk.iter().any(|ch| ch.is_ascii_digit()) {
+                continue;
+            }
+            let mut reps = 1;
+            while i + (reps + 1) * len <= c.len() && &c[i + reps * len..i + (reps + 1) * len] == chunk {
+                reps += 1;
+            }
+            if reps >= 4 {
+                out.extend(chunk.iter());
+                out.extend(chunk.iter());
+                i += reps * len;
+                continue 'outer;
+            }
+        }
+        out.push(c[i]);
+        i += 1;
+    }
+    out
+}
+
+/// Remove os laços de alucinação do Whisper ("o que é o que é o que é …"): qualquer
+/// sequência de 1 a 8 palavras repetida mais de `max_repeats` vezes fica `max_repeats` vezes.
+pub fn collapse_repetitions(text: &str, max_repeats: usize) -> String {
+    let text = collapse_char_loops(text);
+    let mut words: Vec<String> = text.split_whitespace().map(String::from).collect();
+    if words.len() < 4 {
+        return text;
+    }
+    let norm = |w: &String| w.to_lowercase().trim_matches(|ch| ".,!?¿¡;:…".contains(ch)).to_string();
+    let mut changed = true;
+    while changed {
+        changed = false;
+        for n in 1..=8usize {
+            let mut out: Vec<String> = Vec::new();
+            let mut i = 0;
+            while i < words.len() {
+                let gram: Vec<String> = words[i..(i + n).min(words.len())].iter().map(norm).collect();
+                let mut reps = 1;
+                while i + (reps + 1) * n <= words.len()
+                    && words[i + reps * n..i + (reps + 1) * n].iter().map(norm).collect::<Vec<_>>() == gram
+                {
+                    reps += 1;
+                }
+                if reps > max_repeats && gram.len() == n {
+                    out.extend_from_slice(&words[i..i + n * max_repeats]);
+                    i += reps * n;
+                    changed = true;
+                } else {
+                    out.push(words[i].clone());
+                    i += 1;
+                }
+            }
+            words = out;
+        }
+    }
+    words.join(" ")
+}
+
+/// Limpeza do que o Whisper devolveu, como no Praxis em Python: tira o "�" (um
+/// caractere de vários bytes partido entre pedaços, visto em hindi), espaços duplos,
+/// laços de repetição e trechos que são só pontuação.
+pub fn clean_transcript(text: &str) -> String {
+    let t = text.replace('\u{fffd}', "");
+    let t = t.split_whitespace().collect::<Vec<_>>().join(" ");
+    let t = collapse_repetitions(&t, 2);
+    if is_noise_only(&t) { String::new() } else { t }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -107,6 +192,27 @@ mod tests {
         let p = chunk_for_mt(&longa);
         assert!(p.len() >= 2 && p.iter().all(|x| x.split_whitespace().count() <= MT_MAX_WORDS + 3));
         assert_eq!(p.join(" "), longa);
+    }
+
+    #[test]
+    fn guarda_pega_lacos_sem_espaco_como_no_python() {
+        assert_eq!(collapse_repetitions("少し少し少し少し少しスターバー", 2), "少し少しスターバー");
+        assert_eq!(collapse_repetitions("अपना बवाश्वावावावावावावावा", 2), "अपना बवाश्वावा");
+        assert_eq!(collapse_repetitions("hahaha que engraçado", 2), "hahaha que engraçado");
+        assert_eq!(collapse_repetitions("custou 1000000 de reais em 2000", 2), "custou 1000000 de reais em 2000");
+    }
+
+    #[test]
+    fn guarda_pega_lacos_de_palavras() {
+        assert_eq!(collapse_repetitions("o que é o que é o que é o que é isso", 2), "o que é o que é isso");
+        assert_eq!(collapse_repetitions("sim sim sim sim", 2), "sim sim");
+        assert_eq!(collapse_repetitions("uma frase normal sem laço", 2), "uma frase normal sem laço");
+    }
+
+    #[test]
+    fn limpeza_tira_caractere_quebrado_e_pontuacao_sozinha() {
+        assert_eq!(clean_transcript("प्रद\u{fffd} तो  ग्रीनलैंड"), "प्रद तो ग्रीनलैंड");
+        assert_eq!(clean_transcript(" ... "), "");
     }
 
     #[test]

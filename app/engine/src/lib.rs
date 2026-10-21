@@ -5,3 +5,5 @@ pub mod mel;
 pub mod mt;
 pub mod text;
 pub mod vad;
+pub mod tts;
+pub mod pipeline;

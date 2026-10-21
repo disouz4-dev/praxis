@@ -6,7 +6,25 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{bail, Result};
-use praxis_engine::{asr::WhisperAsr, audio, mt, vad};
+use praxis_engine::{asr::WhisperAsr, audio, mt, pipeline, tts, vad};
+use std::sync::Arc;
+
+/// Alto-falante de teste: espera a duração do áudio (como um de verdade) e não toca nada.
+struct FakeSpeaker;
+impl pipeline::Speaker for FakeSpeaker {
+    fn play(&self, samples: &[f32], sr: u32) {
+        std::thread::sleep(std::time::Duration::from_secs_f32(samples.len() as f32 / sr as f32));
+    }
+}
+
+fn pct(v: &mut Vec<f32>, p: f32) -> f32 {
+    if v.is_empty() {
+        return f32::NAN;
+    }
+    v.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let i = ((v.len() - 1) as f32 * p).round() as usize;
+    v[i]
+}
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -73,6 +91,117 @@ fn main() -> Result<()> {
                 "live_segments": nseg, "rtf_live": asr_s / audio_s.max(1e-9), "samples": samples}]});
             std::fs::write(pos[4], serde_json::to_string_pretty(&out)?)?;
             eprintln!("trechos por frase: {:.2}", nseg as f64 / manifest.len().max(1) as f64);
+        }
+        // tts <pasta da voz> <frases.txt> <pasta de saída>  — um WAV por linha
+        Some("tts") if pos.len() == 4 => {
+            let v = tts::PiperVoice::load(pos[1].as_ref(), 4)?;
+            let out = PathBuf::from(pos[3]);
+            std::fs::create_dir_all(&out)?;
+            let lines: Vec<String> = std::fs::read_to_string(pos[2])?.lines().map(String::from).collect();
+            v.synthesize("aquecimento", 1.0)?;
+            let (mut synth_s, mut audio_s) = (0f64, 0f64);
+            for (i, l) in lines.iter().enumerate() {
+                let t = Instant::now();
+                let a = v.synthesize(l, 1.0)?;
+                synth_s += t.elapsed().as_secs_f64();
+                audio_s += a.len() as f64 / v.sample_rate as f64;
+                let spec = hound::WavSpec { channels: 1, sample_rate: v.sample_rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+                let mut w = hound::WavWriter::create(out.join(format!("{i:03}.wav")), spec)?;
+                for x in a {
+                    w.write_sample((x.clamp(-1.0, 1.0) * 32767.0) as i16)?;
+                }
+                w.finalize()?;
+            }
+            eprintln!("{} frases: {:.2} s de síntese para {:.1} s de fala ({:.3} s por s de fala)",
+                      lines.len(), synth_s, audio_s, synth_s / audio_s.max(1e-9));
+        }
+        // stream <whisper> <silero> <gravação.wav> <origem> <destino> <nllb|argos> <tradutor> <voz> <saída.json>
+        Some("stream") if pos.len() == 10 => {
+            let max_seg: f32 = args.iter().find_map(|a| a.strip_prefix("--max-seg=")).and_then(|v| v.parse().ok()).unwrap_or(6.0);
+            let (src, tgt) = (pos[4].to_string(), pos[5].to_string());
+            let asr = Arc::new(WhisperAsr::load(pos[1].as_ref(), gpu, threads)?);
+            let translator: Arc<dyn pipeline::Translate> = match pos[6].as_str() {
+                "nllb" => Arc::new(mt::Nllb::load(pos[7].as_ref(), gpu)?),
+                _ => {
+                    let dir = PathBuf::from(pos[7]);
+                    let route = if src != "en" && tgt != "en" {
+                        vec![mt::ArgosPair::load(&mt::argos_package(&dir, &src, "en")?, gpu)?,
+                             mt::ArgosPair::load(&mt::argos_package(&dir, "en", &tgt)?, gpu)?]
+                    } else {
+                        vec![mt::ArgosPair::load(&mt::argos_package(&dir, &src, &tgt)?, gpu)?]
+                    };
+                    Arc::new(pipeline::ArgosRoute(route))
+                }
+            };
+            let voice = Arc::new(tts::PiperVoice::load(pos[8].as_ref(), 2)?);
+            // aquecimento (como o teste do Python)
+            asr.transcribe(&vec![0.0; 16_000], &src)?;
+            translator.translate("warm up.", &src, &tgt)?;
+            voice.synthesize("warm up.", 1.0)?;
+            let wav = PathBuf::from(pos[3]);
+            let reference = std::fs::read_to_string(wav.with_extension("json")).ok()
+                .and_then(|s| serde_json::from_str::<serde_json::Value>(&s).ok())
+                .and_then(|m| m["text"].as_str().map(String::from)).unwrap_or_default();
+            let mut a = audio::read_wav_16k_mono(&wav)?;
+            let speech_s = a.len() as f32 / 16_000.0;
+            a.extend(std::iter::repeat(0.0).take(16_000 * 3)); // o falante para
+            let (atx, arx) = std::sync::mpsc::channel();
+            let (etx, erx) = std::sync::mpsc::channel();
+            let shared = pipeline::Shared::new();
+            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false };
+            let cfg = vad::SegmenterConfig { max_seg_s: max_seg, ..Default::default() };
+            let handles = pipeline::spawn_direction(arx, asr, translator, voice, Arc::new(FakeSpeaker), dir, cfg,
+                                                     pos[2].to_string(), shared.clone(), etx)?;
+            let t0 = Instant::now();
+            for (k, c) in a.chunks(vad::CHUNK).enumerate() {
+                let target = std::time::Duration::from_secs_f32(k as f32 * vad::CHUNK as f32 / 16_000.0);
+                if let Some(d) = target.checked_sub(t0.elapsed()) { std::thread::sleep(d); }
+                if c.len() == vad::CHUNK { atx.send(c.to_vec())?; }
+            }
+            // espera a fila esvaziar: nada novo por 3 s e nada tocando (máx. 120 s)
+            let mut evs = vec![];
+            let mut last = Instant::now();
+            let mut play_until = 0f32;
+            while last.elapsed().as_secs_f32() < 3.0 || shared.now_s() < play_until {
+                if let Ok(e) = erx.recv_timeout(std::time::Duration::from_millis(100)) {
+                    if let pipeline::Event::Play { start_s, dur_s, .. } = &e { play_until = play_until.max(start_s + dur_s); }
+                    evs.push(e);
+                    last = Instant::now();
+                }
+                if t0.elapsed().as_secs_f32() > speech_s + 120.0 { break; }
+            }
+            shared.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            drop(atx);
+            for h in handles { let _ = h.join(); }
+            let mut ends = std::collections::HashMap::new();
+            let mut first_play = std::collections::HashMap::new();
+            let (mut transcript, mut translation) = (vec![], vec![]);
+            for e in &evs {
+                match e {
+                    pipeline::Event::Segment { id, speech_end_s, .. } => { ends.insert(*id, *speech_end_s); }
+                    pipeline::Event::Play { id, start_s, .. } => { first_play.entry(*id).or_insert(*start_s); }
+                    pipeline::Event::Transcript { text, .. } => transcript.push(text.clone()),
+                    pipeline::Event::Translation { text, .. } => translation.push(text.clone()),
+                    pipeline::Event::Error { msg } => eprintln!("erro: {msg}"),
+                }
+            }
+            let mut lats: Vec<(f32, f32)> = first_play.iter().filter_map(|(id, p)| ends.get(id).map(|e| (*e, (p - e) * 1000.0))).collect();
+            lats.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+            let mut l: Vec<f32> = lats.iter().map(|x| x.1).collect();
+            let half = speech_s / 2.0;
+            let mut l1: Vec<f32> = lats.iter().filter(|x| x.0 <= half).map(|x| x.1).collect();
+            let mut l2: Vec<f32> = lats.iter().filter(|x| x.0 > half).map(|x| x.1).collect();
+            let trend = pct(&mut l2, 0.5) - pct(&mut l1, 0.5);
+            let drain = (play_until - speech_s).max(0.0);
+            let (p50, p95, max) = (pct(&mut l, 0.5), pct(&mut l, 0.95), l.iter().cloned().fold(0.0, f32::max));
+            let keeps_up = p50 <= 4000.0 && trend <= 1500.0 && drain <= 8.0;
+            eprintln!("{src}->{tgt}: atraso típico {:.0} ms, pior caso comum {:.0} ms, máx. {:.0} ms | crescimento {:+.0} ms | pendente {:.1} s | {}",
+                      p50, p95, max, trend, drain, if keeps_up { "ACOMPANHA" } else { "FICA PARA TRÁS" });
+            let out = serde_json::json!({"pair": format!("{src}->{tgt}"), "engine": "praxis-rs", "speech_s": speech_s,
+                "reference": reference, "transcript": transcript.join(" "), "translation": translation.join(" "),
+                "latency_audio_ms": {"p50": p50, "p95": p95, "max": max}, "lag_trend_ms": trend,
+                "drain_s": drain, "keeps_up": keeps_up, "segments": ends.len()});
+            std::fs::write(pos[9], serde_json::to_string_pretty(&out)?)?;
         }
         Some("asr-corpus") if pos.len() == 5 => {
             let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;

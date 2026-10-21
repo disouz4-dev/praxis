@@ -92,7 +92,7 @@ impl WhisperAsr {
             .to_string();
         let dropped = res.no_speech_prob > NO_SPEECH_DROP && avg_logprob < LOGPROB_DROP;
         Ok(Transcript {
-            text: if dropped { String::new() } else { text },
+            text: if dropped { String::new() } else { crate::text::clean_transcript(&text) },
             no_speech: res.no_speech_prob,
             avg_logprob,
             dropped,

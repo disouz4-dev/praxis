@@ -224,6 +224,10 @@ pub struct Segmenter<P: SpeechProbe> {
     preroll_len: usize,
     carry: Vec<Vec<f32>>,
     carry_age: usize,
+    /// amostras entregues até agora (relógio do áudio)
+    pos: usize,
+    /// posição (em amostras) do fim de cada trecho entregue, na mesma ordem
+    pub ends: Vec<usize>,
 }
 
 impl<P: SpeechProbe> Segmenter<P> {
@@ -238,6 +242,8 @@ impl<P: SpeechProbe> Segmenter<P> {
             preroll_len,
             carry: vec![],
             carry_age: 0,
+            pos: 0,
+            ends: vec![],
         }
     }
 
@@ -252,6 +258,7 @@ impl<P: SpeechProbe> Segmenter<P> {
             self.carry = all; // curto demais para o Whisper sozinho: vai com o próximo
             return;
         }
+        self.ends.push(self.pos.saturating_sub(self.buf.len() * CHUNK)); // o que ficou no buffer vem depois
         out.push(all.concat());
     }
 
@@ -275,13 +282,14 @@ impl<P: SpeechProbe> Segmenter<P> {
         } else {
             (std::mem::take(&mut self.buf), vec![])
         };
+        self.buf = rest; // antes de entregar: o fim do trecho é antes deste resto
         self.emit(seg, false, out);
-        self.buf = rest;
     }
 
     /// Entrega um bloco de 32 ms; devolve os trechos de fala que ficaram prontos.
     pub fn push(&mut self, chunk: &[f32]) -> Vec<Vec<f32>> {
         let mut out = vec![];
+        self.pos += chunk.len();
         let ev = self.probe.feed(chunk);
         let (start, end) = (ev == Event::Start, ev == Event::End);
         if start && !self.speaking {
