@@ -10,6 +10,7 @@ if (-not (Test-Path (Join-Path $lib "cublas.lib"))) { & (Join-Path $PSScriptRoot
 # pastas. Para cada compilação guardada, confere se a pasta que o build.rs indicou ainda
 # tem a biblioteca; se não tem, apaga o registro de compilação para ele rodar de novo.
 foreach ($saida in Get-ChildItem "target\*\build\sherpa-onnx-sys-*\output", "target\*\*\build\sherpa-onnx-sys-*\output" -File -Force -ErrorAction SilentlyContinue) {
+    if (-not (Test-Path $saida.FullName)) { continue }   # já apagada numa volta anterior
     $linha = Select-String -Path $saida.FullName -Pattern '^cargo:rustc-link-search=native=(.+)$' | Select-Object -First 1
     if (-not $linha) { continue }
     $pasta = $linha.Matches[0].Groups[1].Value.Trim()
