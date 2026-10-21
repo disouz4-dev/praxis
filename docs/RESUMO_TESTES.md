@@ -69,13 +69,29 @@ Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 
 
 - Whisper large-v3 comparando 5 caminhos: só ajuda no árabe (7,6% → 5,6%); nos outros idiomas fica igual e mais lento.
 
+- Removedor de ruído (sherpa-onnx, GTCRN e DPDFNet): **piora** o reconhecimento de fala em todos os casos de ruído (português com conversa de fundo: 5,2% sem → 14,4% e 21,2% com). O Whisper lida melhor com o ruído do que com o áudio "limpo" artificialmente. Descartado.
+- Vozes (o Whisper ouve e transcreve; erro menor = voz mais clara; 20 frases por idioma):
+
+  | Idioma | Piper (atual) | Supertonic 3 | Kokoro |
+  |---|---:|---:|---:|
+  | Português | 4,0% | 3,6% | **2,0%** |
+  | Inglês | 3,9% | 3,4% | **2,7%** |
+  | Espanhol | 1,3% | 1,5% | **0,6%** |
+  | Francês | 3,8% | 5,7% | **3,4%** |
+  | Alemão | **3,8%** | 5,0% | — |
+  | Italiano | 5,6% | 1,8% | **1,0%** |
+  | Tempo por segundo de fala | **0,05 s** | 0,17 s | 0,09 s na placa de vídeo; 0,22 s no processador (4 núcleos) |
+
+  O Kokoro é o mais claro; a versão comprimida dele não acelera na placa de vídeo, a completa sim.
+
 **Testados e descartados:** esperar mais silêncio antes de cortar; comparar 5 caminhos na transcrição; repetir o fim do trecho anterior (o Whisper passou a inventar "E aí" e "Obrigado"); velocidade de voz "prevista"; usar o contexto da frase anterior.
 
 ## 6. Em aberto
 
 - Rodar a instalação completa e verificar num computador limpo que tudo já começa funcionando.
 - Testes em Windows e em placas AMD, Intel e Apple Silicon reais (não há essas máquinas aqui).
-- Redução de ruído e filtro de vozes de fundo.
+- Filtro de vozes de fundo (o removedor de ruído testado piorou o reconhecimento).
+- Vozes: adotar o Kokoro com placa de vídeo e o Supertonic no italiano sem placa.
 - Coreano, árabe, chinês e hindi continuam longe do teto mesmo com placa de vídeo. Candidatos: Qwen3-ASR 1.7B e Cohere na placa de vídeo.
 - Converter o Parakeet-ultra nós mesmos e publicar no Praxis (hoje vem de uma conversão da comunidade, com impressão digital conferida).
 - Tradução para uso comercial: o **Hy-MT2 1.8B** (Tencent, Apache 2.0) empata com o NLLB em qualidade (125 sentidos, −0,1 ponto; quebra 1 frase contra 5), mas é 2 a 3× mais lento (0,4 a 0,6 s por frase na placa de vídeo). O **TranslateGemma 4B** (Google) perdeu 2 a 3 pontos e foi 4× mais lento: descartado. Falta decidir se o Praxis troca o NLLB pelo Hy-MT2.

@@ -1,0 +1,114 @@
+[
+ {
+  "model": "large-v3-turbo",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.2553,
+  "numero": 0.0344,
+  "escrita": 0.001,
+  "nome": 0.0076,
+  "erro_real": 0.2122,
+  "exemplos": [
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "O que vocês acham?"
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Apenha, a vera!"
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo é um grande elemento de terrorismo cultural, extraído de escritores como Goethe. Fishe e escala em cima de um wildcard."
+   },
+   {
+    "humano": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado, como usar um novo computador ou começar um novo projeto.",
+    "praxis": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado, como usar um computador ou começar um novo projeto."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.1077,
+  "numero": 0.0059,
+  "escrita": 0.0047,
+  "nome": 0.0187,
+  "erro_real": 0.0785,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However, Due to the slow communication... Styles in the West could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+    "praxis": "All nouns alongside the words say for you always begin with a capital letter given in the middle of a sentence."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   },
+   {
+    "humano": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+    "praxis": "The Northern Mariana's Emergency Management Office said that there were no damages reported in the nation."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0794,
+  "numero": 0.0069,
+  "escrita": 0.004,
+  "nome": 0.005,
+  "erro_real": 0.0635,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje."
+   },
+   {
+    "humano": "El uso adecuado de los blogs «puede empoderar a los alumnos para que sean más analíticos y críticos, a través de la respuesta activa a los contenidos de internet, pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus perspectivas sobre temas específicos» (Oravec, 2002).",
+    "praxis": "El uso adecuado de los blogs puede empoderar a los alumnos para que sean más analíticos y críticos a través de la respuesta activa a los contenidos de internet. Pueden definir sus culturas en el contexto de los escritos de otro. además de establecer sus perspectivas sobre temas específicos."
+   },
+   {
+    "humano": "Esto parece tener sentido, ya que en la Tierra no se percibe su movimiento, ¿cierto?",
+    "praxis": "Esto parece tener sentido, ya que en la tierra no se percibe su movimiento, ¿cierto? ¡Gracias!"
+   },
+   {
+    "humano": "Carpanedo participó en dos carreras individuales del campeonato aparte de la competencia del miércoles.",
+    "praxis": "Carpaneo participó en dos carreras individuales del campeonato aparte de la competencia del miércoles. y visualizar."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.2215,
+  "numero": 0.0079,
+  "escrita": 0.0056,
+  "nome": 0.0384,
+  "erro_real": 0.1695,
+  "exemplos": [
+   {
+    "humano": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+    "praxis": "Für die besten Aussichten auf Hongkong sollten sie die Insel verlassen und zum gegenüberliegenden von Hongkong waren. Vielen Dank."
+   },
+   {
+    "humano": "Er griff auch alles an, was ins Wasser kam; selbst ein großer Dinosaurier wie der T. Rex war ihm nicht gewachsen.",
+    "praxis": "Er griff auch alles an, was ins Wasser kam. Selbst ein großer Dinosaurier wie der T-Rex war ihm nicht gewachsen. Vielen Dank."
+   },
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film Das Vernächtnis der Tempelritter gesehen haben, denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Scharfskarte gezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es leben noch viele Männer und Frauen, die ihre Zeit überlebt haben, viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nicht-Juden gleich haben uns."
+   }
+  ]
+ }
+]

@@ -1,0 +1,114 @@
+[
+ {
+  "model": "large-v3-turbo",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.0755,
+  "numero": 0.0124,
+  "escrita": 0.0048,
+  "nome": 0.0105,
+  "erro_real": 0.0478,
+  "exemplos": [
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "destruída pelos egípcios no século III a.C. A Grande Pirâmide é uma das muitas grandes estruturas da pirâmide construídas para honrar para os mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Shem Carlos Pintikeva, peteu controle de carro e acabou a Covid-19, o ava posta largada."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo tinha um grande elemento de determinismo cultural. extraído de escritores como Burt, Ist. E scale a gel."
+   },
+   {
+    "humano": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado, como usar um novo computador ou começar um novo projeto.",
+    "praxis": "Vamos continuar fazendo. Não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado. Como usar um computador ou começar um novo projeto."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.1089,
+  "numero": 0.0023,
+  "escrita": 0.0047,
+  "nome": 0.0141,
+  "erro_real": 0.0878,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However... due to the slow communication channel. Styles in the West could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+    "praxis": "All nouns alongside the world say for youth always begin with a capital letter. even in the middle of a sentence."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   },
+   {
+    "humano": "Many people don't think about them as dinosaurs because they have feathers and can fly.",
+    "praxis": "I don't think about the mis-answers because they have others in control."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0595,
+  "numero": 0.006,
+  "escrita": 0.004,
+  "nome": 0.005,
+  "erro_real": 0.0446,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje."
+   },
+   {
+    "humano": "Esto parece tener sentido, ya que en la Tierra no se percibe su movimiento, ¿cierto?",
+    "praxis": "Esto parece tener sentido, ya que en la tierra no se percibe su movimiento. ¿no?"
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día las personas escriben mensajes en las pantallas de sus computadoras, no tienen la necesidad de siquiera aproximarse a un sacapunto."
+   },
+   {
+    "humano": "Los luchadores compañeros de Luna también le rindieron homenaje.",
+    "praxis": "Los luchadores compañeros de Luna también les rindieron homenaje."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.1424,
+  "numero": 0.0,
+  "escrita": 0.0023,
+  "nome": 0.0407,
+  "erro_real": 0.0994,
+  "exemplos": [
+   {
+    "humano": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+    "praxis": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer. und Kohlumfaden."
+   },
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wen Sie den Film Das Vermächtnis der Tentagritter gesehen haben? Denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es leben noch viele Männer und Frauen, die ihre Zeit nicht erlebt haben und viele weitere Mitangehörige, die dort ermordet wurden oder die zu Tode arbeiteten, Juden und nicht Juden gleichermaßen."
+   },
+   {
+    "humano": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+    "praxis": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. So haben Schüler am Anfang ihre Blog-Erfahrung auf eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Blut bekommen wird."
+   }
+  ]
+ }
+]

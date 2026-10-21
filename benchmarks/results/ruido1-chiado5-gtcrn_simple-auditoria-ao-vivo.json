@@ -1,0 +1,114 @@
+[
+ {
+  "model": "large-v3-turbo",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.1549,
+  "numero": 0.0124,
+  "escrita": 0.0076,
+  "nome": 0.0076,
+  "erro_real": 0.1272,
+  "exemplos": [
+   {
+    "humano": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, \"embora eu não estivesse presente nem diretamente envolvido neste trágico incidente, meus pensamentos e orações estão com a família da vítima\".",
+    "praxis": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, embora eu não estivesse presente nem diretamente envolvido neste prático incidente, Meus pensamentos e orações estão com a família da vítima."
+   },
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "Construída pelos egípcios do século III e II de Cristo, a Grande Pirâmide é uma das muitas grandes escrituras da pirâmide construídas para honrar para os mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Tchau."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo tinha um grande elemento do feminismo cultural. extraído de escritores como o Grouch, Piste. Isso que é uma loja."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.1651,
+  "numero": 0.0047,
+  "escrita": 0.0035,
+  "nome": 0.0176,
+  "erro_real": 0.1393,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "however We do the slow communication chat. styles in the west could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+    "praxis": "All nouns alongside the words SAVE for YOU always begin with a capital letter. Even in the middle of a sentence."
+   },
+   {
+    "humano": "To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+    "praxis": "To the north and within easy reach is the romantic and fascinating town of Sintra in which was made famous to foreigners after a glowing account of its splendors recorded by Lord Byron."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0903,
+  "numero": 0.005,
+  "escrita": 0.003,
+  "nome": 0.006,
+  "erro_real": 0.0764,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje."
+   },
+   {
+    "humano": "El uso adecuado de los blogs «puede empoderar a los alumnos para que sean más analíticos y críticos, a través de la respuesta activa a los contenidos de internet, pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus perspectivas sobre temas específicos» (Oravec, 2002).",
+    "praxis": "El uso adecuado de los blogs puede empoderar a los alumnos para que sean más analíticos y críticos. a través de la respuesta activa a los contenidos de internet. Pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus perspectivas sobre temas específicos. Ahora ve que me siento"
+   },
+   {
+    "humano": "Esto parece tener sentido, ya que en la Tierra no se percibe su movimiento, ¿cierto?",
+    "praxis": "Esto parece tener sentido, ya que en la Tierra no se percibe su movimiento. ¿Y esto?"
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día las personas escriben mensajes en las pantallas de tus computadoras, no tienen la necesidad de siquiera para que marchen de acá."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.3605,
+  "numero": 0.0102,
+  "escrita": 0.0045,
+  "nome": 0.0565,
+  "erro_real": 0.2893,
+  "exemplos": [
+   {
+    "humano": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+    "praxis": "Für die besten Aussichten auf Hongkong, wollten sie die Insel verlassen und um die gegenüberliegenden Opern. von Kodun Adem."
+   },
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wen Sie den Film, das der nächsten Verzettung der Zentröpfer gesehen haben? Denken Sie vielleicht, dass auf der Rückseite der Unabhängungswettbewerbung eine Schatzdase bezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es leben noch viele Männer und Frauen, die ihrer Zeit nicht erwähnt haben und viele Reifende, die angehören, die dort ermordet wurden oder sich zu Tode erarbeiteten, die ihnen und die ihnen schulden, gleich ermordet sind."
+   },
+   {
+    "humano": "Die Höhle befindet sich auf der Spitze eines der Berge nördlich von Mekka und ist vom Rest der Welt völlig isoliert.",
+    "praxis": "Die Höhle befindet sich auf der Spitze eines der Berge nötig von Mekka und ist zum Rest der Welt völlig isoliert."
+   }
+  ]
+ }
+]

@@ -41,7 +41,31 @@ function preencherIdiomas() {
   verificarIdiomas();
 }
 
+// "parakeet-ultra-int8" → "Parakeet ultra"; "large-v3-turbo" → "Whisper large-v3-turbo"
+function nomeModelo(m) {
+  if (!m) return "?";
+  if (m.startsWith("parakeet")) {
+    const v = m.includes("ultra") ? "ultra" : m.includes("-ja-") ? "japonês" : m.includes("v2") ? "v2 (inglês)" : "v3";
+    return "Parakeet " + v;
+  }
+  return "Whisper " + m;
+}
+
+function diagnostico() {
+  const info = (c) => ESTADO.idiomas.find((i) => i.codigo === c);
+  const linha = (c) => {
+    const i = info(c);
+    if (!i) return "";
+    const erro = i.erro == null ? "sem medição" : `erra cerca de ${(i.erro * 100).toFixed(1).replace(".", ",")}% das palavras`;
+    return `${nomeModelo(i.modelo)} para ${nomeIdioma(c)}: ${erro}`;
+  };
+  const partes = [linha($("src").value)];
+  if ($("bilateral").checked) partes.push(linha($("tgt").value));
+  $("diagnostico").textContent = partes.filter(Boolean).join(" · ");
+}
+
 function verificarIdiomas() {
+  diagnostico();
   const s = $("src").value, d = $("tgt").value;
   const info = (c) => ESTADO.idiomas.find((i) => i.codigo === c) || { liberado: true };
   let msg = "";
