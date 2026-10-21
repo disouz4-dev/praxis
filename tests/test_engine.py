@@ -726,3 +726,10 @@ def test_preparar_continua_quando_uma_etapa_falha(monkeypatch, capsys):
     assert "! Tradutor NLLB" in out and "sem internet" in out and "✓ Tradutor Argos" in out
     assert saved["voice_out"].endswith("en_US-lessac-medium.onnx")   # voz no idioma de destino
     assert saved["model"] == "auto"
+
+
+def test_primeiro_pedaco_para_a_voz_corta_na_virgula():
+    import praxis
+    assert praxis.speech_chunks("Segundo informações, ele estava na casa dos 20 anos. Depois saiu.") == [
+        "Segundo informações,", "ele estava na casa dos 20 anos.", "Depois saiu."]
+    assert praxis.speech_chunks("Sim, claro que sim.") == ["Sim, claro que sim."]

@@ -41,6 +41,7 @@ import soundfile as sf
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 import praxis  # noqa: E402
+import vozes_inteligibilidade as vi  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data" / "speech"
 ONLY_LIVE = False
@@ -175,7 +176,20 @@ def _live_segments(audio: np.ndarray, trailing_silence_s: float = 0.6) -> list[n
 def vad_tail_ms(audio: np.ndarray) -> float | None:
     """Tempo entre o último bloco que o detector de fala considera fala e o
     momento em que ele emite "end" — a parte inevitável de 'esperar o
-    silêncio' no atraso."""
+    silêncio' no atraso. Guardado em PRAXIS_CACHE_TRECHOS, como os trechos."""
+    if SEG_CACHE:
+        import hashlib
+        f = Path(SEG_CACHE) / f"cauda-{hashlib.sha256(audio.tobytes()).hexdigest()[:24]}.json"
+        if f.exists():
+            return json.loads(f.read_text())["ms"]
+        ms = _vad_tail_ms(audio)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(json.dumps({"ms": ms}))
+        return ms
+    return _vad_tail_ms(audio)
+
+
+def _vad_tail_ms(audio: np.ndarray) -> float | None:
     vad = praxis.OnnxSileroVAD(threshold=0.5, sampling_rate=praxis.SR,
                                min_silence_duration_ms=praxis.SILENCE_MS)
     chunk = praxis.VAD_CHUNK
@@ -207,6 +221,8 @@ def vad_tail_ms(audio: np.ndarray) -> float | None:
 # ── benchmark de transcrição ──────────────────────────────────────────────────
 
 DEVICE: str | None = None   # força o backend de transcrição (auto/cpu/cuda/mlx/whispercpp)
+VOICE = "piper"             # latência: piper | kokoro | supertonic | auto (Kokoro onde houver)
+VOICES_DIR = Path(".")
 
 
 def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
@@ -307,13 +323,36 @@ def pct(xs: list[float], p: float) -> float:
 def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int) -> dict:
     report: dict = {"kind": "latency", "machine": machine_info(), "model": model_name,
                     "results": []}
-    whisper = praxis.load_whisper(model_name, DEVICE)
-    report["backend"] = getattr(whisper, "backend", "cpu")
+    import praxis_accel as accel
+    loaded: dict = {}
+
+    def asr_for(src: str):
+        # "auto": o melhor reconhecedor medido para o idioma (como o Praxis escolhe)
+        name = accel.recommend_model(src, "cpu" if DEVICE == "cpu" else "cuda")[0] \
+            if model_name == "auto" else model_name
+        if name not in loaded:
+            loaded[name] = praxis.load_whisper(name, DEVICE)
+        return name, loaded[name]
+    if os.environ.get("PRAXIS_SO_CORTAR"):
+        # 1ª etapa: só corta e mede a espera pelo silêncio (ficam no cache)
+        for src, _ in pairs:
+            for it in load_corpus(src)[:max_items]:
+                a = read16k(it["path"])
+                live_segments(a)
+                vad_tail_ms(a)
+        return report
     for src, tgt in pairs:
+        model_used, whisper = asr_for(src)
+        report["backend"] = getattr(whisper, "backend", "cpu")
         praxis.setup_argos(src, tgt)
-        voice = praxis.load_piper(ensure_piper_voice(tgt))
+        voz = VOICE if VOICE != "auto" else ("kokoro" if tgt in vi.KOKORO else "supertonic")
+        if voz == "piper":
+            voice = praxis.load_piper(ensure_piper_voice(tgt))
+            say = lambda t, v=voice: next(iter(v.synthesize(t)))   # noqa: E731
+        else:
+            say = getattr(vi, voz)(VOICES_DIR, tgt)
         praxis.do_translate("warm up.", src, tgt)               # carrega o modelo de tradução
-        b"".join(c.audio_int16_bytes for c in voice.synthesize("warm up."))
+        say("warm up.")
         corpus = load_corpus(src)[:max_items]
         stages: dict[str, list[float]] = {k: [] for k in
                                           ("vad_tail", "asr", "mt", "tts_first", "total")}
@@ -334,16 +373,16 @@ def bench_latency(model_name: str, pairs: list[tuple[str, str]], max_items: int)
             t1 = time.perf_counter()
             tr = praxis.do_translate(text, src, tgt) if text else ""
             t2 = time.perf_counter()
-            first = praxis._split_sentences(tr)[0] if tr else ""
+            first = praxis.speech_chunks(tr)[0] if tr else ""
             if first:
-                next(iter(voice.synthesize(first)))
+                say(first)
             t3 = time.perf_counter()
             row = {"vad_tail": tail, "asr": (t1 - t0) * 1000, "mt": (t2 - t1) * 1000,
                    "tts_first": (t3 - t2) * 1000}
             row["total"] = sum(row.values())
             for k, v in row.items():
                 stages[k].append(v)
-            samples.append({"file": it["file"], "seg_s": round(len(last) / praxis.SR, 2),
+            samples.append({"file": it["file"], "seg_s": round(len(last) / praxis.SR, 2), "asr_model": model_used,
                             "text": text, "translation": tr,
                             **{k: round(v, 1) for k, v in row.items()}})
             print(f"  {src}→{tgt} {it['file']}  total {row['total']:6.0f} ms  "
@@ -469,11 +508,13 @@ def main() -> None:
     lt.add_argument("--max-items", type=int, default=10)
     lt.add_argument("--name", default="latency")
     lt.add_argument("--device", default=None, help="onde transcrever: auto|cpu|cuda|mlx|whispercpp")
+    lt.add_argument("--voz", default="piper", choices=["piper", "kokoro", "supertonic", "auto"])
+    lt.add_argument("--corpus", default="speech", help="pasta em benchmarks/data (ex.: speech_fleurs)")
+    lt.add_argument("--pasta-vozes", type=Path, default=Path("."), help="pacotes de voz do sherpa-onnx")
     args = ap.parse_args()
-    global DEVICE
+    global DEVICE, DATA, VOICE, VOICES_DIR
     DEVICE = args.device
     if args.cmd == "asr":
-        global DATA
         DATA = DATA.parent / args.corpus
         if args.max_seg is not None:
             SEG_KW["max_seg_s"] = args.max_seg
@@ -497,6 +538,8 @@ def main() -> None:
             praxis.WHISPER_OPTS[k] = json.loads(v)
         save(bench_asr(args.models, args.langs, live=not args.no_live), args.name)
     else:
+        VOICE, VOICES_DIR = args.voz, args.pasta_vozes
+        DATA = DATA.parent / args.corpus
         pairs = [tuple(p.split(":")) for p in args.pairs]
         save(bench_latency(args.model, pairs, args.max_items), args.name)
 

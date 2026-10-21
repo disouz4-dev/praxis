@@ -2,6 +2,7 @@
 //! Praxis em Python), aplica o limite de qualidade por idioma, baixa o que faltar e liga o
 //! motor. A janela (Tauri) e a linha de comando usam a mesma sessão.
 
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -12,10 +13,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::asr::Asr;
 use crate::devices::{self, OutputDevice, Speakers, VirtualMic};
-use crate::models::{self, ModelStore};
+use crate::models::ModelStore;
 use crate::mt;
 use crate::pipeline::{self, ArgosRoute, Direction, Shared, Translate};
-use crate::tts::PiperVoice;
+use crate::tts::Voice;
 use crate::vad::SegmenterConfig;
 
 /// Meta do produto: 1% de erro; teto de 3%. Idioma acima disso neste hardware não é oferecido.
@@ -228,13 +229,18 @@ impl Session {
         for (a, b) in &need_argos {
             store.ensure_argos_pair(a, b, &dl)?;
         }
-        let voice_out_id = cfg.voice_out.clone().or_else(|| models::default_voice(&cfg.tgt).map(String::from))
-            .ok_or_else(|| anyhow!("não há voz para o idioma de destino ({})", cfg.tgt))?;
-        let voice_out_dir = store.ensure_voice(&voice_out_id, &dl)?;
+        // voz escolhida pelo usuário (Piper) ou a mais clara medida para o idioma
+        let voice_dir = |chosen: &Option<String>, lang: &str| -> Result<PathBuf> {
+            match chosen {
+                Some(id) => store.ensure_voice(id, &dl),
+                None => store.ensure_voice_for(lang, gpu, &dl),
+            }
+        };
+        let voice_out_dir = voice_dir(&cfg.voice_out, &cfg.tgt)
+            .map_err(|e| anyhow!("não há voz para o idioma de destino ({}): {e:#}", cfg.tgt))?;
         let voice_in_dir = if cfg.bilateral {
-            let id = cfg.voice_in.clone().or_else(|| models::default_voice(&cfg.src).map(String::from))
-                .ok_or_else(|| anyhow!("não há voz para o seu idioma ({}): o modo bilateral precisa dela", cfg.src))?;
-            Some(store.ensure_voice(&id, &dl)?)
+            Some(voice_dir(&cfg.voice_in, &cfg.src)
+                .map_err(|e| anyhow!("não há voz para o seu idioma ({}): o modo bilateral precisa dela. {e:#}", cfg.src))?)
         } else {
             None
         };
@@ -267,7 +273,9 @@ impl Session {
             })
         };
         progress(85, "Carregando a voz…");
-        let voice_out = Arc::new(PiperVoice::load(&voice_out_dir, 2)?);
+        // o Kokoro precisa de mais núcleos (só é usado no processador para o chinês)
+        let voice_threads = |dir: &Path| if dir.join("voices.bin").exists() && !gpu { 4 } else { 2 };
+        let voice_out = Arc::new(Voice::load_for(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir))?);
         let shared = Shared::new();
         let stop_capture = Arc::new(AtomicBool::new(false));
         let (ptx, prx) = std::sync::mpsc::channel::<pipeline::Event>();
@@ -289,7 +297,7 @@ impl Session {
 
         // volta (bilateral): a outra pessoa → tradução → minha saída
         if let Some(dir) = voice_in_dir {
-            let voice_in = Arc::new(PiperVoice::load(&dir, 2)?);
+            let voice_in = Arc::new(Voice::load_for(&dir, &cfg.src, voice_threads(&dir))?);
             let (itx, irx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(vm.peer_capture.clone(), itx, stop_capture.clone())?);
             let in_dir = Direction { name: "in".into(), src: cfg.tgt.clone(), tgt: cfg.src.clone(),

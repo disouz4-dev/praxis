@@ -53,6 +53,33 @@ pub const DEFAULT_VOICES: &[(&str, &str)] = &[
     ("ar", "ar_JO-kareem-medium"), ("hi", "hi_IN-rohan-medium"),
 ];
 
+/// Pacotes de voz do sherpa-onnx que falam vários idiomas
+pub const KOKORO_PKG: &str = "kokoro-multi-lang-v1_0"; // 384 MB, Apache 2.0
+pub const SUPERTONIC_PKG: &str = "sherpa-onnx-supertonic-3-tts-int8-2026-05-11"; // 139 MB, OpenRAIL-M
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum VoiceChoice {
+    Kokoro,
+    Supertonic,
+    Piper(&'static str),
+}
+
+/// A voz mais clara medida para `lang` (benchmarks/vozes_inteligibilidade.py). O Kokoro só com
+/// placa de vídeo (no processador leva ~1 s para a 1ª frase), menos no chinês, que o Supertonic
+/// não fala. O Piper só para idioma que nenhum dos dois fale: hoje, nenhum.
+pub fn voice_choice(lang: &str, gpu: bool) -> Option<VoiceChoice> {
+    let kokoro = crate::tts::KOKORO_VOICES.iter().any(|(l, _, _)| *l == lang);
+    if kokoro && (gpu || lang == "zh") {
+        Some(VoiceChoice::Kokoro)
+    } else if crate::tts::SUPERTONIC_LANGS.contains(&lang) {
+        Some(VoiceChoice::Supertonic)
+    } else if kokoro {
+        Some(VoiceChoice::Kokoro)
+    } else {
+        default_voice(lang).map(VoiceChoice::Piper)
+    }
+}
+
 pub fn default_voice(lang: &str) -> Option<&'static str> {
     DEFAULT_VOICES.iter().find(|(l, _)| *l == lang).map(|(_, v)| *v)
 }
@@ -189,6 +216,33 @@ impl ModelStore {
         Ok(dir)
     }
 
+    /// Baixa (só na 1ª vez) o pacote da voz escolhida para `lang` e devolve a pasta.
+    pub fn ensure_voice_for(&self, lang: &str, gpu: bool, p: Progress) -> Result<PathBuf> {
+        match voice_choice(lang, gpu).ok_or_else(|| anyhow!("não há voz para o idioma {lang}"))? {
+            VoiceChoice::Kokoro => self.ensure_tts_package(KOKORO_PKG, "voz (Kokoro)", "voices.bin", p),
+            VoiceChoice::Supertonic => self.ensure_tts_package(SUPERTONIC_PKG, "voz (Supertonic)", "tts.json", p),
+            VoiceChoice::Piper(v) => self.ensure_voice(v, p),
+        }
+    }
+
+    fn ensure_tts_package(&self, pkg: &str, what: &str, marker: &str, p: Progress) -> Result<PathBuf> {
+        let dir = self.voices_dir().join(pkg);
+        if dir.join(marker).exists() {
+            return Ok(dir);
+        }
+        std::fs::create_dir_all(self.voices_dir())?;
+        let arc = self.voices_dir().join(format!("{pkg}.tar.bz2"));
+        download(&format!("{VOICES_URL}/{pkg}.tar.bz2"), &arc, None, &|_, a, b| p(what, a, b))?;
+        let f = std::fs::File::open(&arc)?;
+        tar::Archive::new(bzip2::read::BzDecoder::new(f)).unpack(self.voices_dir())
+            .with_context(|| format!("extraindo {pkg}"))?;
+        let _ = std::fs::remove_file(&arc);
+        if !dir.join(marker).exists() {
+            bail!("o pacote {pkg} não tinha o formato esperado");
+        }
+        Ok(dir)
+    }
+
     pub fn ensure_voice(&self, voice: &str, p: Progress) -> Result<PathBuf> {
         let dir = self.voice_dir(voice);
         if dir.join("tokens.txt").exists() {
@@ -288,6 +342,21 @@ fn find_dir_with(root: &Path, file: &str) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn voz_mais_clara_por_idioma_sem_piper() {
+        assert_eq!(voice_choice("pt", true), Some(VoiceChoice::Kokoro));
+        assert_eq!(voice_choice("pt", false), Some(VoiceChoice::Supertonic));
+        assert_eq!(voice_choice("zh", false), Some(VoiceChoice::Kokoro));
+        assert_eq!(voice_choice("de", true), Some(VoiceChoice::Supertonic));
+        assert_eq!(voice_choice("ja", false), Some(VoiceChoice::Supertonic));
+        // nenhum idioma do Praxis precisa mais do Piper
+        for l in ["pt", "en", "es", "fr", "de", "it", "ru", "zh", "nl", "pl", "uk", "tr", "ar", "hi", "ja", "ko"] {
+            for gpu in [true, false] {
+                assert!(!matches!(voice_choice(l, gpu), Some(VoiceChoice::Piper(_)) | None), "{l}");
+            }
+        }
+    }
 
     #[test]
     fn todo_idioma_de_saida_tem_voz_padrao() {

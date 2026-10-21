@@ -612,6 +612,25 @@ def _split_sentences(text: str) -> list[str]:
     return parts or [text]
 
 
+_FIRST_COMMA = re.compile(r"[,，،、]")
+
+
+def speech_chunks(text: str) -> list[str]:
+    """Pedaços para a voz: as frases, com a primeira cortada na primeira vírgula quando os
+    dois lados são longos o bastante — a voz começa a tocar depois de sintetizar o 1º pedaço,
+    e um pedaço menor espera menos (o mesmo que o motor em Rust faz)."""
+    out = _split_sentences(text)
+    m = _FIRST_COMMA.search(out[0]) if out else None
+    if m:
+        a, b = out[0][:m.end()].strip(), out[0][m.end():].strip()
+
+        def longo(t: str, n: int) -> bool:
+            return len(t.split()) >= n or (" " not in t and len(t) >= 8)
+        if longo(a, 2) and longo(b, 3):
+            out[0:1] = [a, b]
+    return out
+
+
 # Velocidade de fala adaptativa: quando a fala traduzida se acumula (idiomas cuja
 # tradução é mais longa que o original — ex.: en→ar medido em 121%), a voz fala
 # mais rápido para alcançar, em vez de ficar cada vez mais atrasada.
@@ -725,7 +744,7 @@ def pipeline_worker(
 
         # Síntese contínua: sintetiza a próxima frase enquanto a atual está tocando
         # Lê a voz pela referência mutável para permitir troca sem reiniciar o Whisper
-        sentences = _split_sentences(translated)
+        sentences = speech_chunks(translated)
         with _piper_lock:
             _cur_piper = _piper_out_ref[0] if direction == "out" else piper
 

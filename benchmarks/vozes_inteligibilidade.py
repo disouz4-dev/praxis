@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -26,12 +27,17 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
-import run_benchmarks as rb  # noqa: E402
+sys.path.insert(0, str(ROOT.parent))
 
 PIPER = {"pt": "pt_BR-faber-medium", "en": "en_US-lessac-medium", "es": "es_ES-sharvard-medium",
-         "fr": "fr_FR-siwis-medium", "de": "de_DE-thorsten-high", "it": "it_IT-paola-medium"}
+         "fr": "fr_FR-siwis-medium", "de": "de_DE-thorsten-high", "it": "it_IT-paola-medium",
+         "ru": "ru_RU-dmitri-medium", "zh": "zh_CN-huayan-medium", "nl": "nl_NL-ronnie-medium",
+         "pl": "pl_PL-gosia-medium", "uk": "uk_UA-lada-x_low", "tr": "tr_TR-dfki-medium",
+         "ar": "ar_JO-kareem-medium", "hi": "hi_IN-rohan-medium"}
 KOKORO = {"pt": ("pf_dora", "pt-br"), "en": ("af_heart", "en-us"), "es": ("ef_dora", "es"),
-          "fr": ("ff_siwis", "fr"), "it": ("if_sara", "it")}
+          "fr": ("ff_siwis", "fr"), "it": ("if_sara", "it"), "zh": ("zf_xiaoxiao", "zh"),
+          "ja": ("jf_alpha", "ja"), "hi": ("hf_alpha", "hi")}
+LETRAS = {"zh", "ja"}   # sem espaços: conta por letra
 PIPER_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models"
 
 
@@ -67,7 +73,7 @@ def supertonic(pasta: Path, lang: str, sid: int = 0):
 
     def gen(t):
         g = so.GenerationConfig()
-        g.sid, g.num_steps = sid, 8
+        g.sid, g.num_steps = sid, int(os.environ.get("PRAXIS_SUPERTONIC_PASSOS", "5"))
         g.extra["lang"] = lang
         return tts.generate(t, g)
     return gen
@@ -81,7 +87,10 @@ def kokoro(pasta: Path, lang: str):
         kokoro=so.OfflineTtsKokoroModelConfig(
             model=str(next(d.glob("model*.onnx"))), voices=str(d / "voices.bin"),
             tokens=str(d / "tokens.txt"), data_dir=str(d / "espeak-ng-data"),
-            lexicon=f"{d}/lexicon-us-en.txt" if lang == "en" else "", lang=code), num_threads=2))
+            lexicon={"en": f"{d}/lexicon-us-en.txt", "zh": f"{d}/lexicon-us-en.txt,{d}/lexicon-zh.txt"}.get(lang, ""),
+            dict_dir=str(d / "dict") if lang == "zh" else "", lang=code), num_threads=2,
+            provider=os.environ.get("PRAXIS_SHERPA_PLACA", "cpu")),
+        rule_fsts=f"{d}/phone-zh.fst,{d}/date-zh.fst,{d}/number-zh.fst" if lang == "zh" else "")
     tts = so.OfflineTts(cfg)
     import onnxruntime as ort
     meta = ort.InferenceSession(str(next(d.glob("model*.onnx"))),
@@ -113,13 +122,14 @@ def main() -> None:
     ap.add_argument("--nome", default="vozes-inteligibilidade")
     a = ap.parse_args()
     import praxis
+    import run_benchmarks as rb
     ouvinte = praxis.load_whisper(a.ouvinte, "cuda")
     linhas = []
     for lang in a.langs:
         frases = [it["text"] for it in json.loads(
             (ROOT / "data" / "speech_fleurs" / lang / "manifest.json").read_text(encoding="utf-8"))[:a.n]]
         for voz in a.vozes:
-            if voz == "kokoro" and lang not in KOKORO:
+            if (voz == "kokoro" and lang not in KOKORO) or (voz == "piper" and lang not in PIPER):
                 continue
             gen = {"piper": piper, "supertonic": supertonic, "kokoro": kokoro}[voz](a.pasta, lang)
             hyps, t_sint, t_fala = [], 0.0, 0.0
@@ -132,7 +142,9 @@ def main() -> None:
             if t_fala == 0:
                 print(f"  {voz:10s} {lang}  não gerou áudio", flush=True)
                 continue
-            wer, _ = rb.wer_cer(frases, hyps)
+            wer, cer = rb.wer_cer(frases, hyps)
+            if lang in LETRAS:
+                wer = cer
             linhas.append({"voz": voz, "lang": lang, "erro": round(wer, 4),
                            "rapidez": round(t_sint / max(t_fala, 1e-9), 3),
                            "exemplos": [{"texto": f, "ouvido": h} for f, h in zip(frases[:3], hyps[:3])]})

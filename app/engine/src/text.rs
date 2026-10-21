@@ -1,6 +1,25 @@
 //! Regras de texto do Praxis (as mesmas do motor em Python, medidas com fala real).
 
 /// Divide em frases depois de . ! ? … seguidos de espaço.
+/// Pedaços para a voz: as frases, com a primeira cortada na primeira vírgula quando os dois
+/// lados são longos o bastante. A voz só começa a tocar depois de sintetizar o 1º pedaço; um
+/// pedaço menor = menos espera (medido: a 1ª frase inteira levava de 0,3 a 0,95 s).
+pub fn speech_chunks(text: &str) -> Vec<String> {
+    let mut out = split_sentences(text);
+    if let Some(first) = out.first().cloned() {
+        // pelo menos n palavras (ou 8 letras em chinês/japonês, sem espaços)
+        let long = |t: &str, n: usize| t.split_whitespace().count() >= n || t.chars().count() >= 8 && !t.contains(' ');
+        if let Some(pos) = first.find([',', '，', '،', '、']) {
+            let comma = first[pos..].chars().next().map(char::len_utf8).unwrap_or(1);
+            let (a, b) = (first[..pos + comma].trim(), first[pos + comma..].trim());
+            if long(a, 2) && long(b, 3) {
+                out.splice(0..1, [a.to_string(), b.to_string()]);
+            }
+        }
+    }
+    out
+}
+
 pub fn split_sentences(text: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
@@ -178,6 +197,16 @@ pub fn clean_transcript(text: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn primeiro_pedaco_para_a_voz_corta_na_virgula() {
+        assert_eq!(speech_chunks("Segundo informações, ele estava na casa dos 20 anos. Depois saiu."),
+                   vec!["Segundo informações,", "ele estava na casa dos 20 anos.", "Depois saiu."]);
+        // lado curto demais: não corta
+        assert_eq!(speech_chunks("Sim, claro que sim."), vec!["Sim, claro que sim."]);
+        // chinês, sem espaços
+        assert_eq!(speech_chunks("医院遵循了感染控制规程，包括将病人与他人隔离。").len(), 2);
+    }
 
     #[test]
     fn divide_frases_como_o_python() {

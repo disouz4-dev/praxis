@@ -18,7 +18,7 @@ use anyhow::Result;
 
 use crate::asr::Asr;
 use crate::mt;
-use crate::text::split_sentences;
+use crate::text::speech_chunks;
 use crate::tts::PiperVoice;
 use crate::vad::{Segmenter, SegmenterConfig, SileroV6, SR};
 
@@ -185,7 +185,7 @@ pub fn spawn_direction(
                     }
                 };
                 // síntese por frase: a primeira começa a tocar enquanto a próxima é sintetizada
-                for sent in split_sentences(&translated) {
+                for sent in speech_chunks(&translated) {
                     let scale = speech_length_scale(*backlog.lock().unwrap());
                     match voice.synthesize(&sent, scale) {
                         Ok(pcm) if !pcm.is_empty() => {

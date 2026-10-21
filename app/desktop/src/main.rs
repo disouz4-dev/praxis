@@ -34,7 +34,7 @@ fn estado_inicial(app: State<App>) -> Value {
         .map(|l| {
             let (ok, why) = session::language_allowed(l, gpu);
             json!({"codigo": l, "liberado": ok, "motivo": why,
-                   "tem_voz": praxis_engine::models::default_voice(l).is_some(),
+                   "tem_voz": praxis_engine::models::voice_choice(l, gpu).is_some(),
                    // diagnóstico: o reconhecedor escolhido para este idioma e o erro medido
                    "modelo": session::asr_model_for(l, gpu, "auto"),
                    "erro": session::measured_error(l, gpu)})
