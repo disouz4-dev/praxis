@@ -347,12 +347,17 @@ def plan(requested_asr: str | None = None) -> AccelPlan:
 # frases de vários falantes por idioma (Google FLEURS) e auditado: diferença de escrita,
 # número escrito de outro jeito e nome próprio estrangeiro não contam (benchmarks/auditar_erros.py).
 # gpu: large-v3-turbo com trecho de até 15 s e detector de fala 0,25 (en com 100 frases)
-# cpu: small com trecho de até 6 s.
+# cpu: Parakeet com trecho de até 15 s (benchmarks/results/cpu3-c-parakeet-ajuste-m15.json,
+# en100-c-parakeet-v2-ajuste-m15.json); small (trecho de até 6 s) nos outros idiomas.
 MEASURED_ERROR = {
-    "gpu": {"model": "large-v3-turbo",
-            "pt": 0.024, "en": 0.028, "es": 0.017, "fr": 0.057, "de": 0.019, "it": 0.024, "ru": 0.038, "zh": 0.113, "nl": 0.054, "pl": 0.055, "uk": 0.047, "tr": 0.058, "ar": 0.092, "hi": 0.304, "ja": 0.055, "ko": 0.151},
+    # gpu: o melhor modelo medido para cada idioma (ASR_CHOICE["gpu"]): turbo em pt/es/de/it,
+    # Parakeet no inglês e no francês, large-v3 completo nos outros (benchmarks/results/gpu5-g-large-v3.json)
+    "gpu": {"model": "large-v3",
+            "pt": 0.024, "en": 0.020, "es": 0.017, "fr": 0.043, "de": 0.019, "it": 0.024, "ru": 0.036, "zh": 0.093, "nl": 0.036, "pl": 0.047, "uk": 0.032, "tr": 0.041, "ar": 0.076, "hi": 0.197, "ja": 0.045, "ko": 0.138},
+    # cpu: Parakeet com trecho de até 15 s e busca por vários caminhos (ASR_CHOICE["cpu"]):
+    # ultra (benchmarks/results/novos-c-ultra-feixe.json), v2 no inglês, v3 em ru/uk, japonês; small nos outros
     "cpu": {"model": "small",
-            "pt": 0.078, "en": 0.075, "es": 0.060, "fr": 0.159, "de": 0.091, "it": 0.086, "ru": 0.106, "zh": 0.173, "nl": 0.227, "pl": 0.192, "uk": 0.211, "tr": 0.166, "ar": 0.293, "hi": 0.745, "ja": 0.168, "ko": 0.252},
+            "pt": 0.029, "en": 0.020, "es": 0.020, "fr": 0.043, "de": 0.027, "it": 0.018, "ru": 0.050, "zh": 0.173, "nl": 0.049, "pl": 0.064, "uk": 0.058, "tr": 0.166, "ar": 0.293, "hi": 0.745, "ja": 0.047, "ko": 0.252},
 }
 POOR_QUALITY = 0.20      # acima desta proporção de erros o usuário recebe um aviso
 # Limite de qualidade: um idioma que erra mais que isto neste hardware NÃO é oferecido
@@ -400,12 +405,13 @@ def blocked_languages(asr_backend: str) -> dict[str, str]:
 def recommend_model(src_lang: str, asr_backend: str) -> tuple[str, str]:
     """→ (modelo Whisper, aviso em linguagem simples) para este hardware e idioma.
 
-    Placa de vídeo: large-v3-turbo — o mais preciso, e acompanha fala contínua
-    nos 16 idiomas. CPU: small — o modelo mais preciso que ainda acompanha
+    O melhor modelo medido para cada idioma (ASR_CHOICE). Placa de vídeo: turbo em
+    pt/es/de/it, Parakeet em en/fr, large-v3 nos outros. CPU: Parakeet nos europeus e no
+    japonês (erra menos que o small e é rápido para trechos de 15 s); small nos outros
     (medium/large-v3-turbo ficam 4–26 s atrasados numa CPU)."""
     kind = "cpu" if asr_backend == "cpu" else "gpu"
     table = MEASURED_ERROR[kind]
-    model = table["model"]
+    model = ASR_CHOICE[kind].get(src_lang) or table["model"]
     err = table.get(src_lang)
     note = ""
     if err is not None and err > POOR_QUALITY:
@@ -434,8 +440,98 @@ class _Seg:
 PARAKEET_MODELS = {
     "parakeet-v3": "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",   # 25 línguas europeias
     "parakeet-v2": "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8",   # só inglês
+    "parakeet-ja": "sherpa-onnx-nemo-parakeet-tdt_ctc-0.6b-ja-35000-int8",   # só japonês (modelo CTC)
+    "parakeet-ultra": "sherpa-onnx-nemo-parakeet-ultra-int8",   # v3 retreinado (Moondream, set/2026)
 }
 PARAKEET_LANGS = {"pt", "en", "es", "fr", "de", "it", "nl", "pl", "ru", "uk"}   # dos idiomas do Praxis
+
+
+PARAKEET_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models"
+
+
+# Melhor modelo medido por idioma (erro real ao vivo, FLEURS, 21/10/2026). Idioma fora da
+# lista usa MEASURED_ERROR[...]["model"]. Com placa de vídeo o Parakeet roda no processador
+# ao lado (é rápido) e ganha no inglês e no francês.
+ASR_CHOICE = {
+    "cpu": {"en": "parakeet-v2", "pt": "parakeet-ultra", "de": "parakeet-ultra", "es": "parakeet-ultra",
+            "it": "parakeet-ultra", "fr": "parakeet-ultra", "nl": "parakeet-ultra", "pl": "parakeet-ultra",
+            "ru": "parakeet-v3", "uk": "parakeet-v3", "ja": "parakeet-ja"},
+    "gpu": {"en": "parakeet-v2", "fr": "parakeet-ultra", "pt": "large-v3-turbo", "es": "large-v3-turbo",
+            "de": "large-v3-turbo", "it": "large-v3-turbo"},
+}
+
+
+def cpu_parakeet(lang: str) -> str | None:
+    """Parakeet para este idioma no processador (None = usar o Whisper)."""
+    return ASR_CHOICE["cpu"].get(lang)
+
+
+def is_parakeet(model_name: str) -> bool:
+    return model_name in PARAKEET_MODELS
+
+
+def install_parakeet(name: str, log=print, timeout: float = 60.0) -> Path:
+    """Baixa e extrai o pacote do sherpa-onnx (~640 MB) se ainda não estiver instalado."""
+    import shutil
+    import tarfile
+    import urllib.request
+    d = parakeet_dir(name)
+    if (d / "tokens.txt").exists():
+        return d
+    d.parent.mkdir(parents=True, exist_ok=True)
+    if name in PARAKEET_FILES:
+        return _install_files(d, *PARAKEET_FILES[name], log=log, timeout=timeout)
+    part = d.parent / f"{PARAKEET_MODELS[name]}.tar.bz2.part"
+    log(f"Baixando o reconhecimento de fala {name} (~640 MB, só na primeira vez)…")
+    try:
+        with urllib.request.urlopen(f"{PARAKEET_URL}/{PARAKEET_MODELS[name]}.tar.bz2", timeout=timeout) as r, \
+                open(part, "wb") as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+        with tarfile.open(part, "r:bz2") as t:
+            t.extractall(d.parent, filter="data")
+    finally:
+        part.unlink(missing_ok=True)
+    shutil.rmtree(d / "test_wavs", ignore_errors=True)
+    if not (d / "tokens.txt").exists():
+        raise RuntimeError(f"o pacote {name} não tinha o formato esperado")
+    return d
+
+
+# Modelos publicados em arquivos soltos: (endereço base, {arquivo: impressão digital SHA-256})
+# parakeet-ultra: Moondream (CC BY 4.0), convertido para o sherpa-onnx por leogaudin
+PARAKEET_FILES = {
+    "parakeet-ultra": ("https://huggingface.co/leogaudin/sherpa-onnx-nemo-parakeet-ultra-int8/resolve/main", {
+        "encoder.int8.onnx": "8bd3b8dc07056def6dfd19910e9f90c9e1a4e7e20901f58bdfe2a570a8081a2a",
+        "decoder.int8.onnx": "94373c6405c8149d1c9d1e9862514e0e3e88dab1c7de18fac9d5df9c6ba5efdd",
+        "joiner.int8.onnx": "8a71aaccfdba3d451775507a889afd2257d2e754463fd81095a8c8f290f924c2",
+        "tokens.txt": "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d",
+    }),
+}
+
+
+def _install_files(d: Path, base: str, files: dict, log=print, timeout: float = 60.0) -> Path:
+    """Baixa cada arquivo, confere a impressão digital e só então instala a pasta."""
+    import hashlib
+    import shutil
+    import urllib.request
+    tmp = d.parent / (d.name + ".part")
+    shutil.rmtree(tmp, ignore_errors=True)
+    tmp.mkdir(parents=True)
+    log(f"Baixando o reconhecimento de fala {d.name} (~670 MB, só na primeira vez)…")
+    try:
+        for fname, sha in files.items():
+            h = hashlib.sha256()
+            with urllib.request.urlopen(f"{base}/{fname}", timeout=timeout) as r, open(tmp / fname, "wb") as f:
+                while chunk := r.read(1 << 20):
+                    h.update(chunk)
+                    f.write(chunk)
+            if sha and h.hexdigest() != sha:
+                raise RuntimeError(f"o arquivo {fname} baixado não confere (impressão digital diferente)")
+        shutil.rmtree(d, ignore_errors=True)
+        tmp.rename(d)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    return d
 
 
 def parakeet_dir(name: str) -> Path:
@@ -450,22 +546,88 @@ class ParakeetASR:
 
     def __init__(self, name: str, backend: str = "cpu") -> None:
         import sherpa_onnx
-        d = parakeet_dir(name)
-        if not (d / "tokens.txt").exists():
-            raise FileNotFoundError(f"modelo {name} não instalado em {d}")
+        d = install_parakeet(name)
         pick = lambda pat: str(sorted(d.glob(pat))[0])       # noqa: E731
         self.backend = "cuda" if backend == "cuda" else "cpu"
+        if not list(d.glob("encoder*.onnx")):           # pacote CTC: um único model*.onnx
+            self.rec = sherpa_onnx.OfflineRecognizer.from_nemo_ctc(
+                model=pick("model*.onnx"), tokens=str(d / "tokens.txt"),
+                num_threads=max(1, (os.cpu_count() or 4) // 2), provider=self.backend)
+            return
         self.rec = sherpa_onnx.OfflineRecognizer.from_transducer(
             encoder=pick("encoder*.onnx"), decoder=pick("decoder*.onnx"), joiner=pick("joiner*.onnx"),
             tokens=str(d / "tokens.txt"), num_threads=max(1, (os.cpu_count() or 4) // 2),
-            sample_rate=16000, feature_dim=80, decoding_method="greedy_search",
-            model_type="nemo_transducer", provider=self.backend)
+            sample_rate=16000, feature_dim=80,
+            model_type="nemo_transducer", provider=self.backend,
+            # compara 4 caminhos antes de decidir cada palavra: −0,2 a −0,4 ponto de erro
+            # (pt 3,1% → 2,9%, de 3,0% → 2,7%) por +0,04 s por trecho
+            decoding_method=os.environ.get("PRAXIS_PARAKEET_BUSCA", "modified_beam_search"),
+            max_active_paths=4)
+
+    # Medido no FLEURS: o Parakeet perde o fim da frase quando a gravação é baixa
+    # (pico 0,003) e devolve vazio quando o trecho começa no meio da fala (corte
+    # forçado). Volume ajustado + meio segundo de silêncio em volta resolvem os dois.
+    PEAK = 0.5
+    MAX_GAIN = 200.0
+    PAD_BEFORE_S = 0.5
+    PAD_AFTER_S = 1.0
 
     def transcribe(self, audio, language=None, **opts):
+        import numpy as np
+        audio = np.asarray(audio, dtype=np.float32)
+        peak = float(np.abs(audio).max()) if len(audio) else 0.0
+        if peak > 0:
+            audio = audio * min(self.MAX_GAIN, self.PEAK / peak)
+        audio = np.concatenate([np.zeros(int(self.PAD_BEFORE_S * 16000), np.float32), audio,
+                                np.zeros(int(self.PAD_AFTER_S * 16000), np.float32)])
         st = self.rec.create_stream()
         st.accept_waveform(16000, audio)
         self.rec.decode_stream(st)
         return [_Seg(st.result.text.strip())], None
+
+
+# ── Candidatos novos (2025–2026) pelo sherpa-onnx, para medir contra o Whisper/Parakeet ──
+SHERPA_MODELS = {
+    "qwen3-asr-0.6b": "sherpa-onnx-qwen3-asr-0.6B-int8-2026-03-25",            # Alibaba, Apache-2.0
+    "cohere-transcribe": "sherpa-onnx-cohere-transcribe-14-lang-int8-2026-04-01",  # Cohere, Apache-2.0
+    "funasr-nano": "sherpa-onnx-funasr-nano-int8-2025-12-30",                  # Alibaba
+}
+
+
+class SherpaASR(ParakeetASR):
+    """Outros reconhecedores do sherpa-onnx com a mesma interface (e o mesmo ajuste de
+    volume e silêncio em volta do trecho do Parakeet)."""
+
+    def __init__(self, name: str, backend: str = "cpu") -> None:
+        import sherpa_onnx
+        base = os.environ.get("PRAXIS_NOVOS_DIR")
+        import praxis_platform as plat
+        d = (Path(base) if base else plat.data_dir() / "modelos") / SHERPA_MODELS[name]
+        pick = lambda pat: str(sorted(d.glob(pat))[0])       # noqa: E731
+        self.backend = "cpu"
+        self.name = name
+        n = max(1, (os.cpu_count() or 4) // 2)
+        self._lang_recs: dict = {}
+        if name == "qwen3-asr-0.6b":
+            self.rec = sherpa_onnx.OfflineRecognizer.from_qwen3_asr(
+                conv_frontend=pick("conv_frontend*.onnx"), encoder=pick("encoder*.onnx"),
+                decoder=pick("decoder*.onnx"), tokenizer=str(d / "tokenizer"), num_threads=n)
+        elif name == "funasr-nano":
+            self.rec = sherpa_onnx.OfflineRecognizer.from_funasr_nano(
+                encoder_adaptor=pick("encoder_adaptor*.onnx"), llm=pick("llm*.onnx"),
+                embedding=pick("embedding*.onnx"), tokenizer=str(d / "Qwen3-0.6B"), num_threads=n)
+        else:   # cohere: o idioma precisa ser informado → um reconhecedor por idioma
+            self._make = lambda lang: sherpa_onnx.OfflineRecognizer.from_cohere_transcribe(
+                encoder=pick("encoder*.onnx"), decoder=pick("decoder*.onnx"),
+                tokens=str(d / "tokens.txt"), num_threads=n, language=lang or "")
+            self.rec = None
+
+    def transcribe(self, audio, language=None, **opts):
+        if self.name == "cohere-transcribe":
+            if language not in self._lang_recs:
+                self._lang_recs[language] = self._make(language)
+            self.rec = self._lang_recs[language]
+        return super().transcribe(audio, language, **opts)
 
 
 MLX_REPOS = {"tiny": "mlx-community/whisper-tiny-mlx", "base": "mlx-community/whisper-base-mlx",
@@ -522,7 +684,11 @@ class WhisperCpp:
 def load_asr(model_name: str, backend: str, log=print):
     """Cria o backend de ASR; se algo falhar, volta para o faster-whisper na CPU."""
     if model_name in PARAKEET_MODELS:
-        return ParakeetASR(model_name, backend)
+        # roda no processador mesmo com placa de vídeo: é rápido e o pacote do sherpa-onnx
+        # instalado pelo Praxis não usa a placa
+        return ParakeetASR(model_name, "cpu")
+    if model_name in SHERPA_MODELS:
+        return SherpaASR(model_name, backend)
     from faster_whisper import WhisperModel
     if backend == "mlx":
         try:

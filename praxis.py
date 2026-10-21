@@ -1491,8 +1491,18 @@ def _run(args: argparse.Namespace, bilateral: bool) -> int:
         _emit({"e": "model", "model": model, "note": note})
         console.print(f"[dim]Modelo automático: {model}[/dim]" + (f" [yellow]({note})[/yellow]" if note else ""))
     whisper   = load_whisper(model, args.device)
-    if not _max_seg_from_user and getattr(whisper, "backend", "cpu") != "cpu":
-        MAX_SEG_S = MAX_SEG_GPU_S          # placa de vídeo: trecho maior, menos cortes no meio da fala
+    import praxis_accel as accel
+    # No bilateral a outra pessoa fala outro idioma: no processador o melhor modelo
+    # pode ser outro (ex.: Parakeet v2 só reconhece inglês).
+    whisper_in = whisper
+    if bilateral and args.model == "auto":
+        model_in, _ = accel.recommend_model(args.tgt, backend)
+        if model_in != model:
+            whisper_in = load_whisper(model_in, args.device)
+    # placa de vídeo ou Parakeet (rápido no processador): trecho maior, menos cortes no meio da fala
+    if not _max_seg_from_user and (getattr(whisper, "backend", "cpu") != "cpu"
+                                   or isinstance(whisper, accel.ParakeetASR)):
+        MAX_SEG_S = MAX_SEG_GPU_S
     _emit({"e": "progress", "pct": 75, "msg": "Carregando voz…"})
     piper_out = load_piper(args.voice_out)
     _piper_out_ref[0] = piper_out
@@ -1534,7 +1544,7 @@ def _run(args: argparse.Namespace, bilateral: bool) -> int:
                                      "ptt_flush": threading.Event()},
                              daemon=True),
             threading.Thread(target=pipeline_worker,
-                             args=(_in_seg_q, whisper, piper_in,
+                             args=(_in_seg_q, whisper_in, piper_in,
                                    args.tgt, args.src, "in",
                                    False, monitor_output),
                              daemon=True),

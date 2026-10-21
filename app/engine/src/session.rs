@@ -10,7 +10,7 @@ use std::thread::JoinHandle;
 use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::asr::WhisperAsr;
+use crate::asr::Asr;
 use crate::devices::{self, OutputDevice, Speakers, VirtualMic};
 use crate::models::{self, ModelStore};
 use crate::mt;
@@ -24,14 +24,16 @@ pub const QUALITY_LIMIT: f32 = 0.03;
 /// Erro REAL da transcrição no modo ao vivo, medido com 40 frases de vários falantes por
 /// idioma (Google FLEURS) e auditado (inglês com 100 frases) — mesma tabela do Python.
 pub const MEASURED_ERROR_GPU: &[(&str, f32)] = &[
-    ("pt", 0.024), ("en", 0.028), ("es", 0.017), ("fr", 0.057), ("de", 0.019), ("it", 0.024),
-    ("ru", 0.038), ("zh", 0.113), ("nl", 0.054), ("pl", 0.055), ("uk", 0.047), ("tr", 0.058),
-    ("ar", 0.092), ("hi", 0.304), ("ja", 0.055), ("ko", 0.151),
+    ("pt", 0.024), ("en", 0.020), ("es", 0.017), ("fr", 0.043), ("de", 0.019), ("it", 0.024),
+    ("ru", 0.036), ("zh", 0.093), ("nl", 0.036), ("pl", 0.047), ("uk", 0.032), ("tr", 0.041),
+    ("ar", 0.076), ("hi", 0.197), ("ja", 0.045), ("ko", 0.138),
 ];
+/// Processador: Parakeet (ultra, v2 no inglês, v3 em ru/uk, japonês) com trecho de até 15 s
+/// e busca por vários caminhos; Whisper small nos outros.
 pub const MEASURED_ERROR_CPU: &[(&str, f32)] = &[
-    ("pt", 0.078), ("en", 0.075), ("es", 0.060), ("fr", 0.159), ("de", 0.091), ("it", 0.086),
-    ("ru", 0.106), ("zh", 0.173), ("nl", 0.227), ("pl", 0.192), ("uk", 0.211), ("tr", 0.166),
-    ("ar", 0.293), ("hi", 0.745), ("ja", 0.168), ("ko", 0.252),
+    ("pt", 0.029), ("en", 0.020), ("es", 0.020), ("fr", 0.043), ("de", 0.027), ("it", 0.018),
+    ("ru", 0.050), ("zh", 0.173), ("nl", 0.049), ("pl", 0.064), ("uk", 0.058), ("tr", 0.166),
+    ("ar", 0.293), ("hi", 0.745), ("ja", 0.047), ("ko", 0.252),
 ];
 /// No processador, o NLLB só entra nos idiomas em que o Argos é fraco (+6 a +10 pontos);
 /// com placa de vídeo, em tudo (é mais rápido e melhor em 149 de 210 sentidos).
@@ -72,6 +74,35 @@ pub fn language_allowed(lang: &str, gpu: bool) -> (bool, String) {
         }
         _ => (true, String::new()),
     }
+}
+
+/// Melhor reconhecedor medido por idioma (erro real ao vivo, FLEURS, 21/10/2026) — a mesma
+/// tabela do Python (ASR_CHOICE). Com placa de vídeo o Parakeet roda no processador ao lado.
+pub const ASR_CHOICE_CPU: &[(&str, &str)] = &[
+    ("en", "parakeet-tdt-0.6b-v2-int8"), ("pt", "parakeet-ultra-int8"), ("de", "parakeet-ultra-int8"),
+    ("es", "parakeet-ultra-int8"), ("it", "parakeet-ultra-int8"), ("fr", "parakeet-ultra-int8"),
+    ("nl", "parakeet-ultra-int8"), ("pl", "parakeet-ultra-int8"), ("ru", "parakeet-tdt-0.6b-v3-int8"),
+    ("uk", "parakeet-tdt-0.6b-v3-int8"), ("ja", "parakeet-tdt_ctc-0.6b-ja-35000-int8"),
+];
+pub const ASR_CHOICE_GPU: &[(&str, &str)] = &[
+    ("en", "parakeet-tdt-0.6b-v2-int8"), ("fr", "parakeet-ultra-int8"), ("pt", "large-v3-turbo"),
+    ("es", "large-v3-turbo"), ("de", "large-v3-turbo"), ("it", "large-v3-turbo"),
+];
+
+/// Reconhecimento de fala para quem fala `lang`: o melhor medido; fora da tabela, Whisper
+/// large-v3 com placa de vídeo e Whisper small no processador.
+pub fn asr_model_for(lang: &str, gpu: bool, choice: &str) -> String {
+    if choice != "auto" {
+        return choice.to_string();
+    }
+    let (table, other) = if gpu { (ASR_CHOICE_GPU, "large-v3") } else { (ASR_CHOICE_CPU, "small") };
+    table.iter().find(|(l, _)| *l == lang).map(|(_, m)| *m).unwrap_or(other).to_string()
+}
+
+/// Trecho máximo de fala: 15 s com placa de vídeo ou Parakeet (o corte no meio da fala era a
+/// maior fonte de erro); 6 s com o Whisper no processador (trecho longo atrasa demais).
+pub fn max_segment_s(model: &str, gpu: bool) -> f32 {
+    if gpu || model.starts_with("parakeet") { 15.0 } else { 6.0 }
 }
 
 pub fn translator_for(src: &str, tgt: &str, gpu: bool, choice: &str) -> &'static str {
@@ -168,16 +199,17 @@ impl Session {
                 }
             }
         }
-        let model = if cfg.model == "auto" { if gpu { "large-v3-turbo" } else { "small" } } else { cfg.model.as_str() }.to_string();
-        // com placa de vídeo o trecho vai até 15 s (o corte no meio da fala era a maior fonte
-        // de erro); no processador, 6 s (trecho longo atrasa demais)
-        let max_seg_s = if gpu { 15.0 } else { 6.0 };
+        let model = asr_model_for(&cfg.src, gpu, &cfg.model);
+        let model_in = asr_model_for(&cfg.tgt, gpu, &cfg.model);
+        let max_seg_s = max_segment_s(&model, gpu);
         let tr_out = translator_for(&cfg.src, &cfg.tgt, gpu, &cfg.translator);
         let tr_in = translator_for(&cfg.tgt, &cfg.src, gpu, &cfg.translator);
         emit(SessionEvent::Hardware { gpu, model: model.clone(), translator: tr_out.into(), max_seg_s });
 
         progress(5, "Preparando os modelos…");
-        let whisper_dir = store.ensure_whisper(&model, &dl)?;
+        let ensure_asr = |m: &str| if m.starts_with("parakeet") { store.ensure_parakeet(m, &dl) } else { store.ensure_whisper(m, &dl) };
+        let asr_dir = ensure_asr(&model)?;
+        let asr_in_dir = if cfg.bilateral && model_in != model { Some(ensure_asr(&model_in)?) } else { None };
         let silero = store.ensure_silero(&dl)?;
         let mut need_argos: Vec<(String, String)> = vec![];
         for (tr, a, b) in [(tr_out, &cfg.src, &cfg.tgt), (tr_in, &cfg.tgt, &cfg.src)] {
@@ -213,7 +245,12 @@ impl Session {
 
         progress(55, "Carregando o reconhecimento de fala…");
         let threads = 0;
-        let asr = Arc::new(WhisperAsr::load(&whisper_dir, gpu, threads)?);
+        let asr = Arc::new(Asr::load(&asr_dir, gpu, threads)?);
+        // no bilateral a outra pessoa pode precisar de outro modelo (o Parakeet v2 só reconhece inglês)
+        let asr_in = match &asr_in_dir {
+            Some(d) => Arc::new(Asr::load(d, gpu, threads)?),
+            None => asr.clone(),
+        };
         progress(75, "Carregando a tradução…");
         let make_tr = |kind: &str, a: &str, b: &str| -> Result<Arc<dyn Translate>> {
             Ok(if kind == "nllb" {
@@ -257,8 +294,9 @@ impl Session {
             handles.push(devices::spawn_capture(vm.peer_capture.clone(), itx, stop_capture.clone())?);
             let in_dir = Direction { name: "in".into(), src: cfg.tgt.clone(), tgt: cfg.src.clone(),
                 to_speaker: true, echo_gate: !cfg.headphones };
-            handles.extend(pipeline::spawn_direction(irx, asr.clone(), make_tr(tr_in, &cfg.tgt, &cfg.src)?, voice_in,
-                Arc::new(Speakers(vec![OutputDevice::open(cfg.output.clone())?])), in_dir, seg, silero, shared.clone(), ptx.clone())?);
+            let seg_in = SegmenterConfig { max_seg_s: max_segment_s(&model_in, gpu), ..Default::default() };
+            handles.extend(pipeline::spawn_direction(irx, asr_in, make_tr(tr_in, &cfg.tgt, &cfg.src)?, voice_in,
+                Arc::new(Speakers(vec![OutputDevice::open(cfg.output.clone())?])), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);
         }
         drop(ptx);
         // repassa os eventos do motor
@@ -299,9 +337,29 @@ mod tests {
         assert!(language_allowed("en", true).0);
         let (ok, why) = language_allowed("fr", true);
         assert!(!ok && why.contains("mesmo com placa de vídeo"));
-        let (ok, why) = language_allowed("pt", false);
-        assert!(!ok && why.contains("sem placa de vídeo") && why.contains("Com uma placa de vídeo"));
+        let (ok, why) = language_allowed("ko", false);
+        assert!(!ok && why.contains("sem placa de vídeo") && !why.contains("Com uma placa de vídeo"));
         assert!(language_allowed("xx", false).0, "idioma sem medição não é bloqueado");
+        // com o Parakeet, cinco idiomas passam no processador
+        for l in ["en", "es", "it", "de", "pt"] {
+            assert!(language_allowed(l, false).0, "{l}");
+        }
+    }
+
+    #[test]
+    fn modelo_de_fala_por_idioma_e_hardware() {
+        assert_eq!(asr_model_for("pt", true, "auto"), "large-v3-turbo");
+        assert_eq!(asr_model_for("uk", true, "auto"), "large-v3");
+        assert_eq!(asr_model_for("en", true, "auto"), "parakeet-tdt-0.6b-v2-int8");
+        assert_eq!(asr_model_for("en", false, "auto"), "parakeet-tdt-0.6b-v2-int8");
+        assert_eq!(asr_model_for("es", false, "auto"), "parakeet-ultra-int8");
+        assert_eq!(asr_model_for("ru", false, "auto"), "parakeet-tdt-0.6b-v3-int8");
+        assert_eq!(asr_model_for("ja", false, "auto"), "parakeet-tdt_ctc-0.6b-ja-35000-int8");
+        assert_eq!(asr_model_for("ko", false, "auto"), "small");
+        assert_eq!(asr_model_for("ja", false, "medium"), "medium");
+        assert_eq!(max_segment_s("parakeet-tdt-0.6b-v3-int8", false), 15.0);
+        assert_eq!(max_segment_s("small", false), 6.0);
+        assert_eq!(max_segment_s("small", true), 15.0);
     }
 
     #[test]

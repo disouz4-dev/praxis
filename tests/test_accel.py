@@ -218,13 +218,50 @@ def test_voz_alema_padrao_e_a_rapida(cfg_module):
 def test_recomenda_modelo_por_hardware():
     assert accel.recommend_model("pt", "cuda")[0] == "large-v3-turbo"
     assert accel.recommend_model("pt", "mlx")[0] == "large-v3-turbo"
-    assert accel.recommend_model("pt", "cpu")[0] == "small"
+    # processador: Parakeet nos idiomas europeus (v2 no inglês), small nos outros
+    assert accel.recommend_model("pt", "cpu")[0] == "parakeet-ultra"
+    assert accel.recommend_model("ru", "cpu")[0] == "parakeet-v3"
+    assert accel.recommend_model("en", "cpu")[0] == "parakeet-v2"
+    assert accel.recommend_model("ja", "cpu")[0] == "parakeet-ja"
+    assert accel.recommend_model("ko", "cpu")[0] == "small"
+    # placa de vídeo: o melhor medido por idioma
+    assert accel.recommend_model("en", "cuda")[0] == "parakeet-v2"
+    assert accel.recommend_model("uk", "cuda")[0] == "large-v3"
+
+
+def test_parakeet_ajusta_volume_e_poe_silencio_em_volta(monkeypatch):
+    import numpy as np
+    seen = {}
+
+    class Stream:
+        def accept_waveform(self, sr, a):
+            seen["a"] = a
+
+    class Result:
+        text = " oi "
+
+    class Rec:
+        def create_stream(self):
+            st = Stream()
+            st.result = Result()
+            return st
+
+        def decode_stream(self, st):
+            pass
+
+    m = accel.ParakeetASR.__new__(accel.ParakeetASR)
+    m.rec = Rec()
+    segs, _ = m.transcribe(np.array([0.001, -0.003, 0.002], np.float32))
+    a = seen["a"]
+    assert segs[0].text == "oi"
+    assert len(a) == 8000 + 3 + 16000 and not a[:8000].any() and not a[-16000:].any()
+    assert a[8001] == pytest.approx(-0.5)            # pico vai a 0,5
 
 
 def test_recomenda_modelo_avisa_sobre_idiomas_fracos():
     model, note = accel.recommend_model("hi", "cpu")
     assert model == "small" and "hi" in note and f"{accel.MEASURED_ERROR['cpu']['hi']:.0%}" in note
-    _, note = accel.recommend_model("nl", "cpu")
+    _, note = accel.recommend_model("ar", "cpu")
     assert "placa de vídeo" in note                 # sugere a solução com GPU
     assert accel.recommend_model("pt", "cuda")[1] == ""
     assert accel.recommend_model("xx", "cpu")[1] == ""

@@ -99,3 +99,143 @@ impl WhisperAsr {
         })
     }
 }
+
+/// Parakeet TDT (NVIDIA, licença CC BY 4.0) pelo sherpa-onnx: no processador erra menos
+/// que o Whisper small nos idiomas europeus e é rápido o bastante para trechos de 15 s.
+/// O idioma é reconhecido sozinho; pontuação e maiúsculas vêm prontas.
+pub struct ParakeetAsr {
+    rec: sherpa_onnx::OfflineRecognizer,
+}
+
+impl ParakeetAsr {
+    // Medido no FLEURS: o Parakeet perde o fim da frase quando a gravação é baixa
+    // (pico 0,003) e devolve vazio quando o trecho começa no meio da fala (corte
+    // forçado). Volume ajustado + silêncio em volta resolvem os dois.
+    pub const PEAK: f32 = 0.5;
+    pub const MAX_GAIN: f32 = 200.0;
+    pub const PAD_BEFORE_S: f32 = 0.5;
+    pub const PAD_AFTER_S: f32 = 1.0;
+
+    /// `dir`: pasta de um pacote "sherpa-onnx-nemo-parakeet-…" (encoder/decoder/joiner .onnx, tokens.txt).
+    pub fn load(dir: &Path, gpu: bool, threads: usize) -> Result<Self> {
+        let pick = |prefix: &str| -> Result<Option<String>> {
+            let mut v: Vec<_> = std::fs::read_dir(dir)?
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .filter(|p| {
+                    let n = p.file_name().unwrap_or_default().to_string_lossy();
+                    n.starts_with(prefix) && n.ends_with(".onnx")
+                })
+                .collect();
+            v.sort();
+            v.into_iter()
+                .next()
+                .map(|p| Some(p.to_string_lossy().to_string()))
+                .ok_or_else(|| anyhow!("falta {prefix}*.onnx em {}", dir.display()))
+        };
+        let mut config = sherpa_onnx::OfflineRecognizerConfig::default();
+        if pick("encoder").is_ok() {
+            config.model_config.transducer = sherpa_onnx::OfflineTransducerModelConfig {
+                encoder: pick("encoder")?,
+                decoder: pick("decoder")?,
+                joiner: pick("joiner")?,
+            };
+            config.model_config.model_type = Some("nemo_transducer".into());
+            // compara 4 caminhos antes de decidir cada palavra: −0,2 a −0,4 ponto de erro
+            // (pt 3,1% → 2,9%, de 3,0% → 2,7%) por +0,04 s por trecho
+            config.decoding_method = Some("modified_beam_search".into());
+            config.max_active_paths = 4;
+        } else {
+            // pacote CTC (Parakeet japonês): um único model*.onnx
+            config.model_config.nemo_ctc = sherpa_onnx::OfflineNemoEncDecCtcModelConfig { model: pick("model")? };
+            config.decoding_method = Some("greedy_search".into());
+        }
+        config.model_config.tokens = Some(dir.join("tokens.txt").to_string_lossy().to_string());
+        config.model_config.num_threads = threads as i32;
+        config.model_config.provider = Some(if gpu { "cuda" } else { "cpu" }.into());
+        let rec = sherpa_onnx::OfflineRecognizer::create(&config)
+            .ok_or_else(|| anyhow!("não foi possível carregar o Parakeet de {}", dir.display()))?;
+        Ok(Self { rec })
+    }
+
+    /// Volume ajustado (pico em PEAK, no máximo MAX_GAIN vezes) e silêncio antes e depois.
+    pub fn prepare(audio: &[f32]) -> Vec<f32> {
+        let peak = audio.iter().fold(0f32, |m, x| m.max(x.abs()));
+        let gain = if peak > 0.0 { (Self::PEAK / peak).min(Self::MAX_GAIN) } else { 1.0 };
+        let before = (Self::PAD_BEFORE_S * 16000.0) as usize;
+        let after = (Self::PAD_AFTER_S * 16000.0) as usize;
+        let mut out = vec![0f32; before];
+        out.extend(audio.iter().map(|x| x * gain));
+        out.resize(out.len() + after, 0.0);
+        out
+    }
+
+    pub fn transcribe(&self, audio: &[f32]) -> Result<Transcript> {
+        let st = self.rec.create_stream();
+        st.accept_waveform(16000, &Self::prepare(audio));
+        self.rec.decode(&st);
+        let text = st.get_result().map(|r| r.text).unwrap_or_default();
+        Ok(Transcript { text: crate::text::clean_transcript(text.trim()), no_speech: 0.0, avg_logprob: 0.0, dropped: false })
+    }
+}
+
+/// Metade dos núcleos (como o Praxis em Python): o resto fica para tradução e voz.
+fn default_threads() -> usize {
+    (std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4) / 2).max(1)
+}
+
+/// O reconhecedor de fala em uso: Whisper ou Parakeet, escolhido pela pasta do modelo.
+pub enum Asr {
+    Whisper(WhisperAsr),
+    Parakeet(ParakeetAsr),
+}
+
+impl Asr {
+    /// Pasta com tokens.txt e encoder*.onnx → Parakeet; senão, Whisper (CTranslate2).
+    pub fn load(model_dir: &Path, gpu: bool, threads: usize) -> Result<Self> {
+        if Self::is_parakeet(model_dir) {
+            // no processador mesmo com placa de vídeo: é rápido e a biblioteca do sherpa-onnx
+            // que acompanha o Praxis não usa a placa
+            Ok(Self::Parakeet(ParakeetAsr::load(model_dir, false, if threads == 0 { default_threads() } else { threads })?))
+        } else {
+            Ok(Self::Whisper(WhisperAsr::load(model_dir, gpu, threads)?))
+        }
+    }
+
+    pub fn is_parakeet(model_dir: &Path) -> bool {
+        model_dir.join("tokens.txt").exists()
+            && std::fs::read_dir(model_dir)
+                .map(|d| d.filter_map(|e| e.ok()).any(|e| e.file_name().to_string_lossy().ends_with(".onnx")))
+                .unwrap_or(false)
+    }
+
+    pub fn device(&self) -> &'static str {
+        match self {
+            Self::Whisper(w) => w.device,
+            Self::Parakeet(_) => "cpu",
+        }
+    }
+
+    pub fn transcribe(&self, audio: &[f32], lang: &str) -> Result<Transcript> {
+        match self {
+            Self::Whisper(w) => w.transcribe(audio, lang),
+            Self::Parakeet(p) => p.transcribe(audio),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ParakeetAsr;
+
+    #[test]
+    fn parakeet_ajusta_volume_e_poe_silencio_em_volta() {
+        let audio = vec![0.001f32, -0.003, 0.002];
+        let out = ParakeetAsr::prepare(&audio);
+        assert_eq!(out.len(), 8000 + 3 + 16000);
+        assert!(out[..8000].iter().all(|&x| x == 0.0));
+        assert!((out[8001] + 0.5).abs() < 1e-6, "pico vai a 0,5");
+        // nunca amplifica mais que MAX_GAIN (silêncio quase total não vira ruído alto)
+        let quase_nada = ParakeetAsr::prepare(&[1e-6]);
+        assert!((quase_nada[8000] - 1e-6 * ParakeetAsr::MAX_GAIN).abs() < 1e-9);
+    }
+}

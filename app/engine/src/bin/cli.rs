@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{bail, Result};
-use praxis_engine::{asr::WhisperAsr, audio, devices, mt, pipeline, tts, vad};
+use praxis_engine::{asr::Asr, audio, devices, mt, pipeline, tts, vad};
 use std::sync::Arc;
 
 /// Alto-falante de teste: espera a duração do áudio (como um de verdade) e não toca nada.
@@ -33,7 +33,7 @@ fn main() -> Result<()> {
     let threads = std::env::var("PRAXIS_THREADS").ok().and_then(|v| v.parse().ok()).unwrap_or(0);
     match pos.first().map(|s| s.as_str()) {
         Some("asr") if pos.len() == 4 => {
-            let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;
+            let asr = Asr::load(pos[1].as_ref(), gpu, threads)?;
             let a = audio::read_wav_16k_mono(pos[2].as_ref())?;
             let reps: usize = std::env::var("PRAXIS_REPETIR").ok().and_then(|v| v.parse().ok()).unwrap_or(1);
             let mut r = None;
@@ -46,7 +46,7 @@ fn main() -> Result<()> {
         }
         // asr-corpus-ao-vivo <modelo> <pasta> <idioma> <saída.json> <silero.onnx> [--max-seg=6]
         Some("asr-corpus-ao-vivo") if pos.len() == 6 => {
-            let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;
+            let asr = Asr::load(pos[1].as_ref(), gpu, threads)?;
             let dir = PathBuf::from(pos[2]);
             let lang = pos[3].as_str();
             let max_seg: f32 = args.iter().find_map(|a| a.strip_prefix("--max-seg=")).and_then(|v| v.parse().ok()).unwrap_or(6.0);
@@ -87,7 +87,7 @@ fn main() -> Result<()> {
                     "hyp": "", "hyp_live": hyp, "dur_s": 0}));
             }
             let out = serde_json::json!({"kind": "asr", "engine": "praxis-rs", "results": [{
-                "model": "rust", "lang": lang, "n": samples.len(), "backend": asr.device,
+                "model": "rust", "lang": lang, "n": samples.len(), "backend": asr.device(),
                 "live_segments": nseg, "rtf_live": asr_s / audio_s.max(1e-9), "samples": samples}]});
             std::fs::write(pos[4], serde_json::to_string_pretty(&out)?)?;
             eprintln!("trechos por frase: {:.2}", nseg as f64 / manifest.len().max(1) as f64);
@@ -119,7 +119,7 @@ fn main() -> Result<()> {
         Some("stream") if pos.len() == 10 => {
             let max_seg: f32 = args.iter().find_map(|a| a.strip_prefix("--max-seg=")).and_then(|v| v.parse().ok()).unwrap_or(6.0);
             let (src, tgt) = (pos[4].to_string(), pos[5].to_string());
-            let asr = Arc::new(WhisperAsr::load(pos[1].as_ref(), gpu, threads)?);
+            let asr = Arc::new(Asr::load(pos[1].as_ref(), gpu, threads)?);
             let translator: Arc<dyn pipeline::Translate> = match pos[6].as_str() {
                 "nllb" => Arc::new(mt::Nllb::load(pos[7].as_ref(), gpu)?),
                 _ => {
@@ -224,7 +224,7 @@ fn main() -> Result<()> {
             let vm = devices::VirtualMic::setup(bilateral)?;
             emit(serde_json::json!({"e": "virtual_mic", "mic": vm.mic_label, "peer": vm.peer_label}));
             emit(serde_json::json!({"e": "progress", "pct": 30, "msg": "Carregando o reconhecimento de fala…"}));
-            let asr = Arc::new(WhisperAsr::load(need("--whisper")?.as_ref(), gpu, threads)?);
+            let asr = Arc::new(Asr::load(need("--whisper")?.as_ref(), gpu, threads)?);
             emit(serde_json::json!({"e": "progress", "pct": 60, "msg": "Carregando a tradução…"}));
             let load_tr = |a: &str, b: &str| -> Result<Arc<dyn pipeline::Translate>> {
                 let path = need("--modelo-tradutor")?;
@@ -290,7 +290,7 @@ fn main() -> Result<()> {
             std::process::exit(0);
         }
         Some("asr-corpus") if pos.len() == 5 => {
-            let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;
+            let asr = Asr::load(pos[1].as_ref(), gpu, threads)?;
             let dir = PathBuf::from(pos[2]);
             let lang = pos[3].as_str();
             let manifest: Vec<serde_json::Value> =
@@ -313,7 +313,7 @@ fn main() -> Result<()> {
             }
             let model = PathBuf::from(pos[1]).file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
             let out = serde_json::json!({"kind": "asr", "engine": "praxis-rs", "results": [{
-                "model": model, "lang": lang, "n": samples.len(), "backend": asr.device,
+                "model": model, "lang": lang, "n": samples.len(), "backend": asr.device(),
                 "rtf": asr_s / audio_s.max(1e-9), "samples": samples}]});
             std::fs::write(pos[4], serde_json::to_string_pretty(&out)?)?;
             eprintln!("tempo de transcrição por segundo de fala: {:.3}", asr_s / audio_s.max(1e-9));

@@ -16,7 +16,7 @@ use std::time::{Duration, Instant};
 
 use anyhow::Result;
 
-use crate::asr::WhisperAsr;
+use crate::asr::Asr;
 use crate::mt;
 use crate::text::split_sentences;
 use crate::tts::PiperVoice;
@@ -108,7 +108,7 @@ fn voiced_end(audio: &[f32]) -> usize {
 #[allow(clippy::too_many_arguments)]
 pub fn spawn_direction(
     audio_rx: Receiver<Vec<f32>>,
-    asr: Arc<WhisperAsr>,
+    asr: Arc<Asr>,
     translator: Arc<dyn Translate>,
     voice: Arc<PiperVoice>,
     speaker: Arc<dyn Speaker>,

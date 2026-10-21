@@ -18,6 +18,7 @@ pub const NLLB_URL: &str =
 pub const NLLB_SHA256: &str = "7b8208fbb38ca3eb565dc95efe4983b973912ab4298ce6fe887748ea4998a58d";
 pub const ARGOS_INDEX: &str = "https://raw.githubusercontent.com/argosopentech/argospm-index/main/index.json";
 const VOICES_URL: &str = "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models";
+const ASR_MODELS_URL: &str = "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models";
 
 /// (modelo, repositório no Hugging Face, arquivos) — os mesmos modelos do faster-whisper
 pub const WHISPER_MODELS: &[(&str, &str, &[&str])] = &[
@@ -25,7 +26,22 @@ pub const WHISPER_MODELS: &[(&str, &str, &[&str])] = &[
     ("base", "Systran/faster-whisper-base", &["config.json", "model.bin", "tokenizer.json", "vocabulary.txt"]),
     ("large-v3-turbo", "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
      &["config.json", "model.bin", "preprocessor_config.json", "tokenizer.json", "vocabulary.json"]),
+    ("large-v3", "Systran/faster-whisper-large-v3",
+     &["config.json", "model.bin", "preprocessor_config.json", "tokenizer.json", "vocabulary.json"]),
 ];
+
+/// Parakeet publicado em arquivos soltos: (nome, endereço base, [(arquivo, impressão digital SHA-256)]).
+/// parakeet-ultra: Moondream (CC BY 4.0), convertido para o sherpa-onnx por leogaudin.
+pub const PARAKEET_FILES: &[(&str, &str, &[(&str, &str)])] = &[(
+    "parakeet-ultra-int8",
+    "https://huggingface.co/leogaudin/sherpa-onnx-nemo-parakeet-ultra-int8/resolve/main",
+    &[
+        ("encoder.int8.onnx", "8bd3b8dc07056def6dfd19910e9f90c9e1a4e7e20901f58bdfe2a570a8081a2a"),
+        ("decoder.int8.onnx", "94373c6405c8149d1c9d1e9862514e0e3e88dab1c7de18fac9d5df9c6ba5efdd"),
+        ("joiner.int8.onnx", "8a71aaccfdba3d451775507a889afd2257d2e754463fd81095a8c8f290f924c2"),
+        ("tokens.txt", "d58544679ea4bc6ac563d1f545eb7d474bd6cfa467f0a6e2c1dc1c7d37e3c35d"),
+    ],
+)];
 
 /// Voz padrão de cada idioma de saída (as mesmas do Praxis em Python, em formato sherpa-onnx;
 /// a holandesa "mls" não existe nesse formato: ronnie, do mesmo nível)
@@ -134,6 +150,43 @@ impl ModelStore {
         extract_zip(&file, &dir)?;
         let _ = std::fs::remove_file(&file);
         Ok(())
+    }
+
+    pub fn parakeet_dir(&self, name: &str) -> PathBuf {
+        self.root.join(format!("sherpa-onnx-nemo-{name}"))
+    }
+
+    /// Parakeet pelo sherpa-onnx (`name`: "parakeet-tdt-0.6b-v3-int8" etc.).
+    pub fn ensure_parakeet(&self, name: &str, p: Progress) -> Result<PathBuf> {
+        let dir = self.parakeet_dir(name);
+        if dir.join("tokens.txt").exists() {
+            return Ok(dir);
+        }
+        std::fs::create_dir_all(&self.root)?;
+        if let Some((_, base, files)) = PARAKEET_FILES.iter().find(|(n, _, _)| *n == name) {
+            let tmp = self.root.join(format!("sherpa-onnx-nemo-{name}.part"));
+            let _ = std::fs::remove_dir_all(&tmp);
+            std::fs::create_dir_all(&tmp)?;
+            for (f, sha) in *files {
+                download(&format!("{base}/{f}"), &tmp.join(f), Some(sha),
+                         &|_, a, b| p("reconhecimento de fala (Parakeet)", a, b))?;
+            }
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::rename(&tmp, &dir)?;
+            return Ok(dir);
+        }
+        let arc = self.root.join(format!("{name}.tar.bz2"));
+        download(&format!("{ASR_MODELS_URL}/sherpa-onnx-nemo-{name}.tar.bz2"), &arc, None,
+                 &|_, a, b| p("reconhecimento de fala (Parakeet)", a, b))?;
+        let f = std::fs::File::open(&arc)?;
+        tar::Archive::new(bzip2::read::BzDecoder::new(f)).unpack(&self.root)
+            .with_context(|| format!("extraindo o {name}"))?;
+        let _ = std::fs::remove_file(&arc);
+        let _ = std::fs::remove_dir_all(dir.join("test_wavs"));
+        if !dir.join("tokens.txt").exists() {
+            bail!("o pacote {name} não tinha o formato esperado");
+        }
+        Ok(dir)
     }
 
     pub fn ensure_voice(&self, voice: &str, p: Progress) -> Result<PathBuf> {

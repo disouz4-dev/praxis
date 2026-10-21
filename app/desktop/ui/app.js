@@ -109,7 +109,7 @@ function eventoDoMotor(e) {
     }
     case "hardware":
       $("hardware").textContent = (e.gpu ? "Placa de vídeo NVIDIA" : "Sem placa de vídeo: processador") +
-        ` · Whisper ${e.model} · tradutor ${e.translator}`;
+        ` · reconhecimento de fala ${e.model.startsWith("parakeet") ? "Parakeet" : "Whisper " + e.model} · tradutor ${e.translator}`;
       break;
     case "virtual_mic":
       $("microfone_virtual").hidden = false;

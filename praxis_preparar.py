@@ -74,11 +74,13 @@ def main(argv: list[str] | None = None) -> int:
           flush=True)
 
     def whisper():
-        model, _ = accel.recommend_model(src, backend)
-        print(f"  baixando o Whisper {model}…", flush=True)
-        accel.load_asr(model, backend, log=lambda m: print("  " + m, flush=True))
-        return model
-    _step("Reconhecimento de fala (Whisper)", whisper, results)
+        # o modelo do seu idioma e o da outra pessoa (bilateral); no processador podem ser diferentes
+        models = list(dict.fromkeys(accel.recommend_model(lang, backend)[0] for lang in (src, tgt)))
+        for model in models:
+            print(f"  baixando o reconhecimento de fala {model}…", flush=True)
+            accel.load_asr(model, backend, log=lambda m: print("  " + m, flush=True))
+        return ", ".join(models)
+    _step("Reconhecimento de fala", whisper, results)
 
     if not a.sem_nllb:
         _step("Tradutor NLLB (Meta, uso não comercial)",

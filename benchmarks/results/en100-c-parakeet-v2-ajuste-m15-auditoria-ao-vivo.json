@@ -1,0 +1,30 @@
+[
+ {
+  "model": "parakeet-v2",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.0383,
+  "numero": 0.0033,
+  "escrita": 0.0038,
+  "nome": 0.0114,
+  "erro_real": 0.0199,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However. Due to the slow communication channels, styles in the West could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+    "praxis": "To the north, and within easy reach, is the romantic and fascinating town of Sintra, which was made famous to foreigners after a glowing account of its splendors recorded by Lord Byron."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   },
+   {
+    "humano": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+    "praxis": "The Northern Mariana's Emergency Management Office said that there were no damages reported in the nation."
+   }
+  ]
+ }
+]

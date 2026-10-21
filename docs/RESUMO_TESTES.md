@@ -1,6 +1,6 @@
 # Resumo dos testes do Praxis
 
-_Atualizado em 20/10/2026. Máquinas: Mac Intel com AMD Radeon Pro 5500M (sem placa de vídeo compatível: tudo no processador) e lab2 (Linux, NVIDIA RTX 3050 6 GB)._
+_Atualizado em 21/10/2026. Máquinas: Mac Intel com AMD Radeon Pro 5500M (sem placa de vídeo compatível: tudo no processador) e lab2 (Linux, NVIDIA RTX 3050 6 GB)._
 
 Meta de qualidade: **1% de erro, teto de 3%**. Idioma acima do teto num computador não é oferecido nele.
 
@@ -8,13 +8,13 @@ Meta de qualidade: **1% de erro, teto de 3%**. Idioma acima do teto num computad
 
 | Etapa | Com placa de vídeo | Sem placa de vídeo | Por quê |
 |---|---|---|---|
-| Reconhecer a fala | **Whisper large-v3-turbo** | **Whisper small** | O turbo erra tão pouco quanto o large-v3 completo e é 2× mais rápido. No processador, só o small acompanha quem fala; medium e turbo ficam 4 a 26 s atrasados. |
+| Reconhecer a fala | o melhor medido por idioma: **Whisper large-v3-turbo** em pt/es/de/it, **Parakeet** em en/fr, **Whisper large-v3** nos outros | **Parakeet-ultra** (Moondream, set/2026) nos europeus, **Parakeet v2** no inglês, **Parakeet v3** em russo e ucraniano, **Parakeet japonês**, **Whisper small** nos outros | O Parakeet erra 2 a 4 vezes menos que o Whisper small no processador e leva 0,3 s por trecho (lab2 livre). Comparar 4 caminhos antes de decidir cada palavra tira mais 0,2 a 0,4 ponto por +0,04 s. O large-v3 completo ganha do turbo fora dos idiomas principais (0,8 a 0,9 s por trecho). |
 | Traduzir | **NLLB-200 (Meta)** | **NLLB** nos idiomas fracos do Argos, **Argos** no resto | O NLLB ganhou em 149 dos 210 sentidos e quebrou metade das frases que o Argos quebra. No processador ele é ~8× mais lento, então só vale onde o Argos é fraco. |
 | Falar | **Piper**, uma voz por idioma | igual | Roda em tempo real em qualquer máquina. |
 
 O NLLB tem licença **CC BY-NC 4.0**: uso não comercial. O Praxis é aberto (MIT); quem usar o Praxis comercialmente precisa usar o Argos.
 
-Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 do NLLB, 222 de 720 frases quebradas e 2,8 s por frase; e os modelos tiny, base e medium.
+Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 do NLLB, 222 de 720 frases quebradas e 2,8 s por frase; os modelos tiny, base e medium; **Qwen3-ASR 0.6B** (pior em quase tudo e 3 a 9 s por trecho no processador); **Cohere Transcribe** (erra pouco, francês 3,0% e árabe 6,3%, mas leva 4 s por trecho no processador; candidato para a placa de vídeo); **Fun-ASR Nano** (não transcreveu japonês e a licença não está clara).
 
 ## 2. Qualidade por idioma: erro real no uso ao vivo
 
@@ -22,22 +22,24 @@ Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 
 
 | Idioma | Com placa de vídeo | Sem placa de vídeo |
 |---|---:|---:|
-| Espanhol | **1,6%** ✅ | 6,0% |
-| Italiano | **1,7%** ✅ | 8,6% |
-| Alemão | **2,0%** ✅ | 9,1% |
-| Português | **2,2%** ✅ | 7,8% |
-| Inglês | 3,2% | 7,5% |
-| Russo | 3,8% | 10,6% |
-| Ucraniano | 4,7% | 21% |
-| Holandês, polonês, japonês | 5,4 a 5,5% | 17 a 23% |
-| Turco | 5,8% | 16,6% |
-| Francês | 6,4% | 15,9% |
-| Árabe | 9,2% | 29% |
-| Chinês | 11,3% | 17,3% |
-| Coreano | 15,1% | 25% |
-| Hindi | 30% | 75% |
+| Espanhol | **1,6%** ✅ | **2,0%** ✅ |
+| Italiano | **1,7%** ✅ | **1,8%** ✅ |
+| Alemão | **2,0%** ✅ | **2,7%** ✅ |
+| Português | **2,2%** ✅ | **2,9%** ✅ |
+| Inglês (100 frases) | **2,0%** ✅ | **2,0%** ✅ |
+| Ucraniano | 3,2% | 5,8% |
+| Holandês | 3,6% | 4,9% |
+| Russo | 3,6% | 5,0% |
+| Turco | 4,1% | 16,6% |
+| Francês | 4,3% | 4,3% |
+| Japonês | 4,5% | 4,7% |
+| Polonês | 4,7% | 6,4% |
+| Árabe | 7,6% | 29% |
+| Chinês | 9,3% | 17,3% |
+| Coreano | 13,8% | 25% |
+| Hindi | 20% | 75% |
 
-✅ = abaixo do teto de 3%. **Sem placa de vídeo, nenhum idioma passa do teto.** Com placa de vídeo passam 4 idiomas, e o inglês fica perto.
+✅ = abaixo do teto de 3%. **Cinco idiomas passam com e sem placa de vídeo: inglês, espanhol, italiano, alemão e português.** De manhã, sem placa de vídeo, nenhum passava (o Whisper small errava 6 a 9%). Ucraniano, holandês e russo ficam a menos de 1 ponto do teto com placa de vídeo.
 
 ## 3. Rapidez (o Praxis acompanha quem fala?)
 
@@ -59,7 +61,8 @@ Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 
 
 ## 5. O que mudou por causa dos testes
 
-- Com placa de vídeo, o trecho de fala vai até 15 s em vez de 6 s. O corte no meio da fala era a maior fonte de erro e, com a mudança, todos os 16 idiomas melhoraram (alemão de 4,8% para 2,0%).
+- No processador, o Parakeet substitui o Whisper small nos idiomas europeus. Duas correções foram necessárias: ajustar o volume (gravações baixas perdiam o fim da frase) e pôr meio segundo de silêncio em volta de cada trecho (trecho cortado no meio da fala voltava vazio). Só com elas o inglês caiu de 10% para 2%.
+- Com placa de vídeo ou Parakeet, o trecho de fala vai até 15 s em vez de 6 s. Pedaços de 6 s pioram qualquer modelo (o turbo vai de 2,4% para 4,1% em português). O corte no meio da fala era a maior fonte de erro e, com a mudança, todos os 16 idiomas melhoraram (alemão de 4,8% para 2,0%).
 - A placa de vídeo só é usada se não for mais fraca que o processador. Isso é medido na primeira execução: neste Mac a placa perdeu, no lab2 ganhou.
 - Idioma acima do teto de 3% não é oferecido naquele computador.
 - Tradução automática: NLLB onde ele é melhor, Argos no resto.
@@ -71,6 +74,9 @@ Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 
 - Rodar a instalação completa e verificar num computador limpo que tudo já começa funcionando.
 - Testes em Windows e em placas AMD, Intel e Apple Silicon reais (não há essas máquinas aqui).
 - Redução de ruído e filtro de vozes de fundo.
-- Coreano, árabe, chinês e hindi continuam longe do teto mesmo com placa de vídeo.
+- Coreano, árabe, chinês e hindi continuam longe do teto mesmo com placa de vídeo. Candidatos: Qwen3-ASR 1.7B e Cohere na placa de vídeo.
+- Converter o Parakeet-ultra nós mesmos e publicar no Praxis (hoje vem de uma conversão da comunidade, com impressão digital conferida).
+- Tradução: medir o Hy-MT2 1.8B (Tencent, licença livre para uso comercial) contra o NLLB, que é só para uso não comercial.
+- Voz: medir Supertonic 3 e Kokoro contra o Piper (que passou para licença GPL).
 
 Dados brutos em `benchmarks/results/`. Detalhes de cada rodada em `docs/QA_REPORT.md`.

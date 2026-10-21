@@ -1,0 +1,170 @@
+[
+ {
+  "model": "parakeet-v3",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.0583,
+  "numero": 0.0096,
+  "escrita": 0.0057,
+  "nome": 0.0076,
+  "erro_real": 0.0354,
+  "exemplos": [
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "Construída pelos egípcios no século 3 a.C., a grande pirâmide é uma das muitas grandes estruturas da pirâmide construídas para honrar faraós mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Jean Carlos perdeu o controle do carro e acabou a corrida logo após a largada."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como o Goach. Fiste. Escalegil"
+   },
+   {
+    "humano": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado, como usar um novo computador ou começar um novo projeto.",
+    "praxis": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado. Como usar um computador ou começar um novo projeto."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.0678,
+  "numero": 0.0045,
+  "escrita": 0.0023,
+  "nome": 0.026,
+  "erro_real": 0.035,
+  "exemplos": [
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film Das Vermächtnis der Tempelritter gesehen haben, denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   },
+   {
+    "humano": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+    "praxis": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. So haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt."
+   },
+   {
+    "humano": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet.x",
+    "praxis": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet."
+   },
+   {
+    "humano": "In seinem Artikel Die Rede des Präsidenten zeigte Oliver Sacks auf, wie Leute, die wegen eines Hirnschadens keine Sprache mehr verstehen können, trotzdem die Ehrlichkeit von Menschen richtig einschätzen können.",
+    "praxis": "In seinem Artikel Die Rede des Präsidenten zeigt Oliver Sachs auf, wie Leute, die wegen eines Hirnschadens keine Sprache mehr verstehen können, trotzdem die Ehrlichkeit von Menschen richtig einschätzen können."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.0457,
+  "numero": 0.0059,
+  "escrita": 0.0059,
+  "nome": 0.0129,
+  "erro_real": 0.0211,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However. Due to the slow communication channels, styles in the West could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   },
+   {
+    "humano": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+    "praxis": "The Northern Mariana's Emergency Management Office said that there were no damages reported in the nation."
+   },
+   {
+    "humano": "The aspect ratio of this format (dividing by twelve to obtain the simplest whole-number ratio) is therefore said to be 3:2.",
+    "praxis": "The aspect ratio of this format, dividing by twelve to obtain the simplest whole number ratio, is therefore said to be free to two."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0446,
+  "numero": 0.0089,
+  "escrita": 0.006,
+  "nome": 0.005,
+  "erro_real": 0.0248,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello pueda afectar sus planes de viaje."
+   },
+   {
+    "humano": "Fue tanta la cantidad de gente que se concentró, que no todos pudieron acceder al funeral en la Plaza de San Pedro.",
+    "praxis": "Fue tanta la cantidad de gente que se concentró que no todos pudier al funeral en la plaza de San Pedro."
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras, no tienen la necesidad de siquiera aproximarse en sacapuntas."
+   },
+   {
+    "humano": "Los luchadores compañeros de Luna también le rindieron homenaje.",
+    "praxis": "Los luchadores compañeros de Luna también les rindieron homenaje."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "it",
+  "unidade": "palavras",
+  "erro_total": 0.0299,
+  "numero": 0.0041,
+  "escrita": 0.0052,
+  "nome": 0.0031,
+  "erro_real": 0.0175,
+  "exemplos": [
+   {
+    "humano": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "praxis": "Se avete visto il film Il mistero dei Templari, potreste pensare che sul retro della dichiarazione di indipendenza sia disegnata una mappa del tesoro."
+   },
+   {
+    "humano": "Secondo il sovrintendente della polizia Chandra Shekhar Solanki, gli imputati sono apparsi in tribunale con il volto coperto.",
+    "praxis": "Thank you. Secondo il sovrintendente della polizia, Chandra Sekar Swanki, gli imputati sono apparsi in tribunale con il volto coperto."
+   },
+   {
+    "humano": "Stando a quanto riferito aveva circa 20 anni. Bieber ha dichiarato \"Anche se non ero presente né direttamente coinvolto in questo terribile incidente, i miei pensieri e le mie preghiere vanno ai familiari della vittima\".",
+    "praxis": "Stando a quanto riferito aveva circa vent'anni. Bibber ha dichiarato, Anche se non ero presente, né direttamente coinvolto in questo terribile incidente, i miei pensieri e le mie preghiere vanno ai familiari della vittima."
+   },
+   {
+    "humano": "È collegata, anche se solitamente non li comprende, allo sci touring o allo skimo, che vengono praticati su terreni scoscesi e richiedono sci e scarponi molto più rigidi.",
+    "praxis": "È collegata. Anche se solitamente non li comprende. Allo sci touring, o allo schimo, che vengono praticati su terreni scoscesi e richiedono sci e scarponi molto più rigidi."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "fr",
+  "unidade": "palavras",
+  "erro_total": 0.0675,
+  "numero": 0.0054,
+  "escrita": 0.0054,
+  "nome": 0.0054,
+  "erro_real": 0.0513,
+  "exemplos": [
+   {
+    "humano": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "praxis": "Nous sommes d'accord avec la déclaration de l'USOC, comité olympique des États-Unis, selon laquelle les intérêts de nos athlètes et de nos clubs ainsi que de leur sport pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à à des changements significatifs au sein de notre organisation, qu'est la révocation d'accréditation."
+   },
+   {
+    "humano": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "praxis": "Il ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leur capacité."
+   },
+   {
+    "humano": "Le rugissement du tigre ne ressemble pas au rugissement ample du lion, mais plutôt à une phrase dont les mots seraient des cris et des grondements.",
+    "praxis": "Le rugissement du ting ne ressemble pas au rugissement emplugriant, mais plutôt à une phrase dont les mots seraient des cris et des grondements."
+   },
+   {
+    "humano": "Le même mois, un autre avion de ligne a fait une sortie de piste à Mashhad et a heurté un mur, tuant ainsi dix-sept personnes.",
+    "praxis": "Le même mois, un autre avion de ligne a fait une sortie de piste à Machad et heurté un mur, tuant ainsi 17 personnes."
+   }
+  ]
+ }
+]
