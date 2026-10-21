@@ -24,8 +24,11 @@ if [[ -d "$TMP/ctranslate2/.dylibs" ]]; then           # macOS
     LIB="$(ls "$OUT"/libctranslate2.*.dylib | head -1)"
     ln -sf "$(basename "$LIB")" "$OUT/libctranslate2.dylib"
     install_name_tool -id "@rpath/$(basename "$LIB")" "$LIB"
-    install_name_tool -id "@rpath/libiomp5.dylib" "$OUT/libiomp5.dylib"
-    codesign -f -s - "$LIB" "$OUT/libiomp5.dylib" 2>/dev/null   # a alteração invalida a assinatura
+    if [[ -f "$OUT/libiomp5.dylib" ]]; then                # só no Intel (o Apple Silicon não usa)
+        install_name_tool -id "@rpath/libiomp5.dylib" "$OUT/libiomp5.dylib"
+        codesign -f -s - "$OUT/libiomp5.dylib" 2>/dev/null
+    fi
+    codesign -f -s - "$LIB" 2>/dev/null                   # a alteração invalida a assinatura
 else                                                    # Linux
     cp "$TMP"/ctranslate2.libs/* "$OUT/"
     LIB="$(ls "$OUT"/libctranslate2*.so* | head -1)"

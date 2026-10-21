@@ -46,10 +46,10 @@ cpal = { version = "0.18", features = ["pulseaudio"] }
 [target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dependencies]
 ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
 
-# Windows x86-64: compila o CTranslate2 com a MKL da Intel (o pacote oficial não traz
-# a biblioteca de ligação)
+# Windows x86-64: a ctranslate2.dll do pacote oficial (MKL + NVIDIA), a mesma do Python.
+# Prepare com scripts/ct2-do-pacote-oficial.ps1 (gera o índice .lib a partir da DLL)
 [target.'cfg(all(target_arch = "x86_64", target_os = "windows"))'.dependencies]
-ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "mkl", "openmp-runtime-intel"] }
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
 
 # macOS (Intel e Apple Silicon): a biblioteca do pacote oficial do CTranslate2, a mesma
 # do Python (no Intel com a MKL, que não existe compilável para macOS) — mesma velocidade.

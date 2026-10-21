@@ -51,12 +51,15 @@ jobs:
           scripts/cargo-macos.sh test --release -p praxis-engine --lib
           scripts/cargo-macos.sh build --release -p praxis-engine
           cp target/ct2-lib/*.dylib target/release/
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
       - name: Compilar e testar (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cargo test --release -p praxis-engine --lib
-          cargo build --release -p praxis-engine
+          scripts/cargo-windows.ps1 test --release -p praxis-engine --lib
+          scripts/cargo-windows.ps1 build --release -p praxis-engine
+          Copy-Item target/ct2-lib/*.dll target/release/
 
       - name: Guardar o motor compilado
         uses: actions/upload-artifact@v4
