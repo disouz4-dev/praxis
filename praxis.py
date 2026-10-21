@@ -954,6 +954,8 @@ def setup_argos(src: str, tgt: str) -> None:
     """Instala pares de tradução. Usa o inglês como intermediário quando o par direto não existe."""
     if src == tgt:
         return
+    if translator_for(src, tgt) in ("hymt", "tgemma"):
+        return
     if translator_for(src, tgt) in ("nllb", "madlad"):
         (_load_nllb if translator_for(src, tgt) == "nllb" else _load_madlad)()   # um único modelo cobre todos os pares
         return
@@ -1099,12 +1101,58 @@ def _translate_pair_nllb(text: str, src: str, tgt: str) -> str:
     return " ".join(o for o in out if o)
 
 
+# Hy-MT2 1.8B (Tencent, licença Apache 2.0 — permite uso comercial), em teste: roda no
+# llama.cpp (llama-server) e o Praxis fala com ele por HTTP em PRAXIS_HYMT_URL.
+HYMT_URL = os.environ.get("PRAXIS_HYMT_URL", "http://127.0.0.1:8090")
+HYMT_NAMES = {"pt": "Brazilian Portuguese", "en": "English", "es": "Spanish", "fr": "French",
+              "de": "German", "it": "Italian", "ru": "Russian", "zh": "Simplified Chinese",
+              "nl": "Dutch", "pl": "Polish", "uk": "Ukrainian", "tr": "Turkish", "ar": "Arabic",
+              "hi": "Hindi", "ja": "Japanese", "ko": "Korean"}
+
+
+def _translate_pair_hymt(text: str, src: str, tgt: str) -> str:
+    # o modelo é de conversa: sempre o mesmo pedido curto (o "prompt padrão" do cartão do modelo)
+    prompt = (f"Translate the following text into {HYMT_NAMES[tgt]}. Note that you should only "
+              f"output the translated result without any additional explanation:\n\n{text.strip()}")
+    body = json.dumps({"messages": [{"role": "user", "content": prompt}], "temperature": 0,
+                       "max_tokens": 512, "repeat_penalty": 1.05}).encode()
+    req = urllib.request.Request(f"{HYMT_URL}/v1/chat/completions", data=body,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        out = json.loads(r.read())["choices"][0]["message"]["content"].strip()
+    return _to_simplified(out) if tgt == "zh" else out
+
+
+# TranslateGemma 4B (Google, termos de uso do Gemma — permitem uso comercial com regras de
+# uso), em teste: llama-server em PRAXIS_TGEMMA_URL, com o modelo de pedido oficial.
+TGEMMA_URL = os.environ.get("PRAXIS_TGEMMA_URL", "http://127.0.0.1:8091")
+TGEMMA_CODES = {"pt": "pt-BR", "zh": "zh-Hans"}
+
+
+def _translate_pair_tgemma(text: str, src: str, tgt: str) -> str:
+    sn, tn = HYMT_NAMES[src].replace("Brazilian ", ""), HYMT_NAMES[tgt]
+    sc, tc = TGEMMA_CODES.get(src, src), TGEMMA_CODES.get(tgt, tgt)
+    prompt = (f"<start_of_turn>user\nYou are a professional {sn} ({sc}) to {tn} ({tc}) translator. "
+              f"Your goal is to accurately convey the meaning and nuances of the original {sn} text "
+              f"while adhering to {tn} grammar, vocabulary, and cultural sensitivities.\n"
+              f"Produce only the {tn} translation, without any additional explanations or commentary. "
+              f"Please translate the following {sn} text into {tn}:\n\n\n{text.strip()}"
+              f"<end_of_turn>\n<start_of_turn>model\n")
+    body = json.dumps({"prompt": prompt, "temperature": 0, "n_predict": 512,
+                       "stop": ["<end_of_turn>"]}).encode()
+    req = urllib.request.Request(f"{TGEMMA_URL}/completion", data=body,
+                                 headers={"Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        out = json.loads(r.read())["content"].strip()
+    return _to_simplified(out) if tgt == "zh" else out
+
+
 def translator_for(src: str, tgt: str) -> str:
     """Tradutor usado para um par: o pedido, ou no modo "auto" (padrão) — NLLB em
     tudo com placa de vídeo; no processador, NLLB só nos idiomas em que ele ganha
     muito; Argos no resto. Sem o NLLB instalado (licença não comercial, opcional),
     sempre Argos."""
-    if TRANSLATOR in ("argos", "nllb", "madlad"):
+    if TRANSLATOR in ("argos", "nllb", "madlad", "hymt", "tgemma"):
         return TRANSLATOR
     if not (nllb_dir() / "model.bin").exists():
         return "argos"
@@ -1123,6 +1171,10 @@ def do_translate(text: str, src: str, tgt: str) -> str:
         return _translate_pair_nllb(text, src, tgt)          # direto, sem passar pelo inglês
     if t == "madlad":
         return _translate_pair_madlad(text, src, tgt)
+    if t == "hymt":
+        return _translate_pair_hymt(text, src, tgt)          # direto, sem passar pelo inglês
+    if t == "tgemma":
+        return _translate_pair_tgemma(text, src, tgt)
     if src != "en" and tgt != "en":
         return _translate_pair(_translate_pair(text, src, "en"), "en", tgt)
     return _translate_pair(text, src, tgt)

@@ -464,7 +464,7 @@ def todos_os_sentidos(args) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--n", type=int, default=60, help="número de frases (padrão 60)")
-    ap.add_argument("--tradutor", default=None, choices=["argos", "nllb", "madlad"],
+    ap.add_argument("--tradutor", default=None, choices=["argos", "nllb", "madlad", "hymt", "tgemma"],
                     help="tradutor do Praxis a medir (padrão: o configurado, Argos)")
     ap.add_argument("--nome", default="traducao-vs-humano", help="nome dos arquivos de resultado")
     ap.add_argument("--todos-os-sentidos", action="store_true",

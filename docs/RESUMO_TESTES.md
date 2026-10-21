@@ -78,7 +78,7 @@ Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 
 - Redução de ruído e filtro de vozes de fundo.
 - Coreano, árabe, chinês e hindi continuam longe do teto mesmo com placa de vídeo. Candidatos: Qwen3-ASR 1.7B e Cohere na placa de vídeo.
 - Converter o Parakeet-ultra nós mesmos e publicar no Praxis (hoje vem de uma conversão da comunidade, com impressão digital conferida).
-- Tradução: medir o Hy-MT2 1.8B (Tencent, licença livre para uso comercial) contra o NLLB, que é só para uso não comercial.
+- Tradução para uso comercial: o **Hy-MT2 1.8B** (Tencent, Apache 2.0) empata com o NLLB em qualidade (125 sentidos, −0,1 ponto; quebra 1 frase contra 5), mas é 2 a 3× mais lento (0,4 a 0,6 s por frase na placa de vídeo). O **TranslateGemma 4B** (Google) perdeu 2 a 3 pontos e foi 4× mais lento: descartado. Falta decidir se o Praxis troca o NLLB pelo Hy-MT2.
 - Voz: medir Supertonic 3 e Kokoro contra o Piper (que passou para licença GPL).
 
 Dados brutos em `benchmarks/results/`. Detalhes de cada rodada em `docs/QA_REPORT.md`.
