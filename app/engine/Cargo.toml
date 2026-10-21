@@ -17,6 +17,12 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 hound = "3.5"
+ureq = "3"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+tar = "0.4"
+bzip2 = "0.6"
+sha2 = "0.11"
+dirs = "7"
 cpal = "0.18"
 realfft = "3"
 sentencepiece = "0.13"
@@ -45,14 +51,12 @@ ct2rs = { version = "0.10", default-features = false, features = ["whisper", "se
 [target.'cfg(all(target_arch = "x86_64", target_os = "windows"))'.dependencies]
 ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "mkl", "openmp-runtime-intel"] }
 
-# Mac Intel: a biblioteca do pacote oficial do CTranslate2 (com a MKL da Intel, que não
-# existe compilável para macOS) — mesma velocidade do Python. Prepare com
-# scripts/ct2-do-pacote-oficial.sh e compile com scripts/build-macos.sh
-[target.'cfg(all(target_arch = "x86_64", target_os = "macos"))'.dependencies]
+# macOS (Intel e Apple Silicon): a biblioteca do pacote oficial do CTranslate2, a mesma
+# do Python (no Intel com a MKL, que não existe compilável para macOS) — mesma velocidade.
+# Prepare com scripts/ct2-do-pacote-oficial.sh e compile com scripts/build-macos.sh
+[target.'cfg(target_os = "macos")'.dependencies]
 ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
 
-[target.'cfg(target_arch = "aarch64")'.dependencies]
+# Linux ARM (sem pacote oficial do CTranslate2): compila com ruy (otimizado para ARM)
+[target.'cfg(all(target_arch = "aarch64", target_os = "linux"))'.dependencies]
 ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "ruy"] }
-
-[target.'cfg(target_os = "macos")'.dependencies]
-ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "accelerate"] }
