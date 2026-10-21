@@ -1,0 +1,282 @@
+[
+ {
+  "model": "large-v3",
+  "lang": "uk",
+  "unidade": "palavras",
+  "erro_total": 0.0536,
+  "numero": 0.0041,
+  "escrita": 0.0069,
+  "nome": 0.0082,
+  "erro_real": 0.0343,
+  "exemplos": [
+   {
+    "humano": "Такі батьки можуть вирішити створити для своєї дитини план всиновлення.",
+    "praxis": "Такі батьки можуть вирішити створити для своєї дитини план всиновування."
+   },
+   {
+    "humano": "Такі елементи, як кальцій і калій, вважаються металами. Звичайно, також є такі метали, як срібло та золото.",
+    "praxis": "Такі елементи, як кальцій і калій, вважаються металами. Звичайно, також є такі метали, як слібло та золото."
+   },
+   {
+    "humano": "Масове володіння автомобілями також призводить до збільшення числа ДТП на дорогах, що призводить до винаходу нових методів в галузі охорони здоров'я для лікування тілесних ушкоджень.",
+    "praxis": "Володіння автомобілями також призводить до збільшення числа ДТП на дорогах, що призводить до виноходу нових методів галузі охорони здоров'я для лікування тілесних ушкоджень."
+   },
+   {
+    "humano": "Архіпелаг лежить 120 км на північ від півострова. Найбільший острів — Кінг-Джордж, із поселенням Вілья-лас-Естрельяс.",
+    "praxis": "Архипелаг лежить 120 кілометрів на північ від півострова. Найбільший остров – Кінг-Дзорш із поселенням Вілья-Лас-Естрельєс."
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "nl",
+  "unidade": "palavras",
+  "erro_total": 0.0664,
+  "numero": 0.0076,
+  "escrita": 0.012,
+  "nome": 0.012,
+  "erro_real": 0.0349,
+  "exemplos": [
+   {
+    "humano": "Volgens Angel (2006) kunnen organisaties beter presteren met een aanpak op basis van het continuümmodel.",
+    "praxis": "Volgens Angel 2006 kunnen organisaties beter presteren met een aanpak op basis van het continuum model."
+   },
+   {
+    "humano": "Er wordt met name gesteld dat niemand een leugen kan herkennen door op enkel op micro-expressies te letten.",
+    "praxis": "Er wordt met name gesteld dat niemand een leugen kan herkennen door enkel op micro-expressies te letten."
+   },
+   {
+    "humano": "De officiële munt van de Falklandeilanden is het Falklandeilands pond (FKP). De waarde ligt ongeveer op één Brits pond (GBP).",
+    "praxis": "De officiële munt van de Falkland-Eerlanden is het Volklanteilandspont FKP. De waarde ligt ongeveer op 1 Britspont GPP."
+   },
+   {
+    "humano": "Vorige week kondigde METI aan dat Apple 34 aanvullende incidenten met oververhitting had gemeld die het bedrijf 'niet ernstig' noemde.",
+    "praxis": "Vorige week kondigde Meti aan dat Apple 34 aanvoelende incidenten met overberetting had gemeld die het bedrijf niet ernstig noemde."
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "ru",
+  "unidade": "palavras",
+  "erro_total": 0.0675,
+  "numero": 0.0025,
+  "escrita": 0.014,
+  "nome": 0.014,
+  "erro_real": 0.0369,
+  "exemplos": [
+   {
+    "humano": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией.",
+    "praxis": "В Древнем Китае использовали уникальный способ обозначения периодов времени. Каждый этап Китая или каждая семья находившиеся у власти, были особой династией."
+   },
+   {
+    "humano": "В 1990 году он был добавлен в список всемирного наследия, находящегося под угрозой из-за опасности со стороны песков пустыни.",
+    "praxis": "В 1990 году он был добавлен в список всемирного наследия, находящегося под угрозой из-за опасности со стороны песков в пустыне."
+   },
+   {
+    "humano": "Только мутации в клетках зародышевой линии могут передаваться далее детям, в то время как мутации где-то ещё могут привести к гибели клеток или раку.",
+    "praxis": "Только мутации в клетках зародышевой линии могут передаваться далее детям. в то время как мутации где-то еще могут привести к гибели клеток или раку."
+   },
+   {
+    "humano": "Серия ASUS Eee PC, ранее представленная во всём мире с ориентацией на такие факторы, как экономия средств и функциональность, стала горячей темой во время месяца информационных технологий в Тайбэе в 2007 году.",
+    "praxis": "Серия Asus EPC, ранее представленная во всем мире с ориентацией на такие факторы, как экономия средств и функциональность, стала горячей темой во время месяца информационных технологий в Тайбэе в 2007 году. Продолжение следует..."
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "tr",
+  "unidade": "palavras",
+  "erro_total": 0.0761,
+  "numero": 0.0028,
+  "escrita": 0.0085,
+  "nome": 0.0254,
+  "erro_real": 0.0394,
+  "exemplos": [
+   {
+    "humano": "Aynı ay, başka bir yolcu uçağı Meşhed'deki bir pisti aşarak bir duvara çarptı ve on yedi kişinin ölümüne neden oldu.",
+    "praxis": "Aynı ay başka bir yolcu uçağı meşetteki bir pisti aşarak bir duvara çarptı ve 17 kişinin ölümüne neden oldu."
+   },
+   {
+    "humano": "Japonya'nın nükleer ajansına göre, tesiste radyoaktif sezyum ve iyodin tespit edildi.",
+    "praxis": "Japonya'nın nükleer ajansına göre tesiste radyoaktif sezyum ve iodin tespit edildi."
+   },
+   {
+    "humano": "Apia, Samoa'nın başkentidir. Şehir Upolu adasındadır ve 40.000'in biraz altında bir nüfusa sahiptir.",
+    "praxis": "Apia, Samoa'nın başkentidir. Şiir Upola adasındadır ve 40.000'in biraz altında bir nüfusa sahiptir."
+   },
+   {
+    "humano": "Örneğin, Kuzey Carolina'daki Bennet Okulu'ndan öğrenciler her yıl Eyalet Başkenti'ne yaptıkları gezilerle ilgili bir web sitesi tasarlarlar, her yıl web sitesi yeniden düzenlenir, ancak eski sürümler bir not defteri olarak kullanılmak üzere çevrimiçi olarak tutulur.",
+    "praxis": "Örneğin Kuzey Carolina'daki Bennett okulundan öğrenciler her yıl eyalet başkentine yaptıkları gezilerle ilgili bir web sitesi tasarlarlar. Her yıl web sitesi yeniden düzenlenir ancak eski sürümler... bir not defteri olarak kullanılmak üzere çevrim içi olarak tutulur."
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "ja",
+  "unidade": "letras",
+  "erro_total": 0.0451,
+  "numero": 0.002,
+  "escrita": 0.0,
+  "nome": 0.0,
+  "erro_real": 0.0431,
+  "exemplos": [
+   {
+    "humano": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。",
+    "praxis": "インターネットで敵対的環境構成について検索すると、おそらく現地企業の住所が出てくるでしょう。"
+   },
+   {
+    "humano": "バルセロナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタルーニャ語を理解し、ほぼ全員がスペイン語を知っています。",
+    "praxis": "バルセアナの公用語はカタルーネ語とスペイン語です。約半数がカタルーネ語を好み、大多数がカタルーネ語を理解し、ほぼ全員がスペイン語を知っています。"
+   },
+   {
+    "humano": "その長い顎には70本以上の鋭い歯が並び、口蓋には別の歯列があり、つまりここを通ったら逃げ道はないということになります。",
+    "praxis": "その長い顎には70本以上の鋭い歯が並び口外には別の歯律がありつまりここを通ったら逃げ道はないということになります"
+   },
+   {
+    "humano": "ロスビー数が小さいほど磁気反転に関して星の活性が低下するわけです。",
+    "praxis": "ロスビー数が小さいほど時期判定に関して星の活性が低下するわけです"
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "pl",
+  "unidade": "palavras",
+  "erro_total": 0.0627,
+  "numero": 0.0044,
+  "escrita": 0.0087,
+  "nome": 0.0044,
+  "erro_real": 0.0452,
+  "exemplos": [
+   {
+    "humano": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i słynące jako luksusowe nadmorskie miejscowości wypoczynkowe.",
+    "praxis": "Większość mniejszych wysp to narody niezależne lub zmierzone z Francją i słynące jako luksusowe nadbalskie miejscowości wypoczynkowe."
+   },
+   {
+    "humano": "Zgodnie z oświadczeniem biura gubernatora wśród rannych było dziewiętnastu policjantów.",
+    "praxis": "Zgodnie z oświadczeniem biura gubernatora wśród tranych było 19 policjantów."
+   },
+   {
+    "humano": "Jak twierdzi japońska agencja nuklearna, w elektrowni wykryto radioaktywny cez oraz jod.",
+    "praxis": "Jak twierdzi japońska agencja nuklealna, w elektrowni wykryto radioaktywny ces oraz jod."
+   },
+   {
+    "humano": "Terytorium Hongkongu bierze swą nazwę od wyspy Hongkong, która stanowi najważniejszą atrakcję dla wielu turystów.",
+    "praxis": "Terytorium Hongkongu bierze swoją nazwę od wyspy Hongkong, która stanowi najważniejszą atrakcję dla wielu turystów."
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "fr",
+  "unidade": "palavras",
+  "erro_total": 0.0639,
+  "numero": 0.0054,
+  "escrita": 0.0036,
+  "nome": 0.0027,
+  "erro_real": 0.0522,
+  "exemplos": [
+   {
+    "humano": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "praxis": "Nous sommes d'accord avec la déclaration de l'USOC, Comité Olympique des Etats-Unis, selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à l'avant. à des changements significatifs au sein de notre organisation qu'à la révocation d'accréditation."
+   },
+   {
+    "humano": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "praxis": "Il a ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement, de responsabilité et leur capacité."
+   },
+   {
+    "humano": "Le rugissement du tigre ne ressemble pas au rugissement ample du lion, mais plutôt à une phrase dont les mots seraient des cris et des grondements.",
+    "praxis": "L'enregistrement du tigre ne ressemble pas à un enregistrement en plurian, mais plutôt à une phrase dont les mots seraient des cris et des grondements."
+   },
+   {
+    "humano": "Le même mois, un autre avion de ligne a fait une sortie de piste à Mashhad et a heurté un mur, tuant ainsi dix-sept personnes.",
+    "praxis": "Le même mois, un autre avion de ligne a fait une sortie de piste à Machade et heurté un mur, tuant ainsi 17 personnes."
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "ar",
+  "unidade": "palavras",
+  "erro_total": 0.0812,
+  "numero": 0.0096,
+  "escrita": 0.0151,
+  "nome": 0.0,
+  "erro_real": 0.0564,
+  "exemplos": [
+   {
+    "humano": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
+    "praxis": "تشكلت في المحيط الأطلسي اليوم عشر عاصفة مسمى لموسم الأعاصير الأطلسية العاصفة شبه الاستوائية جيري"
+   },
+   {
+    "humano": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+    "praxis": "تغادر حافلات المحطة الداخلية بين المناطق عبر النهر في خلال اليوم على الرغم من أن معظمها وخاصة المتجه منها إلى الشرق وجاكارا بومثانج تغادر بين 36 و 37"
+   },
+   {
+    "humano": "إن عرض الصوت والضوء الهرمي واحد من أمتع الأشياء الموجودة بالمنطقة للأطفال.",
+    "praxis": "إن عرض الصوت والضوء الهرمي واحدا من أمتع الأشياء الموجودة بالمنطقة للأطفال"
+   },
+   {
+    "humano": "أدى ضاربا الكرة المتمركزين في الوسط، ساشين تيندولكار وراهول درافيد، جيدًا وأقاما شراكة أكسبت للفريق مائة نقطة.",
+    "praxis": "أدى ضارب الكرة المتمركزين في الوسط ساشين تندولكار وراهولد رافد جيدا وأقام شراكة أكسبت للفريق 100 نقطة"
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "zh",
+  "unidade": "letras",
+  "erro_total": 0.0959,
+  "numero": 0.0014,
+  "escrita": 0.0,
+  "nome": 0.0,
+  "erro_real": 0.0944,
+  "exemplos": [
+   {
+    "humano": "\"适当使用博客，\"可以使学生变得更善于分析和进行思辨；通过积极回应网络材料，学生们可以在他人文章的上下文语境中找到自己的立场，并能够针对特定问题提出自己的观点（Oravec, 2002）。\"",
+    "praxis": "适当使用博客可以使学生变得更善于分析和进行思辨通过积极回忆网络材料学生们可以在他人的文章的上下文语经中找到自己的立场并能够针对特定问题提出自己的观点Work 2002"
+   },
+   {
+    "humano": "它的长下颚上布满了 70 多颗剃刀般锋利的牙齿，上颚上还有一排。这意味着任何与它相遇的东西都无路可逃。",
+    "praxis": "他的场下额上铺满了七十多颗剃刀般锋利的牙齿上额上还有一排 这意味着任何与他相遇的东西都无路可逃"
+   },
+   {
+    "humano": "Scotturb 403 路公共汽车定期发车前往辛特拉 (Sintra)，在罗卡角停靠。",
+    "praxis": "Skoll Turbo 403路公交汽车定期发车前往新特拉,在罗卡角停靠。"
+   },
+   {
+    "humano": "执政党西南非洲人民组织 (SWAPO) 也在议会选举中保持了多数席位。",
+    "praxis": "执政党西南非洲人民组织也在议会选举中饱受了多数席位"
+   }
+  ]
+ },
+ {
+  "model": "large-v3",
+  "lang": "ko",
+  "unidade": "palavras",
+  "erro_total": 0.1509,
+  "numero": 0.01,
+  "escrita": 0.005,
+  "nome": 0.0017,
+  "erro_real": 0.1343,
+  "exemplos": [
+   {
+    "humano": "다리 밑 수직 간격은 15미터이며, 공사는 2011년 8월에 마무리되었으며, 해당 다리의 통행금지는 2017년 3월까지이다.",
+    "praxis": "다리 및 수직 간격은 15m이며 공사는 2011년 8월에 마무리되었으며 해당 다리의 통행금지는 2017년 3월까지이다."
+   },
+   {
+    "humano": "델 포트로가 2세트에서 먼저 어드밴티지를 얻었지만 6 대 6이 된 후 다시 타이 브레이크가 필요했다.",
+    "praxis": "델포트로가 2세트에서 먼저 어드밴티즈를 얻었지만 6대6이 된 후 다시 타이 브레이크가 필요했다."
+   },
+   {
+    "humano": "염소 사육은 대략 일만 년 전에 이란의 자그로스산맥에서 시작한 것으로 보입니다.",
+    "praxis": "염소사육은 대략 1만 년 전에 이란의 자그로스 산맥에서 시작한 것으로 보입니다."
+   },
+   {
+    "humano": "홍콩의 스카이라인을 이루는 빌딩 행렬은 빅토리아 항구의 수면에 선명히 비치는 모습 때문에 반짝이는 막대그래프에 비유된다.",
+    "praxis": "홍콩의 스카이라인을 이루는 빌딩 행렬은 빅토리아 항구의 수면에 선명히 비치는 모습 때문에 반짝이는 막대 그래프에 비유된다."
+   }
+  ]
+ }
+]

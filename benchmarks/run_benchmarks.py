@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform
 import queue
 import re
@@ -116,9 +117,31 @@ def read16k(path: Path) -> np.ndarray:
 SEG_KW: dict = {}   # substituições do vad_worker para experimentos (max_seg_s, smart_cut, preroll_s)
 
 
+# PRAXIS_CACHE_TRECHOS=<pasta>: guarda/relê os trechos cortados. Permite cortar num processo
+# e transcrever noutro (o sherpa-onnx de placa de vídeo não convive com o onnxruntime do
+# detector de fala no mesmo processo).
+SEG_CACHE = os.environ.get("PRAXIS_CACHE_TRECHOS")
+
+
 def live_segments(audio: np.ndarray, trailing_silence_s: float = 0.6) -> list[np.ndarray]:
     """Passa o áudio bloco a bloco pelo praxis.vad_worker (detector de fala
     Silero, limiares de produção) e devolve os trechos int16 que ele emite."""
+    if SEG_CACHE:
+        import hashlib
+        key = hashlib.sha256(audio.tobytes() + repr((trailing_silence_s, sorted(SEG_KW.items()),
+                                                      praxis.VAD_THRESHOLD)).encode()).hexdigest()[:24]
+        f = Path(SEG_CACHE) / f"{key}.npz"
+        if f.exists():
+            z = np.load(f)
+            return [z[k] for k in sorted(z.files, key=int)]
+        segs = _live_segments(audio, trailing_silence_s)
+        f.parent.mkdir(parents=True, exist_ok=True)
+        np.savez(f, **{str(i): s for i, s in enumerate(segs)})
+        return segs
+    return _live_segments(audio, trailing_silence_s)
+
+
+def _live_segments(audio: np.ndarray, trailing_silence_s: float = 0.6) -> list[np.ndarray]:
     chunk = praxis.VAD_CHUNK
     pad = np.zeros(int(trailing_silence_s * praxis.SR), np.float32)
     x = np.concatenate([audio, pad])

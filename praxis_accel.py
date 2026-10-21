@@ -604,29 +604,32 @@ class SherpaASR(ParakeetASR):
         import praxis_platform as plat
         d = (Path(base) if base else plat.data_dir() / "modelos") / SHERPA_MODELS[name]
         pick = lambda pat: str(sorted(d.glob(pat))[0])       # noqa: E731
-        self.backend = "cpu"
+        # experimento: PRAXIS_SHERPA_PLACA=cuda com o pacote do sherpa-onnx para placa de vídeo
+        self.backend = os.environ.get("PRAXIS_SHERPA_PLACA", "cpu")
         self.name = name
         n = max(1, (os.cpu_count() or 4) // 2)
+        prov = {"provider": self.backend}
         self._lang_recs: dict = {}
         if name == "qwen3-asr-0.6b":
             self.rec = sherpa_onnx.OfflineRecognizer.from_qwen3_asr(
                 conv_frontend=pick("conv_frontend*.onnx"), encoder=pick("encoder*.onnx"),
-                decoder=pick("decoder*.onnx"), tokenizer=str(d / "tokenizer"), num_threads=n)
+                decoder=pick("decoder*.onnx"), tokenizer=str(d / "tokenizer"), num_threads=n, **prov)
         elif name == "funasr-nano":
             self.rec = sherpa_onnx.OfflineRecognizer.from_funasr_nano(
                 encoder_adaptor=pick("encoder_adaptor*.onnx"), llm=pick("llm*.onnx"),
-                embedding=pick("embedding*.onnx"), tokenizer=str(d / "Qwen3-0.6B"), num_threads=n)
+                embedding=pick("embedding*.onnx"), tokenizer=str(d / "Qwen3-0.6B"), num_threads=n, **prov)
         else:   # cohere: o idioma precisa ser informado → um reconhecedor por idioma
             self._make = lambda lang: sherpa_onnx.OfflineRecognizer.from_cohere_transcribe(
                 encoder=pick("encoder*.onnx"), decoder=pick("decoder*.onnx"),
-                tokens=str(d / "tokens.txt"), num_threads=n, language=lang or "")
+                tokens=str(d / "tokens.txt"), num_threads=n, language=lang or "", **prov)
             self.rec = None
 
     def transcribe(self, audio, language=None, **opts):
-        if self.name == "cohere-transcribe":
-            if language not in self._lang_recs:
-                self._lang_recs[language] = self._make(language)
-            self.rec = self._lang_recs[language]
+        if self.name == "cohere-transcribe" and language not in self._lang_recs:
+            # um reconhecedor por vez: cada cópia ocupa ~2 GB da placa de vídeo
+            self._lang_recs.clear()
+            self.rec = None
+            self._lang_recs[language] = self.rec = self._make(language)
         return super().transcribe(audio, language, **opts)
 
 
@@ -686,7 +689,7 @@ def load_asr(model_name: str, backend: str, log=print):
     if model_name in PARAKEET_MODELS:
         # roda no processador mesmo com placa de vídeo: é rápido e o pacote do sherpa-onnx
         # instalado pelo Praxis não usa a placa
-        return ParakeetASR(model_name, "cpu")
+        return ParakeetASR(model_name, os.environ.get("PRAXIS_SHERPA_PLACA", "cpu"))
     if model_name in SHERPA_MODELS:
         return SherpaASR(model_name, backend)
     from faster_whisper import WhisperModel

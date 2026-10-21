@@ -14,7 +14,7 @@ Meta de qualidade: **1% de erro, teto de 3%**. Idioma acima do teto num computad
 
 O NLLB tem licença **CC BY-NC 4.0**: uso não comercial. O Praxis é aberto (MIT); quem usar o Praxis comercialmente precisa usar o Argos.
 
-Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 do NLLB, 222 de 720 frases quebradas e 2,8 s por frase; os modelos tiny, base e medium; **Qwen3-ASR 0.6B** (pior em quase tudo e 3 a 9 s por trecho no processador); **Cohere Transcribe** (erra pouco, francês 3,0% e árabe 6,3%, mas leva 4 s por trecho no processador; candidato para a placa de vídeo); **Fun-ASR Nano** (não transcreveu japonês e a licença não está clara).
+Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 do NLLB, 222 de 720 frases quebradas e 2,8 s por frase; os modelos tiny, base e medium; **Qwen3-ASR 0.6B** (pior em quase tudo e 3 a 9 s por trecho no processador); **Cohere Transcribe** (erra pouco: francês 2,9%, português 2,3%, árabe 6,5%; mas leva 4 s por trecho no processador e 1,4 a 1,8 s na placa de vídeo, porque só existe a versão comprimida para processador; candidato quando houver versão para placa de vídeo); **Fun-ASR Nano** (não transcreveu japonês e a licença não está clara).
 
 ## 2. Qualidade por idioma: erro real no uso ao vivo
 
@@ -66,6 +66,8 @@ Descartados depois de medir: **MADLAD-400** (Google), com nota 41,8 contra 58,3 
 - A placa de vídeo só é usada se não for mais fraca que o processador. Isso é medido na primeira execução: neste Mac a placa perdeu, no lab2 ganhou.
 - Idioma acima do teto de 3% não é oferecido naquele computador.
 - Tradução automática: NLLB onde ele é melhor, Argos no resto.
+
+- Whisper large-v3 comparando 5 caminhos: só ajuda no árabe (7,6% → 5,6%); nos outros idiomas fica igual e mais lento.
 
 **Testados e descartados:** esperar mais silêncio antes de cortar; comparar 5 caminhos na transcrição; repetir o fim do trecho anterior (o Whisper passou a inventar "E aí" e "Obrigado"); velocidade de voz "prevista"; usar o contexto da frase anterior.
 
