@@ -9,3 +9,4 @@ pub mod tts;
 pub mod pipeline;
 pub mod devices;
 pub mod models;
+pub mod session;
