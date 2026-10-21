@@ -12,11 +12,11 @@ TMP="$(mktemp -d)"
 case "$(uname -s)-$(uname -m)" in
     Darwin-x86_64) PLAT="macosx_11_0_x86_64" ;;
     Darwin-arm64)  PLAT="macosx_11_0_arm64" ;;
-    Linux-x86_64)  PLAT="manylinux_2_17_x86_64" ;;
+    Linux-x86_64)  PLAT="manylinux_2_28_x86_64" ;;
     *) echo "sistema sem pacote oficial do CTranslate2" >&2; exit 1 ;;
 esac
-python3 -m pip download --quiet --no-deps --only-binary :all: --python-version 3.12 \
-    --platform "$PLAT" "ctranslate2==$VER" -d "$TMP"
+"${PYTHON:-python3}" -m pip download --quiet --no-deps --only-binary :all: --python-version 3.12 \
+    --platform "$PLAT" --platform manylinux_2_17_x86_64 "ctranslate2==$VER" -d "$TMP"
 mkdir -p "$OUT"
 ( cd "$TMP" && unzip -q -o ./*.whl 'ctranslate2/.dylibs/*' 'ctranslate2.libs/*' 2>/dev/null || true )
 if [[ -d "$TMP/ctranslate2/.dylibs" ]]; then           # macOS
@@ -31,7 +31,12 @@ else                                                    # Linux
     LIB="$(ls "$OUT"/libctranslate2*.so* | head -1)"
     ln -sf "$(basename "$LIB")" "$OUT/libctranslate2.so"
 fi
-# o ct2rs pede a biblioteca "cpu_features", que no pacote oficial já está dentro do CTranslate2
-echo "" | cc -x c -c -o "$TMP/vazio.o" - && ar rcs "$OUT/libcpu_features.a" "$TMP/vazio.o"
+# o ct2rs pede bibliotecas que, no pacote oficial, já estão dentro do CTranslate2 ou são
+# carregadas por ele na hora de rodar (cpu_features; cuBLAS da NVIDIA no Linux):
+# arquivos vazios só para a ligação passar
+echo "" | cc -x c -c -o "$TMP/vazio.o" -
+for lib in cpu_features cublas_static cublasLt_static culibos; do
+    ar rcs "$OUT/lib$lib.a" "$TMP/vazio.o"
+done
 rm -rf "$TMP"
 ls -la "$OUT"

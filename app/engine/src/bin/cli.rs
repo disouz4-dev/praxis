@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{bail, Result};
-use praxis_engine::{asr::WhisperAsr, audio, mt};
+use praxis_engine::{asr::WhisperAsr, audio, mt, vad};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -25,6 +25,54 @@ fn main() -> Result<()> {
                 eprintln!("rodada {}: {:.2} s", i + 1, t.elapsed().as_secs_f32());
             }
             println!("{}", serde_json::to_string_pretty(&r)?);
+        }
+        // asr-corpus-ao-vivo <modelo> <pasta> <idioma> <saída.json> <silero.onnx> [--max-seg=6]
+        Some("asr-corpus-ao-vivo") if pos.len() == 6 => {
+            let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;
+            let dir = PathBuf::from(pos[2]);
+            let lang = pos[3].as_str();
+            let max_seg: f32 = args.iter().find_map(|a| a.strip_prefix("--max-seg=")).and_then(|v| v.parse().ok()).unwrap_or(6.0);
+            let threshold: f32 = args.iter().find_map(|a| a.strip_prefix("--limiar=")).and_then(|v| v.parse().ok()).unwrap_or(vad::THRESHOLD);
+            let manifest: Vec<serde_json::Value> =
+                serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json"))?)?;
+            let (mut samples, mut asr_s, mut audio_s, mut nseg) = (vec![], 0f64, 0f64, 0usize);
+            for it in &manifest {
+                let file = it["file"].as_str().unwrap_or_default();
+                let mut a = audio::read_wav_16k_mono(&dir.join(file))?;
+                audio_s += a.len() as f64 / 16_000.0;
+                a.extend(std::iter::repeat(0.0).take(16_000 * 6 / 10)); // 0,6 s de silêncio no fim
+                let cfg = vad::SegmenterConfig { max_seg_s: max_seg, threshold, ..Default::default() };
+                let chunks: Vec<&[f32]> = a.chunks(vad::CHUNK).filter(|c| c.len() == vad::CHUNK).collect();
+                let mut parts = vec![];
+                if pos[5].contains("v5") {
+                    let mut seg = vad::Segmenter::new(vad::SileroProbe::load(pos[5], threshold)?, cfg);
+                    for c in &chunks { parts.extend(seg.push(c)); }
+                    parts.extend(seg.flush());
+                } else {
+                    let mut seg = vad::Segmenter::new(vad::SileroV6::load(pos[5], threshold)?, cfg);
+                    for c in &chunks { parts.extend(seg.push(c)); }
+                    parts.extend(seg.flush());
+                }
+                nseg += parts.len();
+                let t = Instant::now();
+                let mut texts = vec![];
+                for p in &parts {
+                    let r = asr.transcribe(p, lang)?;
+                    if !r.text.is_empty() {
+                        texts.push(r.text);
+                    }
+                }
+                asr_s += t.elapsed().as_secs_f64();
+                let hyp = texts.join(" ");
+                eprintln!("  {file}  {} trechos  {hyp}", parts.len());
+                samples.push(serde_json::json!({"file": file, "speaker": it["speaker"], "ref": it["text"],
+                    "hyp": "", "hyp_live": hyp, "dur_s": 0}));
+            }
+            let out = serde_json::json!({"kind": "asr", "engine": "praxis-rs", "results": [{
+                "model": "rust", "lang": lang, "n": samples.len(), "backend": asr.device,
+                "live_segments": nseg, "rtf_live": asr_s / audio_s.max(1e-9), "samples": samples}]});
+            std::fs::write(pos[4], serde_json::to_string_pretty(&out)?)?;
+            eprintln!("trechos por frase: {:.2}", nseg as f64 / manifest.len().max(1) as f64);
         }
         Some("asr-corpus") if pos.len() == 5 => {
             let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;
