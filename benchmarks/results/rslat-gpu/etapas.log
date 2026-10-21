@@ -1,0 +1,38 @@
+voz na placa de vídeo: true
+  trecho  0: silêncio  452 | reconhecer  504 | traduzir  214 | voz  444 | fila     0 ms
+  trecho  1: silêncio  548 | reconhecer  578 | traduzir  193 | voz  432 | fila     0 ms
+  trecho  2: silêncio  708 | reconhecer  384 | traduzir  102 | voz  328 | fila  8764 ms
+  trecho  3: silêncio  547 | reconhecer  375 | traduzir   60 | voz  250 | fila 10168 ms
+  trecho  4: silêncio  387 | reconhecer  490 | traduzir  151 | voz  340 | fila     0 ms
+  trecho  5: silêncio  451 | reconhecer  477 | traduzir  139 | voz  253 | fila     0 ms
+  trecho  6: silêncio  547 | reconhecer  486 | traduzir  157 | voz  403 | fila     0 ms
+  trecho  7: silêncio  579 | reconhecer  505 | traduzir  182 | voz  305 | fila     0 ms
+  mediana: silêncio 547 | reconhecer 490 | traduzir 157 | voz 340 | fila 0 ms
+es->en: atraso típico 1613 ms, pior caso comum 11400 ms, máx. 11400 ms | crescimento -8714 ms | pendente 0.0 s | ACOMPANHA
+voz na placa de vídeo: true
+  trecho  0: silêncio  515 | reconhecer  431 | traduzir  103 | voz  307 | fila     0 ms
+  trecho  1: silêncio  548 | reconhecer  508 | traduzir  234 | voz  246 | fila     0 ms
+  trecho  2: silêncio  227 | reconhecer  507 | traduzir  246 | voz  290 | fila     0 ms
+  trecho  3: silêncio  611 | reconhecer  480 | traduzir  139 | voz  256 | fila     0 ms
+  trecho  4: silêncio  451 | reconhecer  479 | traduzir  144 | voz  308 | fila     0 ms
+  trecho  5: silêncio  259 | reconhecer  445 | traduzir   53 | voz  243 | fila  4391 ms
+  trecho  6: silêncio  131 | reconhecer  374 | traduzir   59 | voz  244 | fila  3371 ms
+  trecho  7: silêncio  515 | reconhecer  523 | traduzir  187 | voz  272 | fila     0 ms
+  trecho  8: silêncio  419 | reconhecer  454 | traduzir   61 | voz  275 | fila     0 ms
+  trecho  9: silêncio  515 | reconhecer  380 | traduzir   67 | voz  254 | fila   557 ms
+  trecho 10: silêncio  515 | reconhecer  425 | traduzir   67 | voz  280 | fila     0 ms
+  trecho 11: silêncio  163 | reconhecer  422 | traduzir   62 | voz  258 | fila    54 ms
+  trecho 12: silêncio  579 | reconhecer  451 | traduzir  127 | voz  329 | fila     0 ms
+  mediana: silêncio 515 | reconhecer 451 | traduzir 103 | voz 272 | fila 0 ms
+pt->en: atraso típico 1486 ms, pior caso comum 4179 ms, máx. 5391 ms | crescimento -0 ms | pendente 0.0 s | ACOMPANHA
+[2026-10-21 14:21:37.158] [info] Loaded cuBLAS library version 12.4.5
+voz na placa de vídeo: true
+  trecho  0: silêncio  642 | reconhecer  156 | traduzir   52 | voz  340 | fila     0 ms
+  trecho  1: silêncio 4675 | reconhecer  594 | traduzir  209 | voz  278 | fila     0 ms
+  trecho  2: silêncio  194 | reconhecer  459 | traduzir  224 | voz  394 | fila     0 ms
+  trecho  3: silêncio  -29 | reconhecer  629 | traduzir  261 | voz  353 | fila     0 ms
+  trecho  4: silêncio  -30 | reconhecer  389 | traduzir  230 | voz  314 | fila     0 ms
+  trecho  5: silêncio  -30 | reconhecer  289 | traduzir  172 | voz  358 | fila     0 ms
+  trecho  6: silêncio  -30 | reconhecer  530 | traduzir  235 | voz  304 | fila     0 ms
+  mediana: silêncio -29 | reconhecer 459 | traduzir 224 | voz 340 | fila 0 ms
+en->pt: atraso típico 1190 ms, pior caso comum 5755 ms, máx. 5755 ms | crescimento -369 ms | pendente 0.0 s | ACOMPANHA

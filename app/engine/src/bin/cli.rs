@@ -133,7 +133,11 @@ fn main() -> Result<()> {
                     Arc::new(pipeline::ArgosRoute(route))
                 }
             };
-            let voice = Arc::new(tts::PiperVoice::load(pos[8].as_ref(), 2)?);
+            // a voz fala o idioma de destino; o Kokoro precisa de 4 núcleos
+            let vdir = PathBuf::from(pos[8]);
+            let vthreads = if vdir.join("voices.bin").exists() { 4 } else { 2 };
+            let voice = Arc::new(tts::Voice::load_on(&vdir, &tgt, vthreads, gpu)?);
+            eprintln!("voz na placa de vídeo: {}", gpu && vdir.join("voices.bin").exists() && tts::cuda_provider_available());
             // aquecimento (como o teste do Python)
             asr.transcribe(&vec![0.0; 16_000], &src)?;
             translator.translate("warm up.", &src, &tgt)?;
@@ -183,7 +187,35 @@ fn main() -> Result<()> {
                     pipeline::Event::Transcript { text, .. } => transcript.push(text.clone()),
                     pipeline::Event::Translation { text, .. } => translation.push(text.clone()),
                     pipeline::Event::Error { msg } => eprintln!("erro: {msg}"),
+                    pipeline::Event::Stage { .. } => {}
                 }
+            }
+            // onde vai o tempo, trecho a trecho: espera do silêncio → reconhecer → traduzir → voz → fila
+            let mut at: std::collections::HashMap<(usize, String), f32> = std::collections::HashMap::new();
+            let mut emitted = std::collections::HashMap::new();
+            for e in &evs {
+                match e {
+                    pipeline::Event::Stage { id, stage, at_s, .. } => { at.insert((*id, stage.clone()), *at_s); }
+                    pipeline::Event::Segment { id, emitted_s, .. } => { emitted.insert(*id, *emitted_s); }
+                    _ => {}
+                }
+            }
+            let mut ids: Vec<usize> = first_play.keys().cloned().collect();
+            ids.sort();
+            let mut cols: Vec<Vec<f32>> = vec![vec![]; 5];
+            for id in &ids {
+                let g = |k: &str| at.get(&(*id, k.to_string())).cloned();
+                if let (Some(end), Some(em), Some(a), Some(b), Some(c), Some(p)) =
+                    (ends.get(id), emitted.get(id), g("transcrito"), g("traduzido"), g("voz"), first_play.get(id)) {
+                    let row = [em - end, a - em, b - a, c - b, p - c].map(|x| x * 1000.0);
+                    eprintln!("  trecho {id:2}: silêncio {:4.0} | reconhecer {:4.0} | traduzir {:4.0} | voz {:4.0} | fila {:5.0} ms",
+                              row[0], row[1], row[2], row[3], row[4]);
+                    for (c, v) in cols.iter_mut().zip(row) { c.push(v); }
+                }
+            }
+            if !cols[0].is_empty() {
+                let m: Vec<f32> = cols.iter_mut().map(|c| pct(c, 0.5)).collect();
+                eprintln!("  mediana: silêncio {:.0} | reconhecer {:.0} | traduzir {:.0} | voz {:.0} | fila {:.0} ms", m[0], m[1], m[2], m[3], m[4]);
             }
             let mut lats: Vec<(f32, f32)> = first_play.iter().filter_map(|(id, p)| ends.get(id).map(|e| (*e, (p - e) * 1000.0))).collect();
             lats.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());

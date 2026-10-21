@@ -46,6 +46,12 @@ pub struct Voice {
 /// Nome antigo: o Praxis começou só com o Piper.
 pub type PiperVoice = Voice;
 
+/// A biblioteca do onnxruntime com placa de vídeo NVIDIA está ao lado do programa?
+pub fn cuda_provider_available() -> bool {
+    let name = if cfg!(target_os = "windows") { "onnxruntime_providers_cuda.dll" } else { "libonnxruntime_providers_cuda.so" };
+    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join(name).exists())).unwrap_or(false)
+}
+
 fn file_with(dir: &Path, prefix: &str, ext: &str) -> Result<String> {
     let mut v: Vec<_> = std::fs::read_dir(dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
@@ -70,8 +76,18 @@ impl Voice {
     }
 
     pub fn load_for(dir: &Path, lang: &str, threads: i32) -> Result<Self> {
+        Self::load_on(dir, lang, threads, false)
+    }
+
+    /// `gpu`: o Kokoro roda na placa de vídeo quando a biblioteca de placa de vídeo do
+    /// onnxruntime acompanha o Praxis (medido: 0,39 s para 4,4 s de fala, contra ~1 s no
+    /// processador). O Supertonic fica no processador: na placa ele não ganhou.
+    pub fn load_on(dir: &Path, lang: &str, threads: i32, gpu: bool) -> Result<Self> {
         let s = |p: &Path| Some(p.to_string_lossy().to_string());
         let mut model = OfflineTtsModelConfig { num_threads: threads, ..Default::default() };
+        if gpu && dir.join("voices.bin").exists() && cuda_provider_available() {
+            model.provider = Some("cuda".into());
+        }
         let mut config = OfflineTtsConfig { max_num_sentences: 1, ..Default::default() };
         let kind = if dir.join("voices.bin").exists() {
             let (_, sid, code) = KOKORO_VOICES.iter().find(|(l, _, _)| *l == lang)

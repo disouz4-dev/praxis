@@ -69,6 +69,8 @@ pub enum Event {
     Segment { dir: String, id: usize, speech_end_s: f32, emitted_s: f32 },
     /// começou a tocar a tradução de um trecho
     Play { dir: String, id: usize, start_s: f32, dur_s: f32 },
+    /// uma etapa terminou para um trecho ("transcrito", "traduzido", "voz"), no relógio do áudio
+    Stage { dir: String, id: usize, stage: String, at_s: f32 },
 }
 
 pub struct Shared {
@@ -171,8 +173,13 @@ pub fn spawn_direction(
                     if t.text.is_empty() {
                         return Ok(None);
                     }
+                    let stage = |name: &str| {
+                        let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: name.into(), at_s: shared.now_s() });
+                    };
+                    stage("transcrito");
                     let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: t.text.clone() });
                     let tr = translator.translate(&t.text, &dir.src, &dir.tgt)?;
+                    stage("traduzido");
                     let _ = events.send(Event::Translation { dir: dir.name.clone(), text: tr.clone() });
                     Ok(Some(tr))
                 })();
@@ -185,10 +192,13 @@ pub fn spawn_direction(
                     }
                 };
                 // síntese por frase: a primeira começa a tocar enquanto a próxima é sintetizada
-                for sent in speech_chunks(&translated) {
+                for (k, sent) in speech_chunks(&translated).into_iter().enumerate() {
                     let scale = speech_length_scale(*backlog.lock().unwrap());
                     match voice.synthesize(&sent, scale) {
                         Ok(pcm) if !pcm.is_empty() => {
+                            if k == 0 {
+                                let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
+                            }
                             *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
                             let _ = play_tx.send((id, pcm, voice.sample_rate));
                         }

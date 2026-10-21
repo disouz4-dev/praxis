@@ -275,7 +275,7 @@ impl Session {
         progress(85, "Carregando a voz…");
         // o Kokoro precisa de mais núcleos (só é usado no processador para o chinês)
         let voice_threads = |dir: &Path| if dir.join("voices.bin").exists() && !gpu { 4 } else { 2 };
-        let voice_out = Arc::new(Voice::load_for(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir))?);
+        let voice_out = Arc::new(Voice::load_on(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu)?);
         let shared = Shared::new();
         let stop_capture = Arc::new(AtomicBool::new(false));
         let (ptx, prx) = std::sync::mpsc::channel::<pipeline::Event>();
@@ -297,7 +297,7 @@ impl Session {
 
         // volta (bilateral): a outra pessoa → tradução → minha saída
         if let Some(dir) = voice_in_dir {
-            let voice_in = Arc::new(Voice::load_for(&dir, &cfg.src, voice_threads(&dir))?);
+            let voice_in = Arc::new(Voice::load_on(&dir, &cfg.src, voice_threads(&dir), gpu)?);
             let (itx, irx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(vm.peer_capture.clone(), itx, stop_capture.clone())?);
             let in_dir = Direction { name: "in".into(), src: cfg.tgt.clone(), tgt: cfg.src.clone(),

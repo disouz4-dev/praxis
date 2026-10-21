@@ -105,6 +105,7 @@ impl WhisperAsr {
 /// O idioma é reconhecido sozinho; pontuação e maiúsculas vêm prontas.
 pub struct ParakeetAsr {
     rec: sherpa_onnx::OfflineRecognizer,
+    pub device: &'static str,
 }
 
 impl ParakeetAsr {
@@ -154,7 +155,7 @@ impl ParakeetAsr {
         config.model_config.provider = Some(if gpu { "cuda" } else { "cpu" }.into());
         let rec = sherpa_onnx::OfflineRecognizer::create(&config)
             .ok_or_else(|| anyhow!("não foi possível carregar o Parakeet de {}", dir.display()))?;
-        Ok(Self { rec })
+        Ok(Self { rec, device: if gpu { "cuda" } else { "cpu" } })
     }
 
     /// Volume ajustado (pico em PEAK, no máximo MAX_GAIN vezes) e silêncio antes e depois.
@@ -193,9 +194,10 @@ impl Asr {
     /// Pasta com tokens.txt e encoder*.onnx → Parakeet; senão, Whisper (CTranslate2).
     pub fn load(model_dir: &Path, gpu: bool, threads: usize) -> Result<Self> {
         if Self::is_parakeet(model_dir) {
-            // no processador mesmo com placa de vídeo: é rápido e a biblioteca do sherpa-onnx
-            // que acompanha o Praxis não usa a placa
-            Ok(Self::Parakeet(ParakeetAsr::load(model_dir, false, if threads == 0 { default_threads() } else { threads })?))
+            // na placa de vídeo quando a biblioteca de placa de vídeo do onnxruntime acompanha o
+            // Praxis (a placa é sempre o motor principal); senão no processador
+            let on_gpu = gpu && crate::tts::cuda_provider_available();
+            Ok(Self::Parakeet(ParakeetAsr::load(model_dir, on_gpu, if threads == 0 { default_threads() } else { threads })?))
         } else {
             Ok(Self::Whisper(WhisperAsr::load(model_dir, gpu, threads)?))
         }
@@ -211,7 +213,7 @@ impl Asr {
     pub fn device(&self) -> &'static str {
         match self {
             Self::Whisper(w) => w.device,
-            Self::Parakeet(_) => "cpu",
+            Self::Parakeet(p) => p.device,
         }
     }
 
