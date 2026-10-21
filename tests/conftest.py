@@ -120,3 +120,21 @@ def cfg_module(tmp_path, monkeypatch):
     monkeypatch.setattr(pc, "CONFIG_FILE", tmp_path / "cfg" / "config.json")
     monkeypatch.setattr(pc, "VOICES_DIR", tmp_path / "voices")
     return pc
+
+
+@pytest.fixture(autouse=True)
+def _sem_limite_de_qualidade(monkeypatch):
+    """O limite de qualidade por idioma (praxis_accel.QUALITY_LIMIT) depende do hardware
+    de quem roda os testes; fora dos testes dele mesmo, não pode bloquear nada."""
+    import praxis_accel
+    monkeypatch.setattr(praxis_accel, "QUALITY_LIMIT", 1.0)
+
+
+@pytest.fixture(autouse=True)
+def _comparacao_da_placa_em_arquivo_temporario(monkeypatch, tmp_path):
+    """A comparação placa de vídeo × processador nunca pode rodar de verdade nem gravar
+    no arquivo real de quem roda os testes."""
+    import praxis_accel
+    monkeypatch.setattr(praxis_accel, "_check_file", lambda: tmp_path / "placa_de_video.json")
+    monkeypatch.setattr(praxis_accel, "compare_gpu_cpu",
+                        lambda b: {"backend": b, "usar_gpu": True, "motivo": "teste"})

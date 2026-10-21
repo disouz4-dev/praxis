@@ -11,6 +11,8 @@ import pytest
 
 import praxis_accel as accel
 
+_COMPARE_REAL = accel.compare_gpu_cpu      # o conftest troca por um dublê em todos os testes
+
 
 @pytest.fixture
 def hw(monkeypatch):
@@ -28,6 +30,7 @@ def hw(monkeypatch):
         real_has = accel._has
         monkeypatch.setattr(accel, "_has", lambda m: mlx if m == "mlx_whisper" else real_has(m))
         monkeypatch.setattr(accel, "gpu_names", lambda: ())
+        monkeypatch.setattr(accel, "gpu_check_cached", lambda b: None)    # nada medido ainda
         monkeypatch.delenv("PRAXIS_DEVICE", raising=False)
     return _set
 
@@ -38,7 +41,7 @@ def hw(monkeypatch):
     (dict(apple_silicon=True, mlx=True), "mlx"),                       # M1–M4 com mlx-whisper
     (dict(apple_silicon=True, mlx=False, wcpp="metal"), "whispercpp"), # série M, whisper.cpp com Metal
     (dict(apple_silicon=True), "cpu"),                                 # série M, nada extra
-    (dict(intel_mac=True, wcpp="metal"), "cpu"),                       # Mac Intel+AMD: Metal deu resultado errado nas medições
+    (dict(intel_mac=True, wcpp="metal"), "whispercpp"),                # Mac Intel+AMD: tenta a placa (a medição decide)
     (dict(wcpp="vulkan", system="Windows"), "whispercpp"),             # GPU AMD/Intel no Windows
     (dict(wcpp="vulkan"), "whispercpp"),                               # GPU AMD/Intel no Linux
     (dict(wcpp="hip"), "whispercpp"),                                  # versão compilada com ROCm
@@ -220,8 +223,8 @@ def test_recomenda_modelo_por_hardware():
 
 def test_recomenda_modelo_avisa_sobre_idiomas_fracos():
     model, note = accel.recommend_model("hi", "cpu")
-    assert model == "small" and "hi" in note and "70%" in note
-    _, note = accel.recommend_model("fr", "cpu")
+    assert model == "small" and "hi" in note and f"{accel.MEASURED_ERROR['cpu']['hi']:.0%}" in note
+    _, note = accel.recommend_model("nl", "cpu")
     assert "placa de vídeo" in note                 # sugere a solução com GPU
     assert accel.recommend_model("pt", "cuda")[1] == ""
     assert accel.recommend_model("xx", "cpu")[1] == ""
@@ -230,3 +233,80 @@ def test_recomenda_modelo_avisa_sobre_idiomas_fracos():
 def test_cli_do_motor_aceita_modelo_auto():
     import praxis
     assert praxis.build_parser().parse_args(["--voice-out", "v.onnx"]).model == "auto"
+
+
+def test_limite_de_qualidade_bloqueia_idioma_que_erra_demais(monkeypatch):
+    monkeypatch.setattr(accel, "QUALITY_LIMIT", 0.15)
+    monkeypatch.setitem(accel.MEASURED_ERROR, "cpu", {"model": "small", "pt": 0.05, "hi": 0.70, "fr": 0.25})
+    monkeypatch.setitem(accel.MEASURED_ERROR, "gpu", {"model": "large-v3-turbo", "pt": 0.03, "hi": 0.34, "fr": 0.08})
+    assert accel.language_allowed("pt", "cpu") == (True, "")
+    ok, why = accel.language_allowed("fr", "cpu")
+    assert not ok and "francês" in why and "25%" in why and "placa de vídeo" in why and "8%" in why
+    ok, why = accel.language_allowed("hi", "cuda")
+    assert not ok and "mesmo com placa de vídeo" in why
+    assert accel.language_allowed("fr", "cuda")[0]
+    assert set(accel.blocked_languages("cpu")) == {"hi", "fr"}
+    assert accel.language_allowed("xx", "cpu")[0], "idioma sem medição não é bloqueado"
+
+
+def test_motor_recusa_idioma_fraco_e_permite_forcar(monkeypatch):
+    import praxis
+    monkeypatch.setattr(accel, "QUALITY_LIMIT", 0.03)
+    monkeypatch.setitem(accel.MEASURED_ERROR, "cpu", {"model": "small", "hi": 0.70})
+    monkeypatch.setattr(accel, "choose_asr", lambda *a, **k: ("cpu", "teste"))
+    events = []
+    monkeypatch.setattr(praxis, "_emit", events.append)
+    monkeypatch.setattr(praxis, "prepare_clone_on_mac", lambda *a: False)
+    args = praxis.build_parser().parse_args(["--voice-out", "v.onnx", "--src", "hi", "--tgt", "en"])
+    assert praxis._run(args, bilateral=False) == 2
+    assert events[-1]["code"] == "idioma_fraco" and events[-1]["lang"] == "hi"
+    # no bilateral o destino também é falado (pela outra pessoa)
+    events.clear()
+    args = praxis.build_parser().parse_args(["--voice-out", "v.onnx", "--src", "en", "--tgt", "hi"])
+    assert praxis._run(args, bilateral=True) == 2 and events[-1]["lang"] == "hi"
+    args = praxis.build_parser().parse_args(["--voice-out", "v.onnx", "--src", "hi", "--tgt", "en",
+                                             "--permitir-idioma-fraco"])
+    assert args.permitir_idioma_fraco
+
+
+def test_placa_mais_fraca_medida_volta_para_o_processador(hw, monkeypatch):
+    """Regra: com placa de vídeo usa a placa, a não ser que ela seja mais fraca que o processador."""
+    hw(intel_mac=True, wcpp="metal")
+    monkeypatch.setattr(accel, "gpu_check_cached",
+                        lambda b: {"usar_gpu": False, "motivo": "placa de vídeo erra mais que o processador"})
+    backend, why = accel.choose_asr("auto")
+    assert backend == "cpu" and "erra mais" in why
+    assert accel.choose_asr("whispercpp")[0] == "whispercpp"      # pedido explícito sempre vale
+
+
+@pytest.mark.parametrize("gpu, cpu, usar", [
+    ((0.2, 0.0), (1.0, 0.0), True),        # mais rápida e certa
+    ((2.0, 0.0), (1.0, 0.0), False),       # mais lenta
+    ((0.2, 0.5), (1.0, 0.0), False),       # rápida, mas errando (o caso do Metal no Mac Intel)
+    ((0.2, 0.03), (1.0, 0.02), True),      # diferença mínima de erro é tolerada
+])
+def test_comparacao_placa_de_video_contra_processador(monkeypatch, gpu, cpu, usar):
+    monkeypatch.setattr(accel, "_time_backend", lambda b, a: gpu if b != "cpu" else cpu)
+    assert _COMPARE_REAL("cuda")["usar_gpu"] is usar
+
+
+def test_comparacao_e_feita_uma_vez_e_guardada(hw, monkeypatch, tmp_path):
+    hw(cuda=1)
+    monkeypatch.setattr(accel, "_check_file", lambda: tmp_path / "placa_de_video.json")
+    calls = []
+    monkeypatch.setattr(accel, "compare_gpu_cpu",
+                        lambda b: calls.append(b) or {"usar_gpu": False, "motivo": "placa de vídeo mais lenta que o processador"})
+    monkeypatch.setattr(accel, "gpu_check_cached", _cached_from(tmp_path))
+    assert accel.resolve_asr("auto", log=lambda m: None)[0] == "cpu"
+    assert accel.resolve_asr("auto", log=lambda m: None)[0] == "cpu"
+    assert accel.choose_asr("auto")[0] == "cpu"
+    assert calls == ["cuda"]
+
+
+def _cached_from(tmp_path):
+    import json
+
+    def f(backend):
+        p = tmp_path / "placa_de_video.json"
+        return json.loads(p.read_text()).get(accel._hw_key(backend)) if p.exists() else None
+    return f

@@ -1,0 +1,144 @@
+[
+ {
+  "model": "base",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.2868,
+  "numero": 0.0078,
+  "escrita": 0.0155,
+  "erro_real": 0.2636,
+  "exemplos": [
+   {
+    "humano": "se todo esse sangue essas flores esses frutos não são bálsamos para aquela ferida estranha que bem fariam a cor o perfume e o sabor das coisas",
+    "praxis": "Se todo esse sangue, essas flores, esses frutos não são báulsemos para aquela ferida estranha, que bem fariam a cor perfume e o sabor das coisas."
+   },
+   {
+    "humano": "qual é a verdadeira moeda que nos domina onde o nosso ouro para que serve o nosso miserável papel senão para comprar a libra inglesa onde está a nossa fortuna pública",
+    "praxis": "Qual é a verdadeira moeda que nos domina, onde nosso loro, para que serve nosso miserável papel senão para comprar a libre inglesa, onde está a nossa fortuna pública?"
+   },
+   {
+    "humano": "durante algum tempo ninguém se moveu e a música prosseguia solitária nos seus largos e chorosos compassos mas de repente como um fauno antigo",
+    "praxis": "Durante algum tempo, ninguém se moveu e a música prosseguia solitária nos seus largos e chorosos compassos. Mas de repente, como um falo antigo,"
+   },
+   {
+    "humano": "e todavia nada parece mais injustificado que uma tal apoteose lord beaconsfield por fim foi um homem de estado que fez romances",
+    "praxis": "E, toda via, nada parece mais injustificado que o Matal Poteuase. Lord of Beconcefield, por fim, foi o homem de Estado que fez romances."
+   }
+  ]
+ },
+ {
+  "model": "base",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.0534,
+  "numero": 0.0194,
+  "escrita": 0.0146,
+  "erro_real": 0.0194,
+  "exemplos": [
+   {
+    "humano": "MEANWHILE RODOLFO HAD LEOCADIA SAFE IN HIS CUSTODY AND IN HIS OWN APARTMENT",
+    "praxis": "Meanwhile Rudolfo had Leukaria safe in his custody and in his own apartment"
+   },
+   {
+    "humano": "FOOTNOTE SUMNER TO SHANNON MAY TWELFTH EIGHTEEN FIFTY SIX",
+    "praxis": "Footnote Summary to Shannon, May 12, 1856"
+   }
+  ]
+ },
+ {
+  "model": "base",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.1129,
+  "numero": 0.0,
+  "escrita": 0.0125,
+  "erro_real": 0.1003,
+  "exemplos": [
+   {
+    "humano": "tú has muerto en mansedumbre tú con dulzura entregándote á mí en la suprema sumisión de la vida pero él",
+    "praxis": "Tú has muerto en manse d'umbre, tú con dulzura, entregándote a mí en la suprima sumisión de la vida. Pero él..."
+   },
+   {
+    "humano": "vivía ya con ellos harville había alquilado aquella casa por medio año pues sus gustos su salud y sus medios",
+    "praxis": "Vivía ya con ellos. Harvo la vía alquiliado aquella casa por medio año, poesos gustos, sus salud y sus medios."
+   },
+   {
+    "humano": "por eso hemos convenido en traer el arpa pues nos parece que ha de distraerlos mejor que el piano y os contaré el motivo de su pena",
+    "praxis": "Por eso hemos convenido entraer el arpa, pues nos parece que ha de distraer los mejor que el piano y os contaré el motivo de su pena."
+   },
+   {
+    "humano": "y en un instante quedaron enteradas de quiénes eran don quijote y su escudero de que no poco contento recibieron porque ya tenían de él noticia por su historia",
+    "praxis": "Y en un instante quedaron enteradas de quienes eran Don Quijote y su escudero, de que no poco contento recibieron porque ya tenían del noticia por su historia."
+   }
+  ]
+ },
+ {
+  "model": "small",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.155,
+  "numero": 0.0116,
+  "escrita": 0.0233,
+  "erro_real": 0.1202,
+  "exemplos": [
+   {
+    "humano": "se todo esse sangue essas flores esses frutos não são bálsamos para aquela ferida estranha que bem fariam a cor o perfume e o sabor das coisas",
+    "praxis": "Se todo esse sangue, essas flores, esses frutos não são bálsamos para aquela ferida estranha. Que bem farinha um acoro perfume e o sabor das coisas."
+   },
+   {
+    "humano": "qual é a verdadeira moeda que nos domina onde o nosso ouro para que serve o nosso miserável papel senão para comprar a libra inglesa onde está a nossa fortuna pública",
+    "praxis": "Qual é a verdadeira moeda que nos domina? Onde o nosso louro? Para que serve o nosso miserável papel, senão para comprar a Libre Inglês? Onde está a nossa fortuna pública?"
+   },
+   {
+    "humano": "e todavia nada parece mais injustificado que uma tal apoteose lord beaconsfield por fim foi um homem de estado que fez romances",
+    "praxis": "E, todavia, nada parece mais injustificado que matar a Opotheose. Lord Beaconsfield, por fim, foi um homem de estado que fez romances."
+   },
+   {
+    "humano": "e já os cigarros de ótimo bragança fumegavam enquanto ao arruído da palestra juntava-se à meia nau o ranger dos moitões e cabos do velame desfraldado",
+    "praxis": "e já os cigarros de ótimo bragança fumegavam, enquanto ao arruído da palestra juntava-se a meia-nal, o ranger dos moitões e cabos do velame desfraudado."
+   }
+  ]
+ },
+ {
+  "model": "small",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.0388,
+  "numero": 0.0194,
+  "escrita": 0.0097,
+  "erro_real": 0.0097,
+  "exemplos": [
+   {
+    "humano": "FOOTNOTE SUMNER TO SHANNON MAY TWELFTH EIGHTEEN FIFTY SIX",
+    "praxis": "Footnote Sumner to Shannon, May 12, 1856."
+   }
+  ]
+ },
+ {
+  "model": "small",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.1097,
+  "numero": 0.0,
+  "escrita": 0.0157,
+  "erro_real": 0.094,
+  "exemplos": [
+   {
+    "humano": "tú has muerto en mansedumbre tú con dulzura entregándote á mí en la suprema sumisión de la vida pero él",
+    "praxis": ""
+   },
+   {
+    "humano": "vivía ya con ellos harville había alquilado aquella casa por medio año pues sus gustos su salud y sus medios",
+    "praxis": "vivía ya con ellos. Harvill había alquillado aquella casa por medio año, por esos gustos, sus salud y sus medios."
+   },
+   {
+    "humano": "y en un instante quedaron enteradas de quiénes eran don quijote y su escudero de que no poco contento recibieron porque ya tenían de él noticia por su historia",
+    "praxis": "Y en un instante quedaron enteradas de quienes eran Don Quixote y su escudero, de que no poco contento recibieron porque ya tenían del noticia por su historia."
+   },
+   {
+    "humano": "así es la verdad respondió la doncella pero sepan vuesas mercedes que la turbación que he tenido ha sido tanta que no me ha dejado guardar el término que debía",
+    "praxis": "Así es la verdad, respondió la doncella, pero sepan vuestras Mercedes que la turbación que he tenido ha sido tanta que no me ha dejado a guardar el término que debía."
+   }
+  ]
+ }
+]

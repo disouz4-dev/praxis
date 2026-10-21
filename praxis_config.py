@@ -4682,6 +4682,24 @@ class ConfigWindow(ctk.CTk):
         save_cfg(self.cfg)
         messagebox.showinfo("Praxis", "Configurações salvas.")
 
+    _asr_backend: str | None = None
+
+    def _weak_language(self, cfg: dict) -> str:
+        """Explicação se algum idioma falado (origem; no bilateral, também o destino)
+        erra mais que o limite de qualidade neste computador; "" se está tudo bem."""
+        try:
+            import praxis_accel as accel
+            if self._asr_backend is None:
+                type(self)._asr_backend = accel.choose_asr(os.environ.get("PRAXIS_DEVICE", "auto"))[0]
+            langs = [cfg["src"]] + ([cfg["tgt"]] if cfg.get("voice_in") else [])
+            for lang in langs:
+                ok, why = accel.language_allowed(lang, self._asr_backend)
+                if not ok:
+                    return why
+        except Exception:                 # a verificação nunca pode impedir o uso normal
+            return ""
+        return ""
+
     def _launch(self) -> None:
         """Valida a configuração e inicia o motor Praxis (praxis.py) como subprocesso."""
         cfg = self._collect()
@@ -4693,6 +4711,11 @@ class ConfigWindow(ctk.CTk):
         if not Path(voice_out).exists():
             messagebox.showerror("Praxis",
                                  f"Arquivo de voz não encontrado:\n{voice_out}")
+            return
+        # Limite de qualidade: idioma que erra demais neste computador não é oferecido
+        blocked = self._weak_language(cfg)
+        if blocked:
+            messagebox.showerror("Praxis", blocked)
             return
         self.cfg.update(cfg)
         save_cfg(self.cfg)

@@ -643,3 +643,42 @@ def test_tradutor_automatico(monkeypatch, tmp_path, instalado, gpu, par, esperad
 def test_tradutor_pedido_tem_prioridade(monkeypatch):
     monkeypatch.setattr(praxis, "TRANSLATOR", "argos")
     assert praxis.translator_for("en", "ar") == "argos"
+
+
+@pytest.mark.parametrize("backend, pedido, esperado", [
+    ("cuda", None, 15.0),      # placa de vídeo: trecho maior (menos cortes no meio da fala)
+    ("mlx", None, 15.0),
+    ("cpu", None, 6.0),        # processador: trecho longo atrasaria demais
+    ("cuda", 8.0, 8.0),        # o que o usuário pediu sempre vale
+])
+def test_trecho_maximo_depende_do_hardware(monkeypatch, backend, pedido, esperado):
+    import praxis_accel
+    monkeypatch.setattr(praxis, "MAX_SEG_S", 6.0)
+    monkeypatch.setattr(praxis, "_max_seg_from_user", False)
+    monkeypatch.setattr(praxis, "prepare_clone_on_mac", lambda *a: False)
+    monkeypatch.setattr(praxis, "setup_argos", lambda *a: None)
+    monkeypatch.setattr(praxis, "_emit", lambda d: None)
+
+    class W:
+        pass
+    w = W()
+    w.backend = backend
+    monkeypatch.setattr(praxis, "load_whisper", lambda *a, **k: w)
+
+    class Parar(Exception):
+        pass
+
+    def parar(*a, **k):
+        raise Parar
+    monkeypatch.setattr(praxis, "load_piper", parar)        # só interessa o que vem antes da voz
+    argv = ["--voice-out", "v.onnx", "--model", "small"]
+    if pedido is not None:
+        argv += ["--max-segment", str(pedido)]
+    monkeypatch.setattr(praxis_accel, "choose_asr", lambda *a, **k: (backend, "teste"))
+    args = praxis.build_parser().parse_args(argv)
+    if pedido is not None:
+        monkeypatch.setattr(praxis, "MAX_SEG_S", pedido)
+        monkeypatch.setattr(praxis, "_max_seg_from_user", True)
+    with pytest.raises(Parar):
+        praxis._run(args, bilateral=False)
+    assert praxis.MAX_SEG_S == esperado

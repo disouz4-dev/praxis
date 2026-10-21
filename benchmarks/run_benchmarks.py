@@ -42,6 +42,7 @@ sys.path.insert(0, str(ROOT))
 import praxis  # noqa: E402
 
 DATA = Path(__file__).resolve().parent / "data" / "speech"
+ONLY_LIVE = False
 RESULTS = Path(__file__).resolve().parent / "results"
 VOICES = Path(__file__).resolve().parent / "data" / "voices"
 
@@ -200,7 +201,7 @@ def bench_asr(models: list[str], langs: list[str], live: bool = True) -> dict:
             for it in corpus:
                 a = read16k(it["path"])
                 t0 = time.perf_counter()
-                h = praxis.transcribe_segment(whisper, a, lang)
+                h = "" if ONLY_LIVE else praxis.transcribe_segment(whisper, a, lang)
                 dt = time.perf_counter() - t0
                 asr_t += dt
                 audio_t += len(a) / praxis.SR
@@ -409,8 +410,13 @@ def main() -> None:
     a.add_argument("--langs", nargs="+", default=["pt", "en", "es"])
     a.add_argument("--no-live", action="store_true", help="só o modo frase inteira (sem o modo ao vivo)")
     a.add_argument("--name", default="asr")
+    a.add_argument("--corpus", default="speech",
+                   help="pasta em benchmarks/data com <idioma>/manifest.json (ex.: speech_fleurs)")
     a.add_argument("--device", default=None, help="onde transcrever: auto|cpu|cuda|mlx|whispercpp")
     a.add_argument("--max-seg", type=float, help="substitui MAX_SEG_S (duração máxima de um trecho, em s)")
+    a.add_argument("--silence-ms", type=int, help="substitui SILENCE_MS (silêncio que encerra um trecho, em ms)")
+    a.add_argument("--so-ao-vivo", action="store_true", help="só o modo ao vivo (pula a frase inteira)")
+    a.add_argument("--feixe", type=int, help="substitui beam_size do Whisper (1 = guloso; 5 = compara 5 caminhos)")
     a.add_argument("--no-smart-cut", action="store_true", help="desliga o corte no ponto mais silencioso")
     a.add_argument("--preroll", type=float, help="substitui PREROLL_S (áudio guardado antes do início da fala, em s)")
     a.add_argument("--no-repeat-guard", action="store_true", help="desliga a proteção contra repetições em loop")
@@ -426,8 +432,16 @@ def main() -> None:
     global DEVICE
     DEVICE = args.device
     if args.cmd == "asr":
+        global DATA
+        DATA = DATA.parent / args.corpus
         if args.max_seg is not None:
             SEG_KW["max_seg_s"] = args.max_seg
+        if args.silence_ms is not None:
+            praxis.SILENCE_MS = args.silence_ms
+        if args.feixe is not None:
+            praxis.WHISPER_OPTS["beam_size"] = args.feixe
+        global ONLY_LIVE
+        ONLY_LIVE = args.so_ao_vivo
         if args.no_smart_cut:
             SEG_KW["smart_cut"] = False
         if args.preroll is not None:

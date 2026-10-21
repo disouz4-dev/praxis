@@ -172,7 +172,37 @@ def findings(r: dict) -> list[str]:
 
 
 ECHO_DB: float | None = None      # eco: volume (dB) com que a tradução tocada volta pelo microfone
-ECHO_DELAY_S = 0.1
+ECHO_DELAY_S = 0.1                 # atraso do aparelho (saída + entrada de som) + distância
+ECHO_ROOM_S = 0.4                  # reverberação da sala: tempo para o som cair 60 dB
+
+
+def _room_response() -> np.ndarray:
+    """Resposta de uma sala comum: o som direto mais reflexões que se apagam aos poucos."""
+    rng = np.random.default_rng(3)
+    n = int(0.5 * praxis.SR)
+    t = np.arange(n) / praxis.SR
+    h = rng.standard_normal(n) * np.exp(-6.9 * t / ECHO_ROOM_S) * 0.25
+    h[:int(0.003 * praxis.SR)] = 0.0
+    h[0] = 1.0
+    return h.astype(np.float32)
+
+
+_ROOM = None
+
+
+def room_echo(x: np.ndarray, db: float) -> np.ndarray:
+    """O que o microfone capta de `x` tocado num alto-falante: leve distorção da
+    caixa de som, reverberação da sala e volume `db` (relativo ao som tocado)."""
+    global _ROOM
+    if _ROOM is None:
+        _ROOM = _room_response()
+    if not len(x):
+        return x
+    y = np.tanh(1.5 * x) / 1.5
+    m = len(y) + len(_ROOM)
+    y = np.fft.irfft(np.fft.rfft(y, m) * np.fft.rfft(_ROOM, m), m)[:m - 1]
+    gain = np.sqrt(np.mean(x ** 2) / max(np.mean(y[:len(x)] ** 2), 1e-12))
+    return (y * gain * 10 ** (db / 20)).astype(np.float32)
 
 
 def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict:
@@ -193,7 +223,7 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
 
     def on_play(pcm, rate, start):
         x = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768
-        x = plat.resample(x, rate, praxis.SR) * (10 ** (ECHO_DB / 20))
+        x = room_echo(plat.resample(x, rate, praxis.SR), ECHO_DB)
         i = int((start + ECHO_DELAY_S) * praxis.SR)
         with echo_lock:
             j = min(len(echo), i + len(x))
@@ -300,10 +330,12 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
     speaker = "alto-falante" if ECHO_DB is not None else None
     vad_t = threading.Thread(target=praxis.vad_worker, args=(audio_q, seg_q, "vad", 0.1),
                              kwargs={"active": active, "ptt_flush": threading.Event(),
-                                     "echo_gate": praxis.ECHO_GATE}, daemon=True)
+                                     "echo_gate": praxis.ECHO_MODE == "trava"}, daemon=True)
     pipe_t = threading.Thread(target=praxis.pipeline_worker,
                               args=(seg_q, whisper, voice, src, tgt, "out", speaker is not None, speaker),
                               daemon=True)
+    praxis._echo_ref = None                               # cada par começa com o cancelador sem aprender nada
+    echo_filter = praxis.make_echo_filter() if (ECHO_DB is not None and praxis.ECHO_MODE == "cancelar") else None
     try:
         vad_t.start()
         pipe_t.start()
@@ -318,6 +350,8 @@ def run_stream(src: str, tgt: str, whisper, voice, verbose: bool = True) -> dict
             if ECHO_DB is not None:
                 with echo_lock:
                     piece = np.clip(piece + echo[k * chunk:(k + 1) * chunk], -1, 1)
+            if echo_filter is not None:                   # o motor tira o eco, como faria na captura
+                piece = echo_filter(piece)
             q16 = (piece * 32767).clip(-32768, 32767).astype(np.int16)
             i16[k * chunk:(k + 1) * chunk] = q16
             index.setdefault(q16.tobytes(), []).append(k)
@@ -497,23 +531,30 @@ def main() -> None:
                     help="testa en → cada idioma de saída (tradução + voz de cada idioma)")
     ap.add_argument("--eco", type=float, default=None, metavar="DB",
                     help="simula eco: a tradução tocada volta pelo microfone com este volume (ex.: -12)")
-    ap.add_argument("--sem-trava-de-eco", action="store_true",
-                    help="desliga a trava de eco do motor (para medir o problema sem a proteção)")
+    ap.add_argument("--modo-eco", choices=("cancelar", "trava", "nada"), default="cancelar",
+                    help="tratamento de eco do motor: cancelar (padrão), trava (microfone surdo "
+                         "enquanto toca) ou nada (para medir o problema sem proteção)")
+    ap.add_argument("--sem-trava-de-eco", action="store_true", help="o mesmo que --modo-eco nada")
     ap.add_argument("--contexto", action="store_true",
                     help="liga o contexto entre trechos (o fim do que já foi dito vai como dica ao Whisper)")
     ap.add_argument("--data-dir", default=None,
                     help="pasta com <idioma>.wav/.json (padrão: benchmarks/data/continuous)")
+    ap.add_argument("--max-seg", type=float, default=None,
+                    help="duração máxima de um trecho sem pausa (s); padrão = o do motor")
     ap.add_argument("--name", default=None)
     a = ap.parse_args()
+    if a.max_seg is not None:
+        praxis.MAX_SEG_S = a.max_seg
     global DATA, ECHO_DB
     if a.data_dir:
         DATA = Path(a.data_dir)
     ECHO_DB = a.eco
     praxis.USE_CONTEXT = bool(a.contexto)
-    praxis.ECHO_GATE = not a.sem_trava_de_eco
+    praxis.ECHO_MODE = "nada" if a.sem_trava_de_eco else a.modo_eco
     whisper = praxis.load_whisper(a.model, a.device)
     backend = getattr(whisper, "backend", a.device)
     rep = {"kind": "stream", "model": a.model, "backend": backend,
+           "eco": None if a.eco is None else {"db": a.eco, "modo": praxis.ECHO_MODE},
            "machine": rb.machine_info(), "results": []}
     if a.pairs:
         pairs = [tuple(p.split(":")) for p in a.pairs]

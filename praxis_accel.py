@@ -23,11 +23,13 @@ Para forçar, use PRAXIS_DEVICE=cpu|cuda|mlx|whispercpp ou `praxis.py --device`.
 from __future__ import annotations
 
 import functools
+import json
 import importlib.util
 import os
 import platform
 import shutil
 import subprocess
+from pathlib import Path
 from dataclasses import dataclass, field
 
 SYSTEM = platform.system()
@@ -171,20 +173,133 @@ def choose_asr(requested: str = "auto") -> tuple[str, str]:
         if req not in ASR_BACKENDS:
             raise ValueError(f"dispositivo de ASR desconhecido {requested!r}; escolha entre {ASR_BACKENDS}")
         return req, "pedido pelo usuário"
+    gpu = _gpu_candidate()
+    if gpu is None:
+        if IS_APPLE_SILICON:
+            return "cpu", "CPU do Apple Silicon (instale o mlx-whisper para usar a placa de vídeo)"
+        return "cpu", "nenhuma placa de vídeo compatível"
+    # Regra: com placa de vídeo, usa a placa — a não ser que ela tenha se mostrado mais
+    # fraca que o processador nesta máquina (comparação guardada; ver resolve_asr)
+    checked = gpu_check_cached(gpu[0])
+    if checked is not None and not checked.get("usar_gpu", True):
+        return "cpu", f"medido nesta máquina: {checked.get('motivo', 'placa de vídeo mais fraca')}"
+    return gpu
+
+
+def _gpu_candidate() -> tuple[str, str] | None:
     if cuda_device_count() > 0:
         return "cuda", f"{cuda_device_count()} dispositivo(s) CUDA"
     if IS_APPLE_SILICON and _has("mlx_whisper"):
         return "mlx", "placa de vídeo do Apple Silicon (MLX)"
     wb = whispercpp_gpu_backend()
-    if wb in ("vulkan", "cuda", "hip", "sycl"):
+    if wb in ("vulkan", "cuda", "hip", "sycl", "metal"):
         return "whispercpp", f"whisper.cpp {wb}"
-    if wb == "metal" and IS_APPLE_SILICON:
-        return "whispercpp", "whisper.cpp Metal"
-    if IS_APPLE_SILICON:
-        return "cpu", "CPU do Apple Silicon (instale o mlx-whisper para usar a placa de vídeo)"
-    if IS_INTEL_MAC:
-        return "cpu", "Mac Intel — whisper.cpp com Metal errou/foi mais lento nos testes; a CPU é melhor"
-    return "cpu", "nenhuma placa de vídeo compatível"
+    return None
+
+
+def resolve_asr(requested: str = "auto", log=print) -> tuple[str, str]:
+    """Como choose_asr, mas na primeira vez com uma placa de vídeo mede se ela não é
+    mais fraca que o processador (e guarda o resultado)."""
+    backend, why = choose_asr(requested)
+    if (requested or "auto").lower() == "auto" and backend != "cpu":
+        res = ensure_gpu_check(backend, log=log)
+        if not res.get("usar_gpu", True):
+            return "cpu", f"medido nesta máquina: {res.get('motivo')}"
+    return backend, why
+
+
+# ── Placa de vídeo × processador: a placa só é usada se não for mais fraca ──
+# Na primeira execução com uma placa de vídeo, a mesma frase curta (texto conhecido)
+# é transcrita nos dois, com o mesmo modelo; a placa só é usada se for mais rápida E
+# não errar mais. O resultado fica guardado (uma vez por máquina e placa).
+CALIBRATION_WAV = Path(__file__).resolve().parent / "assets" / "calibracao_fala.wav"
+CALIBRATION_REF = ("i must come another day and see your husband i want to have a "
+                   "consultation with him about horses")      # LibriSpeech test-clean, CC BY 4.0
+CHECK_MODEL = "base"
+
+
+def _check_file() -> Path:
+    import praxis_platform as plat
+    return plat.config_dir() / "placa_de_video.json"
+
+
+def _letters(t: str) -> str:
+    return "".join(c for c in t.lower() if c.isalnum())
+
+
+def _letter_error(ref: str, hyp: str) -> float:
+    a, b = _letters(ref), _letters(hyp)
+    prev = list(range(len(b) + 1))
+    for i, ca in enumerate(a, 1):
+        cur = [i]
+        for j, cb in enumerate(b, 1):
+            cur.append(min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (ca != cb)))
+        prev = cur
+    return prev[-1] / max(len(a), 1)
+
+
+def _time_backend(backend: str, audio) -> tuple[float, float]:
+    """(segundos por transcrição, erro por letra) da frase de calibração."""
+    import time
+    m = load_asr(CHECK_MODEL, backend, log=lambda *_: None)
+    if getattr(m, "backend", "cpu") != backend:
+        raise RuntimeError(f"{backend} indisponível")
+    seg, _ = m.transcribe(audio, language="en", beam_size=1, without_timestamps=True)
+    " ".join(s.text for s in seg)                            # aquecimento
+    t0 = time.perf_counter()
+    seg, _ = m.transcribe(audio, language="en", beam_size=1, without_timestamps=True)
+    text = " ".join(s.text for s in seg)
+    return time.perf_counter() - t0, _letter_error(CALIBRATION_REF, text)
+
+
+def compare_gpu_cpu(backend: str) -> dict:
+    """Mede a placa de vídeo (`backend`) contra o processador na frase de calibração."""
+    import soundfile as sf
+    audio, _ = sf.read(str(CALIBRATION_WAV), dtype="float32")
+    res = {"backend": backend}
+    try:
+        res["gpu_s"], res["gpu_err"] = _time_backend(backend, audio)
+    except Exception as e:
+        res.update(usar_gpu=False, motivo=f"a placa de vídeo falhou ({type(e).__name__})")
+        return res
+    res["cpu_s"], res["cpu_err"] = _time_backend("cpu", audio)
+    faster = res["gpu_s"] < res["cpu_s"]
+    as_good = res["gpu_err"] <= res["cpu_err"] + 0.02
+    res["usar_gpu"] = bool(faster and as_good)
+    res["motivo"] = ("placa de vídeo mais rápida e tão precisa quanto o processador" if res["usar_gpu"] else
+                     "placa de vídeo mais lenta e errando mais que o processador" if not (faster or as_good) else
+                     "placa de vídeo mais lenta que o processador" if not faster else
+                     "placa de vídeo erra mais que o processador")
+    return res
+
+
+def _hw_key(backend: str) -> str:
+    return f"{backend}|{SYSTEM}|{platform.machine()}|{platform.processor()}"
+
+
+def gpu_check_cached(backend: str) -> dict | None:
+    try:
+        return json.loads(_check_file().read_text(encoding="utf-8")).get(_hw_key(backend))
+    except Exception:
+        return None
+
+
+def ensure_gpu_check(backend: str, log=print) -> dict:
+    """Resultado guardado da comparação; mede na primeira vez."""
+    cached = gpu_check_cached(backend)
+    if cached is not None:
+        return cached
+    log("Comparando placa de vídeo e processador (só na primeira vez)…")
+    res = compare_gpu_cpu(backend)
+    try:
+        f = _check_file()
+        data = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+        data[_hw_key(backend)] = res
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:
+        pass
+    return res
 
 
 def choose_tts_providers() -> list[str]:
@@ -228,15 +343,57 @@ def plan(requested_asr: str | None = None) -> AccelPlan:
 # Taxa de erro da transcrição ao vivo (palavras; caracteres para zh/ja), com
 # ~1 min de fala real contínua por idioma, enviada em tempo real. Fonte:
 # benchmarks/results/stream-cuda-large-v3-turbo.json / stream-cpu-small.json.
+# Erro REAL da transcrição no modo ao vivo (palavras; letras em zh/ja), medido com 40
+# frases de vários falantes por idioma (Google FLEURS) e auditado: diferença de escrita,
+# número escrito de outro jeito e nome próprio estrangeiro não contam (benchmarks/auditar_erros.py).
+# gpu: large-v3-turbo com trecho de até 15 s · cpu: small com trecho de até 6 s.
 MEASURED_ERROR = {
     "gpu": {"model": "large-v3-turbo",
-            "pt": .05, "en": .01, "es": .03, "fr": .08, "de": .18, "it": .14, "ru": .07, "zh": .06,
-            "nl": .12, "pl": .03, "uk": .08, "tr": .12, "ar": .13, "hi": .34, "ja": .11, "ko": .07},
+            "pt": 0.022, "en": 0.032, "es": 0.016, "fr": 0.064, "de": 0.020, "it": 0.017, "ru": 0.038, "zh": 0.113, "nl": 0.054, "pl": 0.055, "uk": 0.047, "tr": 0.058, "ar": 0.092, "hi": 0.304, "ja": 0.055, "ko": 0.151},
     "cpu": {"model": "small",
-            "pt": .08, "en": .03, "es": .03, "fr": .25, "de": .29, "it": .32, "ru": .16, "zh": .29,
-            "nl": .21, "pl": .16, "uk": .19, "tr": .24, "ar": .31, "hi": .70, "ja": .20, "ko": .08},
+            "pt": 0.078, "en": 0.075, "es": 0.060, "fr": 0.159, "de": 0.091, "it": 0.086, "ru": 0.106, "zh": 0.173, "nl": 0.227, "pl": 0.192, "uk": 0.211, "tr": 0.166, "ar": 0.293, "hi": 0.745, "ja": 0.168, "ko": 0.252},
 }
 POOR_QUALITY = 0.20      # acima desta proporção de erros o usuário recebe um aviso
+# Limite de qualidade: um idioma que erra mais que isto neste hardware NÃO é oferecido
+# Meta do produto: 1% de erro; teto de 3% (decisão do Diego, 2026-10-20).
+QUALITY_LIMIT = float(os.environ.get("PRAXIS_LIMITE_ERRO", "0.03"))
+LANG_NAMES_PT = {"pt": "português", "en": "inglês", "es": "espanhol", "fr": "francês",
+                 "de": "alemão", "it": "italiano", "ru": "russo", "zh": "chinês",
+                 "nl": "holandês", "pl": "polonês", "uk": "ucraniano", "tr": "turco",
+                 "ar": "árabe", "hi": "hindi", "ja": "japonês", "ko": "coreano"}
+
+
+def hardware_kind(asr_backend: str) -> str:
+    return "cpu" if asr_backend == "cpu" else "gpu"
+
+
+def language_allowed(lang: str, asr_backend: str) -> tuple[bool, str]:
+    """→ (liberado, explicação em linguagem simples). Um idioma é bloqueado neste
+    hardware quando o erro medido da transcrição passa de QUALITY_LIMIT."""
+    kind = hardware_kind(asr_backend)
+    err = MEASURED_ERROR[kind].get(lang)
+    if err is None or err <= QUALITY_LIMIT:
+        return True, ""
+    name = LANG_NAMES_PT.get(lang, lang)
+    msg = (f"O reconhecimento de {name} erra cerca de {err:.0%} das palavras "
+           f"{'neste computador sem placa de vídeo' if kind == 'cpu' else 'mesmo com placa de vídeo'} "
+           f"— acima do limite de qualidade do Praxis ({QUALITY_LIMIT:.0%}).")
+    gpu_err = MEASURED_ERROR["gpu"].get(lang)
+    if kind == "cpu" and gpu_err is not None and gpu_err <= QUALITY_LIMIT:
+        msg += f" Com uma placa de vídeo o erro cai para cerca de {gpu_err:.0%} e o idioma fica disponível."
+    return False, msg
+
+
+def blocked_languages(asr_backend: str) -> dict[str, str]:
+    """{idioma: explicação} dos idiomas indisponíveis neste hardware."""
+    out = {}
+    for lang in MEASURED_ERROR[hardware_kind(asr_backend)]:
+        if lang == "model":
+            continue
+        ok, why = language_allowed(lang, asr_backend)
+        if not ok:
+            out[lang] = why
+    return out
 
 
 def recommend_model(src_lang: str, asr_backend: str) -> tuple[str, str]:

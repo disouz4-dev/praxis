@@ -425,15 +425,57 @@ def significado(res: dict) -> str:
 
 # ---------------------------------------------------------------- principal
 
+def todos_os_sentidos(args) -> None:
+    """Tabela completa: cada idioma falado (16) → cada idioma de saída (14)."""
+    ids, frases = montar_conjunto(args.n)
+    linhas = []
+    for src in ENTRADA:
+        for tgt in SAIDA:
+            if src != tgt:
+                r = traduzir_direcao(src, tgt, frases)
+                r.pop("saidas", None)
+                linhas.append(r)
+    res = {"data": time.strftime("%Y-%m-%d %H:%M"), "frases": len(ids),
+           "tradutor": praxis.TRANSLATOR, "sentidos": linhas}
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    (RESULTS / f"{args.nome}.json").write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
+    nota = {(r.get("src"), r.get("tgt")): r.get("fidelidade_chrf") for r in linhas}
+    out = [f"# Tradução em todos os sentidos × tradução humana ({praxis.TRANSLATOR})", "",
+           f"_{res['data']} · {len(ids)} frases do FLEURS por sentido · nota = fidelidade (chrF, 0–100; "
+           "maior = mais perto da tradução humana). Chinês tem notas naturalmente mais baixas "
+           "(conta por pedaços de letras, e cada letra chinesa vale uma palavra)._", "",
+           "| falado ↓ / saída → | " + " | ".join(SAIDA) + " |",
+           "|---|" + "---:|" * len(SAIDA)]
+    for src in ENTRADA:
+        cel = []
+        for tgt in SAIDA:
+            v = nota.get((src, tgt))
+            cel.append("—" if src == tgt else ("erro" if v is None else f"{v:.0f}"))
+        out.append(f"| **{src}** | " + " | ".join(cel) + " |")
+    piores = sorted((r for r in linhas if r.get("fidelidade_chrf") is not None and r["tgt"] != "zh"),
+                    key=lambda r: r["fidelidade_chrf"])[:15]
+    out += ["", "## Os 15 sentidos mais fracos (sem contar chinês como saída)", "",
+            "| Sentido | Fidelidade | Saídas quebradas |", "|---|---:|---:|"]
+    out += [f"| {r['direcao']} | {r['fidelidade_chrf']} | {len(r['saidas_suspeitas'])} |" for r in piores]
+    (RESULTS / f"{args.nome}.md").write_text("\n".join(out) + "\n", encoding="utf-8")
+    print("\n".join(out))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--n", type=int, default=60, help="número de frases (padrão 60)")
-    ap.add_argument("--tradutor", default=None, choices=["argos", "nllb"],
+    ap.add_argument("--tradutor", default=None, choices=["argos", "nllb", "madlad"],
                     help="tradutor do Praxis a medir (padrão: o configurado, Argos)")
     ap.add_argument("--nome", default="traducao-vs-humano", help="nome dos arquivos de resultado")
+    ap.add_argument("--todos-os-sentidos", action="store_true",
+                    help="mede cada idioma falado → cada idioma de saída (210 sentidos) e gera a tabela "
+                         "origem × destino")
     args = ap.parse_args()
     if args.tradutor:
         praxis.TRANSLATOR = args.tradutor
+    if args.todos_os_sentidos:
+        todos_os_sentidos(args)
+        return
 
     print("Montando o conjunto de frases paralelas...", flush=True)
     ids, frases = montar_conjunto(args.n)
