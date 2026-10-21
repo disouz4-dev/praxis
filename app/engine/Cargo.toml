@@ -1,0 +1,37 @@
+[package]
+name = "praxis-engine"
+description = "Motor do Praxis: detector de fala, reconhecimento, tradução e voz, offline"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "praxis-cli"
+path = "src/bin/cli.rs"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hound = "3.5"
+realfft = "3"
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece"] }
+sherpa-onnx = "1.13"
+
+# Motor de contas do CTranslate2 por tipo de processador (medido: com o "ruy" num Intel
+# o Whisper em 8 bits levou 42 s numa frase que o faster-whisper faz em 0,6 s)
+[target.'cfg(all(target_arch = "x86_64", not(target_os = "macos")))'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "dnnl", "openmp-runtime-comp"] }
+
+# Mac Intel: oneDNN + OpenMP do LLVM (compile com scripts/build-macos.sh)
+[target.'cfg(all(target_arch = "x86_64", target_os = "macos"))'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "dnnl", "openmp-runtime-comp"] }
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "ruy"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "accelerate"] }

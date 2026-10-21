@@ -27,6 +27,10 @@ import praxis_platform as plat
 SR         = 16000          # taxa de amostragem do Whisper
 VAD_CHUNK  = 512            # ~32 ms a 16 kHz — janela do detector de fala
 SILENCE_MS = 200            # silêncio que encerra um trecho de fala
+# Sensibilidade do detector de fala (menor = pega sons mais fracos). 0,25 corta menos
+# frases no meio: inglês 4,0% → 2,8% de erro real (100 frases FLEURS), sem inventar fala
+# em silêncio, chiado ou conversa ao fundo; com ruído médio o alemão foi de 47% a 26,5%.
+VAD_THRESHOLD = 0.25
 MAX_SEG_S  = 6.0            # corte em falas longas sem pausa (duração máxima do trecho)
 # Com placa de vídeo o trecho pode ser bem maior: o corte forçado no meio da fala é a
 # maior fonte de erro do modo ao vivo (medido no FLEURS, 16 idiomas: 6 s → 15 s baixou
@@ -381,7 +385,7 @@ def vad_worker(audio_q:       "queue.Queue[np.ndarray]",
     ptt_flush = ptt_flush if ptt_flush is not None else _ptt_flush
     if vad_factory is None:
         model, VADIterator = load_silero_vad()
-        vad = VADIterator(model, sampling_rate=SR, threshold=0.5,
+        vad = VADIterator(model, sampling_rate=SR, threshold=VAD_THRESHOLD,
                           min_silence_duration_ms=SILENCE_MS)
     else:
         vad = vad_factory()

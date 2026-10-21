@@ -539,12 +539,16 @@ def main() -> None:
                     help="liga o contexto entre trechos (o fim do que já foi dito vai como dica ao Whisper)")
     ap.add_argument("--data-dir", default=None,
                     help="pasta com <idioma>.wav/.json (padrão: benchmarks/data/continuous)")
+    ap.add_argument("--limiar-fala", type=float, default=None,
+                    help="sensibilidade do detector de fala (padrão = a do motor)")
     ap.add_argument("--max-seg", type=float, default=None,
                     help="duração máxima de um trecho sem pausa (s); padrão = o do motor")
     ap.add_argument("--name", default=None)
     a = ap.parse_args()
     if a.max_seg is not None:
         praxis.MAX_SEG_S = a.max_seg
+    if a.limiar_fala is not None:
+        praxis.VAD_THRESHOLD = a.limiar_fala
     global DATA, ECHO_DB
     if a.data_dir:
         DATA = Path(a.data_dir)

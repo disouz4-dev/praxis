@@ -430,6 +430,7 @@ def main() -> None:
                    help="pasta em benchmarks/data com <idioma>/manifest.json (ex.: speech_fleurs)")
     a.add_argument("--device", default=None, help="onde transcrever: auto|cpu|cuda|mlx|whispercpp")
     a.add_argument("--max-seg", type=float, help="substitui MAX_SEG_S (duração máxima de um trecho, em s)")
+    a.add_argument("--limiar-fala", type=float, help="substitui VAD_THRESHOLD (sensibilidade do detector de fala)")
     a.add_argument("--silence-ms", type=int, help="substitui SILENCE_MS (silêncio que encerra um trecho, em ms)")
     a.add_argument("--so-ao-vivo", action="store_true", help="só o modo ao vivo (pula a frase inteira)")
     a.add_argument("--contexto", action="store_true", help="no modo ao vivo, passa o texto anterior como dica")
@@ -455,6 +456,8 @@ def main() -> None:
             SEG_KW["max_seg_s"] = args.max_seg
         if args.silence_ms is not None:
             praxis.SILENCE_MS = args.silence_ms
+        if args.limiar_fala is not None:
+            praxis.VAD_THRESHOLD = args.limiar_fala
         if args.feixe is not None:
             praxis.WHISPER_OPTS["beam_size"] = args.feixe
         global ONLY_LIVE, CONTEXT_LIVE

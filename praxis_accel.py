@@ -346,10 +346,11 @@ def plan(requested_asr: str | None = None) -> AccelPlan:
 # Erro REAL da transcrição no modo ao vivo (palavras; letras em zh/ja), medido com 40
 # frases de vários falantes por idioma (Google FLEURS) e auditado: diferença de escrita,
 # número escrito de outro jeito e nome próprio estrangeiro não contam (benchmarks/auditar_erros.py).
-# gpu: large-v3-turbo com trecho de até 15 s · cpu: small com trecho de até 6 s.
+# gpu: large-v3-turbo com trecho de até 15 s e detector de fala 0,25 (en com 100 frases)
+# cpu: small com trecho de até 6 s.
 MEASURED_ERROR = {
     "gpu": {"model": "large-v3-turbo",
-            "pt": 0.022, "en": 0.032, "es": 0.016, "fr": 0.064, "de": 0.020, "it": 0.017, "ru": 0.038, "zh": 0.113, "nl": 0.054, "pl": 0.055, "uk": 0.047, "tr": 0.058, "ar": 0.092, "hi": 0.304, "ja": 0.055, "ko": 0.151},
+            "pt": 0.024, "en": 0.028, "es": 0.017, "fr": 0.057, "de": 0.019, "it": 0.024, "ru": 0.038, "zh": 0.113, "nl": 0.054, "pl": 0.055, "uk": 0.047, "tr": 0.058, "ar": 0.092, "hi": 0.304, "ja": 0.055, "ko": 0.151},
     "cpu": {"model": "small",
             "pt": 0.078, "en": 0.075, "es": 0.060, "fr": 0.159, "de": 0.091, "it": 0.086, "ru": 0.106, "zh": 0.173, "nl": 0.227, "pl": 0.192, "uk": 0.211, "tr": 0.166, "ar": 0.293, "hi": 0.745, "ja": 0.168, "ko": 0.252},
 }
@@ -427,6 +428,46 @@ class _Seg:
         self.avg_logprob = avg_logprob
 
 
+# ── Parakeet (NVIDIA, licença CC BY 4.0) pelo sherpa-onnx: alternativa ao Whisper ──
+# Modelos convertidos pela equipe do sherpa-onnx (k2-fsa), publicados em
+# https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models
+PARAKEET_MODELS = {
+    "parakeet-v3": "sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8",   # 25 línguas europeias
+    "parakeet-v2": "sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8",   # só inglês
+}
+PARAKEET_LANGS = {"pt", "en", "es", "fr", "de", "it", "nl", "pl", "ru", "uk"}   # dos idiomas do Praxis
+
+
+def parakeet_dir(name: str) -> Path:
+    import praxis_platform as plat
+    base = os.environ.get("PRAXIS_PARAKEET_DIR")
+    return (Path(base) if base else plat.data_dir() / "modelos") / PARAKEET_MODELS[name]
+
+
+class ParakeetASR:
+    """Parakeet TDT (sherpa-onnx) com a mesma interface .transcribe() do faster-whisper.
+    O idioma é reconhecido sozinho pelo modelo; a pontuação e as maiúsculas vêm prontas."""
+
+    def __init__(self, name: str, backend: str = "cpu") -> None:
+        import sherpa_onnx
+        d = parakeet_dir(name)
+        if not (d / "tokens.txt").exists():
+            raise FileNotFoundError(f"modelo {name} não instalado em {d}")
+        pick = lambda pat: str(sorted(d.glob(pat))[0])       # noqa: E731
+        self.backend = "cuda" if backend == "cuda" else "cpu"
+        self.rec = sherpa_onnx.OfflineRecognizer.from_transducer(
+            encoder=pick("encoder*.onnx"), decoder=pick("decoder*.onnx"), joiner=pick("joiner*.onnx"),
+            tokens=str(d / "tokens.txt"), num_threads=max(1, (os.cpu_count() or 4) // 2),
+            sample_rate=16000, feature_dim=80, decoding_method="greedy_search",
+            model_type="nemo_transducer", provider=self.backend)
+
+    def transcribe(self, audio, language=None, **opts):
+        st = self.rec.create_stream()
+        st.accept_waveform(16000, audio)
+        self.rec.decode_stream(st)
+        return [_Seg(st.result.text.strip())], None
+
+
 MLX_REPOS = {"tiny": "mlx-community/whisper-tiny-mlx", "base": "mlx-community/whisper-base-mlx",
              "small": "mlx-community/whisper-small-mlx",
              "medium": "mlx-community/whisper-medium-mlx",
@@ -480,6 +521,8 @@ class WhisperCpp:
 
 def load_asr(model_name: str, backend: str, log=print):
     """Cria o backend de ASR; se algo falhar, volta para o faster-whisper na CPU."""
+    if model_name in PARAKEET_MODELS:
+        return ParakeetASR(model_name, backend)
     from faster_whisper import WhisperModel
     if backend == "mlx":
         try:

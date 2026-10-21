@@ -1,11 +1,25 @@
 #!/usr/bin/env bash
-# Instalador do Praxis — Linux (apt/dnf/pacman/zypper) e macOS (Homebrew).
-# Windows: use o install.ps1
+# Instalador do Praxis — um comando só, no macOS e no Linux:
+#
+#   curl -fsSL https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.sh | bash
+#
+# Não precisa ter Python, Homebrew nem o código baixado antes: o instalador baixa o
+# Praxis, um Python próprio (pelo uv, só para o usuário), o microfone virtual, os
+# modelos e as vozes para o idioma do sistema — e no fim o Praxis já abre funcionando.
+# Windows: install.ps1 (o comando está no README).
+#
+# Opções (variáveis de ambiente):
+#   PRAXIS_SEM_NLLB=1    não baixa o tradutor NLLB (licença de uso não comercial)
+#   PRAXIS_WITH_CLONE=1  instala a clonagem de voz (OmniVoice + PyTorch, ~2 GB)
+#   PRAXIS_GPU=vulkan    compila o whisper.cpp com Vulkan (placas AMD/Intel)
+#   PRAXIS_REF=v0.2.0    versão do Praxis a instalar (padrão: main)
 set -euo pipefail
 
+REPO="disouz4-dev/praxis"
+REF="${PRAXIS_REF:-main}"
 OS="$(uname -s)"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PY="${PYTHON:-python3}"
+ARCH="$(uname -m)"
+PY_VERSION="3.12"
 
 if [[ "$OS" == "Darwin" ]]; then
     INSTALL_DIR="$HOME/Library/Application Support/Praxis"
@@ -21,117 +35,113 @@ echo "  ✦ Praxis — instalando em $INSTALL_DIR"
 echo ""
 mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$VOICES_DIR"
 
-# ── Dependências do sistema ───────────────────────────────────────────────────
-echo "==> Verificando dependências do sistema..."
+# ── 1. Código do Praxis ──────────────────────────────────────────────────────
+# Rodando de dentro do repositório usa esse código; pelo comando de uma linha, baixa.
+SCRIPT_DIR=""
+if [[ -n "${BASH_SOURCE[0]:-}" && -f "${BASH_SOURCE[0]}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+if [[ -z "$SCRIPT_DIR" || ! -f "$SCRIPT_DIR/praxis.py" ]]; then
+    echo "==> Baixando o Praxis ($REF)..."
+    SCRIPT_DIR="$(mktemp -d)"
+    trap 'rm -rf "$SCRIPT_DIR"' EXIT
+    curl -fsSL "https://codeload.github.com/$REPO/tar.gz/$REF" | tar xz -C "$SCRIPT_DIR" --strip-components=1
+fi
+
+# ── 2. Python próprio do Praxis (uv: sem administrador, sem Homebrew) ─────────
+UV="$(command -v uv || true)"
+if [[ -z "$UV" ]]; then
+    echo "==> Instalando o uv (gerenciador de Python)..."
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_NO_MODIFY_PATH=1 sh >/dev/null
+    UV="$HOME/.local/bin/uv"
+fi
+echo "==> Preparando o Python $PY_VERSION do Praxis..."
+"$UV" python install "$PY_VERSION" >/dev/null
+rm -rf "$VENV"
+"$UV" venv --quiet --python "$PY_VERSION" "$VENV"
+VPY="$VENV/bin/python3"
+[[ -x "$VPY" ]] || VPY="$VENV/bin/python"
+pipi() { "$UV" pip install --quiet --python "$VPY" "$@"; }
+
+# ── 3. Peças do sistema: microfone virtual e áudio ───────────────────────────
 if [[ "$OS" == "Darwin" ]]; then
-    if ! command -v brew &>/dev/null; then
-        echo "  O Homebrew é necessário: https://brew.sh" >&2
-        exit 1
-    fi
-    need=()
-    "$PY" -c "import tkinter" 2>/dev/null || need+=("python-tk@$("$PY" -c 'import sys; print(f"{sys.version_info[0]}.{sys.version_info[1]}")')")
-    command -v ffmpeg &>/dev/null || need+=(ffmpeg)
-    brew list portaudio &>/dev/null || need+=(portaudio)
-    if [[ ${#need[@]} -gt 0 ]]; then
-        echo "  brew install ${need[*]}"
-        brew install "${need[@]}"
-    fi
     if ! system_profiler SPAudioDataType 2>/dev/null | grep -q "BlackHole"; then
-        echo "==> Instalando o BlackHole (driver de microfone virtual)..."
-        brew install --cask blackhole-2ch || echo "  ! Instale o BlackHole manualmente: brew install --cask blackhole-2ch"
+        # Mesmo pacote e impressão digital que o Homebrew usa (cask blackhole-2ch)
+        BH_URL="https://existential.audio/downloads/BlackHole2ch-0.7.1.pkg"
+        BH_SHA="57b540f27a3e29c37e310e01bee0fdfab76733087e47f997ef9dccf851400dcf"
+        echo "==> Instalando o BlackHole (microfone virtual) — o macOS vai pedir a sua senha..."
+        BH_PKG="$(mktemp -d)/BlackHole2ch.pkg"
+        if curl -fsSL "$BH_URL" -o "$BH_PKG" && \
+                [[ "$(shasum -a 256 "$BH_PKG" | cut -d' ' -f1)" == "$BH_SHA" ]]; then
+            sudo installer -pkg "$BH_PKG" -target / >/dev/null </dev/tty && echo "  BlackHole instalado." || \
+                echo "  ! O BlackHole não foi instalado; o Praxis funciona, mas sem microfone virtual."
+        else
+            echo "  ! Não foi possível baixar e conferir o BlackHole."
+        fi
+        rm -f "$BH_PKG"
     fi
 else
+    # Linux: o PulseAudio/PipeWire já tem microfone virtual; faltam só utilitários
     pkgs=()
-    command -v pactl  &>/dev/null || pkgs+=(pulse)
-    command -v ffmpeg &>/dev/null || pkgs+=(ffmpeg)
-    "$PY" -c "import tkinter" 2>/dev/null || pkgs+=(tk)
-    "$PY" -c "import venv, ensurepip" 2>/dev/null || pkgs+=(venv)
-    pkgs+=(portaudio)
-    if command -v apt-get &>/dev/null; then
-        map=(pulse:pulseaudio-utils ffmpeg:ffmpeg tk:python3-tk venv:python3-venv portaudio:libportaudio2)
-        inst=sudo\ apt-get\ install\ -y
-    elif command -v dnf &>/dev/null; then
-        map=(pulse:pulseaudio-utils ffmpeg:ffmpeg tk:python3-tkinter venv:python3 portaudio:portaudio)
-        inst=sudo\ dnf\ install\ -y
-    elif command -v pacman &>/dev/null; then
-        map=(pulse:libpulse ffmpeg:ffmpeg tk:tk venv:python portaudio:portaudio)
-        inst=sudo\ pacman\ -S\ --needed\ --noconfirm
-    elif command -v zypper &>/dev/null; then
-        map=(pulse:pulseaudio-utils ffmpeg:ffmpeg tk:python3-tk venv:python3 portaudio:portaudio)
-        inst=sudo\ zypper\ install\ -y
-    else
-        map=(); inst=""
-    fi
-    real=()
-    for p in "${pkgs[@]}"; do
-        for m in "${map[@]}"; do [[ "${m%%:*}" == "$p" ]] && real+=("${m#*:}"); done
-    done
-    if [[ ${#real[@]} -gt 0 && -n "$inst" ]]; then
-        echo "  Instalando: ${real[*]}"
-        # shellcheck disable=SC2086
-        $inst "${real[@]}" || echo "  ! Não foi possível instalar alguns pacotes: ${real[*]}"
-    elif [[ ${#real[@]} -gt 0 ]]; then
-        echo "  ! Gerenciador de pacotes desconhecido — instale manualmente: ${pkgs[*]}"
+    command -v pactl &>/dev/null || pkgs+=(pulse)
+    ldconfig -p 2>/dev/null | grep -q libportaudio || pkgs+=(portaudio)
+    if [[ ${#pkgs[@]} -gt 0 ]]; then
+        if command -v apt-get &>/dev/null; then
+            map=(pulse:pulseaudio-utils portaudio:libportaudio2); inst=(sudo apt-get install -y)
+        elif command -v dnf &>/dev/null; then
+            map=(pulse:pulseaudio-utils portaudio:portaudio); inst=(sudo dnf install -y)
+        elif command -v pacman &>/dev/null; then
+            map=(pulse:libpulse portaudio:portaudio); inst=(sudo pacman -S --needed --noconfirm)
+        elif command -v zypper &>/dev/null; then
+            map=(pulse:pulseaudio-utils portaudio:portaudio); inst=(sudo zypper install -y)
+        else
+            map=(); inst=()
+        fi
+        real=()
+        for p in "${pkgs[@]}"; do
+            for m in ${map[@]+"${map[@]}"}; do [[ "${m%%:*}" == "$p" ]] && real+=("${m#*:}"); done
+        done
+        if [[ ${#real[@]} -gt 0 && ${#inst[@]} -gt 0 ]]; then
+            echo "==> Instalando peças de áudio do sistema (${real[*]}) — pode pedir a sua senha..."
+            "${inst[@]}" "${real[@]}" </dev/tty || echo "  ! Não foi possível instalar: ${real[*]}"
+        else
+            echo "  ! Instale manualmente: ${pkgs[*]}"
+        fi
     fi
 fi
 
-"$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' || {
-    echo "  É necessário Python 3.10+ (encontrado: $("$PY" --version))" >&2; exit 1; }
+# ── 4. Bibliotecas do Praxis ─────────────────────────────────────────────────
+echo "==> Instalando as bibliotecas do Praxis..."
+pipi -r "$SCRIPT_DIR/requirements.txt"
+pipi --no-deps argostranslate
+command -v ffmpeg &>/dev/null || pipi imageio-ffmpeg     # ffmpeg empacotado
 
-# ── Ambiente Python ───────────────────────────────────────────────────────────
-echo "==> Criando o ambiente virtual Python (venv)..."
-"$PY" -m venv "$VENV"
-VPY="$VENV/bin/python3"
-"$VPY" -m pip install --upgrade pip -q
-
-echo "==> Instalando dependências Python..."
-"$VPY" -m pip install -q -r "$SCRIPT_DIR/requirements.txt"
-"$VPY" -m pip install -q --no-deps argostranslate
-
-# ── Aceleração pela placa de vídeo (detectada sozinha; veja praxis_accel.py) ──
-#   NVIDIA          → bibliotecas CUDA para o faster-whisper / CTranslate2
-#   Apple Silicon   → mlx-whisper (Whisper na placa de vídeo da Apple via MLX)
-#   GPU AMD/Intel   → whisper.cpp compilado com Vulkan (só se pedir:
-#                     PRAXIS_GPU=vulkan; precisa do Vulkan SDK + compilador C++)
-#   Macs Intel      → CPU (whisper.cpp com Metal errou/foi mais lento em Macs AMD)
+# Aceleração pela placa de vídeo (veja praxis_accel.py; na primeira execução o Praxis
+# compara a placa com o processador e só usa a placa se ela for melhor)
 if command -v nvidia-smi &>/dev/null; then
     echo "==> Placa de vídeo NVIDIA detectada — instalando as bibliotecas CUDA..."
-    "$VPY" -m pip install -q nvidia-cublas-cu12 "nvidia-cudnn-cu12>=9,<10" || \
-        echo "  ! Bibliotecas CUDA não instaladas — o Whisper vai rodar na CPU"
-elif [[ "$OS" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
+    pipi nvidia-cublas-cu12 "nvidia-cudnn-cu12>=9,<10" || \
+        echo "  ! Bibliotecas CUDA não instaladas — o Whisper vai rodar no processador"
+elif [[ "$OS" == "Darwin" && "$ARCH" == "arm64" ]]; then
     echo "==> Apple Silicon detectado — instalando o mlx-whisper (placa de vídeo)..."
-    "$VPY" -m pip install -q mlx-whisper || echo "  ! mlx-whisper não instalado — o Whisper vai rodar na CPU"
+    pipi mlx-whisper || echo "  ! mlx-whisper não instalado — o Whisper vai rodar no processador"
 elif [[ "${PRAXIS_GPU:-}" == "vulkan" ]]; then
     echo "==> Compilando o whisper.cpp com Vulkan (placa de vídeo AMD/Intel)..."
-    GGML_VULKAN=1 "$VPY" -m pip install -q --no-binary pywhispercpp pywhispercpp || \
-        echo "  ! A compilação com Vulkan falhou (instale o Vulkan SDK) — o Whisper vai rodar na CPU"
+    GGML_VULKAN=1 "$UV" pip install --quiet --python "$VPY" --no-binary pywhispercpp pywhispercpp || \
+        echo "  ! A compilação com Vulkan falhou (instale o Vulkan SDK) — o Whisper vai rodar no processador"
 fi
-
 if [[ "${PRAXIS_WITH_CLONE:-0}" == "1" ]]; then
     echo "==> Instalando a clonagem de voz (OmniVoice + PyTorch)..."
-    "$VPY" -m pip install -q -r "$SCRIPT_DIR/requirements-clone.txt"
+    pipi -r "$SCRIPT_DIR/requirements-clone.txt"
 fi
 
-# ── Arquivos do app ───────────────────────────────────────────────────────────
-echo "==> Copiando arquivos..."
-cp "$SCRIPT_DIR"/praxis*.py "$INSTALL_DIR/"      # motor, interface, plataforma, aceleração, eco, preparo
+# ── 5. Arquivos do app ───────────────────────────────────────────────────────
+echo "==> Copiando os arquivos do Praxis..."
+cp "$SCRIPT_DIR"/praxis*.py "$INSTALL_DIR/"
 rm -rf "$INSTALL_DIR/assets"
 cp -R "$SCRIPT_DIR/assets" "$INSTALL_DIR/assets"
 
-# ── Voz padrão do Piper: en_US-lessac-medium ─────────────────────────────────
-VOICE_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium"
-VOICE_FILE="$VOICES_DIR/en_US-lessac-medium.onnx"
-if [[ ! -f "$VOICE_FILE" ]]; then
-    echo "==> Baixando a voz padrão do Piper (en_US-lessac-medium)..."
-    curl -fL --progress-bar "$VOICE_BASE/en_US-lessac-medium.onnx.json" -o "${VOICE_FILE}.json.part"
-    curl -fL --progress-bar "$VOICE_BASE/en_US-lessac-medium.onnx"      -o "${VOICE_FILE}.part"
-    mv "${VOICE_FILE}.json.part" "${VOICE_FILE}.json"
-    mv "${VOICE_FILE}.part" "$VOICE_FILE"
-else
-    echo "==> A voz padrão já está instalada."
-fi
-
-# ── Atalho de abertura ───────────────────────────────────────────────────────
+# ── 6. Atalhos ───────────────────────────────────────────────────────────────
 cat > "$BIN_DIR/praxis" << LAUNCH
 #!/usr/bin/env bash
 exec "$VPY" "$INSTALL_DIR/praxis_config.py" "\$@"
@@ -164,7 +174,6 @@ PLIST
 exec "$VPY" "$INSTALL_DIR/praxis_config.py" "\$@"
 RUN
     chmod +x "$APP/Contents/MacOS/Praxis"
-    echo "==> Pacote do app: $APP"
 else
     DESK_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
     mkdir -p "$DESK_DIR"
@@ -181,26 +190,25 @@ StartupWMClass=Praxis
 DESK
 fi
 
-if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo ""
-    echo "  OBS.: adicione ao perfil do seu terminal (shell):"
-    echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
-fi
+# ── 7. Modelos e vozes para o idioma do sistema: o Praxis já abre funcionando ─
+echo "==> Preparando vozes, reconhecimento de fala e tradução para o seu idioma..."
+PREP_ARGS=()
+[[ "${PRAXIS_SEM_NLLB:-0}" == "1" ]] && PREP_ARGS=(--sem-nllb)
+"$VPY" "$INSTALL_DIR/praxis_preparar.py" ${PREP_ARGS[@]+"${PREP_ARGS[@]}"} || \
+    echo "  ! O preparo não terminou — o Praxis baixa o que faltar na primeira vez em que for usado."
+
+"$VPY" "$INSTALL_DIR/praxis.py" --check >/dev/null && CHECK="OK" || CHECK="falhou"
 
 echo ""
-echo "  ✦ Praxis instalado!  Para abrir: praxis"
+echo "  ✦ Praxis instalado!  Autoteste: $CHECK"
 if [[ "$OS" == "Darwin" ]]; then
+    echo "  Abra pela pasta Aplicativos (Praxis) ou digite: praxis"
     echo "  No seu app de chamada, escolha 'BlackHole 2ch' como microfone."
 else
+    echo "  Abra pelo menu de aplicativos (Praxis) ou digite: praxis"
     echo "  No seu app de chamada, escolha 'Praxis_Microfone' como microfone."
 fi
+if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
+    echo "  (para o comando 'praxis' funcionar no terminal: export PATH=\"\$HOME/.local/bin:\$PATH\")"
+fi
 echo ""
-"$VPY" "$INSTALL_DIR/praxis.py" --check >/dev/null && echo "  Autoteste: OK" || echo "  ! O autoteste falhou: $VPY $INSTALL_DIR/praxis.py --check"
-
-# ── Deixa tudo pronto para os idiomas do sistema: vozes, Whisper, tradutores ──
-echo ""
-echo "==> Preparando o Praxis para já abrir funcionando (vozes, reconhecimento de fala, tradução)..."
-PRAXIS_NLLB_ARGS=()
-[[ "${PRAXIS_SEM_NLLB:-0}" == "1" ]] && PRAXIS_NLLB_ARGS=(--sem-nllb)
-"$VPY" "$INSTALL_DIR/praxis_preparar.py" ${PRAXIS_NLLB_ARGS[@]+"${PRAXIS_NLLB_ARGS[@]}"} || \
-    echo "  ! O preparo não terminou — o Praxis baixa o que faltar na primeira vez em que for usado."
