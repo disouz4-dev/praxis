@@ -110,7 +110,7 @@ def main() -> None:
         meta = json.loads(jf.read_text(encoding="utf-8"))
         audio, sr = sf.read(str(SRC / f"{lang}.wav"), dtype="float32")
         assert sr == SR
-        cut = lambda a, b: audio[int(a * SR):int(b * SR)]       # noqa: E731
+        cut = lambda a, b, audio=audio: audio[int(a * SR):int(b * SR)]       # noqa: E731
         s20, e20, t20 = _pick(meta["segments"], 20.0)
         s15, e15, t15 = _pick(meta["segments"], 20.0 * SLOW)
         base = cut(s15, e15)

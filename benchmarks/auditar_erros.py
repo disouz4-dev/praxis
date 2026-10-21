@@ -134,7 +134,7 @@ def main() -> None:
     ap.add_argument("--ao-vivo", action="store_true", help="audita o modo ao vivo (fala cortada em trechos)")
     a = ap.parse_args()
     rows = audit(Path(a.arquivo), a.modelo, a.ao_vivo)
-    print(f"| Modelo | Idioma | Erro como medido | Número escrito diferente | Escrita diferente | Nome próprio | **Erro real** |")
+    print("| Modelo | Idioma | Erro como medido | Número escrito diferente | Escrita diferente | Nome próprio | **Erro real** |")
     print("|---|---|---:|---:|---:|---:|---:|")
     for r in rows:
         print(f"| {r['model']} | {r['lang']} ({r['unidade']}) | {r['erro_total']:.1%} | {r['numero']:.1%} | "
