@@ -60,12 +60,22 @@ pub struct SileroV6 {
     c: Vec<f32>,
     ctx: Vec<f32>,
     threshold: f32,
+    /// a fala acaba quando a chance de fala fica abaixo disto por `silence_s`
+    end_threshold: f32,
+    silence_s: f32,
     triggered: bool,
     temp_end: usize,
     current: usize,
 }
 
 const CONTEXT: usize = 64;
+/// Folga entre o limiar de início e o de fim (a regra do Silero: limiar − 0,15)
+pub const END_GAP: f32 = 0.15;
+
+/// Experimento: PRAXIS_SILENCIO_S e PRAXIS_FOLGA_FIM substituem SILENCE_S e END_GAP.
+fn env_f32(k: &str, default: f32) -> f32 {
+    std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+}
 
 fn onnxruntime_path() -> std::path::PathBuf {
     if let Ok(p) = std::env::var("PRAXIS_ONNXRUNTIME") {
@@ -104,7 +114,10 @@ impl SileroV6 {
             .map_err(|x| e(&x))?
             .commit_from_file(model)
             .map_err(|x| e(&x))?;
-        let mut v = Self { session, h: vec![], c: vec![], ctx: vec![], threshold, triggered: false, temp_end: 0, current: 0 };
+        let end_threshold = threshold - env_f32("PRAXIS_FOLGA_FIM", END_GAP);
+        let silence_s = env_f32("PRAXIS_SILENCIO_S", SILENCE_S);
+        let mut v = Self { session, h: vec![], c: vec![], ctx: vec![], threshold, end_threshold, silence_s,
+                           triggered: false, temp_end: 0, current: 0 };
         v.reset();
         Ok(v)
     }
@@ -133,7 +146,7 @@ impl SpeechProbe for SileroV6 {
             Ok(p) => p,
             Err(_) => return Event::None,
         };
-        let min_silence = (SR as f32 * SILENCE_S) as usize;
+        let min_silence = (SR as f32 * self.silence_s) as usize;
         if p >= self.threshold && self.temp_end != 0 {
             self.temp_end = 0;
         }
@@ -141,7 +154,7 @@ impl SpeechProbe for SileroV6 {
             self.triggered = true;
             return Event::Start;
         }
-        if p < self.threshold - 0.15 && self.triggered {
+        if p < self.end_threshold && self.triggered {
             if self.temp_end == 0 {
                 self.temp_end = self.current;
             }

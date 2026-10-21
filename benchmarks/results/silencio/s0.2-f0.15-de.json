@@ -1,0 +1,336 @@
+{
+  "engine": "praxis-rs",
+  "kind": "asr",
+  "results": [
+    {
+      "backend": "cuda",
+      "lang": "de",
+      "live_segments": 53,
+      "model": "rust",
+      "n": 40,
+      "rtf_live": 0.04737190371742768,
+      "samples": [
+        {
+          "dur_s": 0,
+          "file": "10004059102127011984.wav",
+          "hyp": "",
+          "hyp_live": "Für die besten Aussichten auf Hongkong sollten sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+          "ref": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+          "speaker": "10004059102127011984.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10009182821551087671.wav",
+          "hyp": "",
+          "hyp_live": "Er griff auch alles an, was ins Wasser kam. Selbst ein großer Dinosaurier wie der T-Rex war ihm nicht gewachsen.",
+          "ref": "Er griff auch alles an, was ins Wasser kam; selbst ein großer Dinosaurier wie der T. Rex war ihm nicht gewachsen.",
+          "speaker": "10009182821551087671.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10014044777125235464.wav",
+          "hyp": "",
+          "hyp_live": "Wenn Sie den Film Das Vermächtnis der Tempelritter gesehen haben, denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+          "ref": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+          "speaker": "10014044777125235464.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10030056357041867775.wav",
+          "hyp": "",
+          "hyp_live": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben und viele weitere Mitangehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+          "ref": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+          "speaker": "10030056357041867775.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10058186628567796965.wav",
+          "hyp": "",
+          "hyp_live": "Die Höhle befindet sich auf der Spitze eines der Berge nördlich von Mekka und ist vom Rest der Welt völlig isoliert.",
+          "ref": "Die Höhle befindet sich auf der Spitze eines der Berge nördlich von Mekka und ist vom Rest der Welt völlig isoliert.",
+          "speaker": "10058186628567796965.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10058299886985225661.wav",
+          "hyp": "",
+          "hyp_live": "Dieses Sediment war nötig, um Sandbänke und Strände zu bilden, die als Lebensräume für Wildtiere dienten.",
+          "ref": "Dieses Sediment war nötig, um Sandbänke und Strände zu bilden, die als Lebensräume für Wildtiere dienten.",
+          "speaker": "10058299886985225661.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10095057775426831514.wav",
+          "hyp": "",
+          "hyp_live": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blog-Erfahrung oft eine schlampige Grammatik- und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+          "ref": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+          "speaker": "10095057775426831514.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10159541282515887574.wav",
+          "hyp": "",
+          "hyp_live": "Nachdem der Darm 1963 erbaut worden war, kamen die jahreszeitlichen Überflutungen, die Sedimente im Fluss verteilen, zum Stillstand.",
+          "ref": "Nachdem der Damm 1963 erbaut worden war, kamen die jahreszeitlichen Überflutungen, die Sedimente im Fluss verteilen, zum Stillstand.",
+          "speaker": "10159541282515887574.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10166547362714956625.wav",
+          "hyp": "",
+          "hyp_live": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet.",
+          "ref": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet.x",
+          "speaker": "10166547362714956625.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10229344228128634115.wav",
+          "hyp": "",
+          "hyp_live": "Jeder nimmt an der Gesellschaft teil und benutzt Transportsysteme. Fast jeder beklagt sich über die Transportsysteme.",
+          "ref": "Jeder nimmt an der Gesellschaft teil und benutzt Transportsysteme. Fast jeder beklagt sich über die Transportsysteme.x",
+          "speaker": "10229344228128634115.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10240730312646485406.wav",
+          "hyp": "",
+          "hyp_live": "NextGen ist ein System, von dem die FAA behauptet, dass es Flugzeugen erlauben würde, kürzere Strecken zu fliegen und jedes Jahr Millionen Galonen an Treibstoff zu sparen und die Kohlenstoffemissionen zu reduzieren.",
+          "ref": "NextGen ist ein System, von dem die FAA behauptet, dass es Flugzeugen erlauben würde, kürzere Strecken zu fliegen und jedes Jahr Millionen Gallonen an Treibstoff zu sparen und die Kohlenstoffemissionen zu reduzieren.",
+          "speaker": "10240730312646485406.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10243976286554101786.wav",
+          "hyp": "",
+          "hyp_live": "Ottawa ist Kanadas bezaubernde zweisprachige Hauptstadt und zeichnet sich durch eine Reihe von Kunstgalerien und Museen aus, die Kanadas Vergangenheit und Gegenwart präsentieren.",
+          "ref": "Ottawa ist Kanadas bezaubernde, zweisprachige Hauptstadt und zeichnet sich durch eine Reihe von Kunstgalerien und Museen aus, die Kanadas Vergangenheit und Gegenwart präsentieren.",
+          "speaker": "10243976286554101786.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10271188615398617841.wav",
+          "hyp": "",
+          "hyp_live": "In seinem Artikel, die Rede des Präsidenten, zeigte Oliver Sacks auf, wie Leute, die wegen eines Hirnschadens keine Sprache mehr verstehen können, trotzdem die Ehrlichkeit von Menschen richtig einschätzen können.",
+          "ref": "In seinem Artikel Die Rede des Präsidenten zeigte Oliver Sacks auf, wie Leute, die wegen eines Hirnschadens keine Sprache mehr verstehen können, trotzdem die Ehrlichkeit von Menschen richtig einschätzen können.",
+          "speaker": "10271188615398617841.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10287357790080034783.wav",
+          "hyp": "",
+          "hyp_live": "Seine langen Kiefer waren mit mehr als 70 messerscharfen Zähnen ausgestattet, zuzüglich eines weiteren Satzes am Gaumen, was bedeutete, dass es kein Entkommen für irgendein Tier gab, das seinen Weg kreuzte.",
+          "ref": "Seine langen Kiefer waren mit mehr als 70 messerscharfen Zähnen ausgestattet, zuzüglich eines weiteren Satzes am Gaumen, was bedeutete, dass es kein Entkommen für irgendein Tier gab, das seinen Weg kreuzte.",
+          "speaker": "10287357790080034783.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10308608197319017935.wav",
+          "hyp": "",
+          "hyp_live": "Diese Paare können sich für einen Adoptionsplan für ihr Baby entscheiden.",
+          "ref": "Diese Paare können sich für einen Adoptionsplan für ihr Baby entscheiden.",
+          "speaker": "10308608197319017935.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10320843719886214788.wav",
+          "hyp": "",
+          "hyp_live": "Am 15. August 1940 fielen die Alliierten in Südfrankreich ein. Die Invasion wurde Operation Dragoon genannt.",
+          "ref": "Am 15. August 1940 fielen die Alliierten in Südfrankreich ein; die Invasion wurde „Operation Dragoon“ genannt.",
+          "speaker": "10320843719886214788.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10342213717361642954.wav",
+          "hyp": "",
+          "hyp_live": "Es ist also möglich, dass der Vermerk einfach als Kennzeichnung hinzugefügt wurde.",
+          "ref": "Es ist also möglich, dass der Vermerk einfach als Kennzeichnung hinzugefügt wurde.",
+          "speaker": "10342213717361642954.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10347138311808731867.wav",
+          "hyp": "",
+          "hyp_live": "Es gibt Familienstrände, die manchmal überlaufen sind mit einer schönen Einkaufspromenade entlang der Küste. Das Schwimmen ist hier sicher.",
+          "ref": "Es gibt Familienstrände, die manchmal überlaufen sind, mit einer schönen Einkaufspromenade entlang der Küste. Das Schwimmen ist hier sicher.",
+          "speaker": "10347138311808731867.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "103625751236710165.wav",
+          "hyp": "",
+          "hyp_live": "Laka Singh präsentierte den Japan-Burg-Bayern ebenfalls. Der Sänger Ryu Kandelwal begleitete ihn.",
+          "ref": "Lakkha Singh präsentierte den Chhappan Bhog Bhajan ebenfalls. Der Sänger Raju Khandelwal begleitete ihn.",
+          "speaker": "103625751236710165.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10365333717345563614.wav",
+          "hyp": "",
+          "hyp_live": "ein curry ist ein gericht das auf Kräutern und Gewürzen basiert, zusammen mit entweder Fleisch oder Gemüse.",
+          "ref": "Ein Curry ist ein Gericht, das auf Kräutern und Gewürzen basiert, zusammen mit entweder Fleisch oder Gemüse.",
+          "speaker": "10365333717345563614.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10371526464884803925.wav",
+          "hyp": "",
+          "hyp_live": "Der Scottab Bus 403 fährt regelmäßig über Cabo da Roca nach Sintra.",
+          "ref": "Der Scotturb-Bus 403 fährt regelmäßig über Cabo da Roca nach Sintra.",
+          "speaker": "10371526464884803925.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10389623687459114198.wav",
+          "hyp": "",
+          "hyp_live": "Eine Internetsuche nach Kurs über feindselige Umgebungen wird vermutlich die Adresse einer örtlichen Firma anzeigen.",
+          "ref": "\"Eine Internetsuche nach \"\"Kurs über feindselige Umgebungen\"\" wird vermutlich die Adresse eine örtlichen Firma anzeigen.\"",
+          "speaker": "10389623687459114198.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10394143367436767913.wav",
+          "hyp": "",
+          "hyp_live": "die Sundarbans sind seit 1966 ein Naturschutzgebiet und Schätzungen zufolge halten sich dort mittlerweile 400 bengalische Königstiger und etwa 30.000 gefleckte die Hirsche auf.",
+          "ref": "Die Sundarbans sind seit 1966 ein Naturschutzgebiet, und Schätzungen zufolge halten sich dort mittlerweile 400 bengalische Königstiger und etwa 30.000 gefleckte Hirsche auf.",
+          "speaker": "10394143367436767913.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10400220672903290490.wav",
+          "hyp": "",
+          "hyp_live": "bald nach dem Ausbruch von Kampfhandlungen. initiierte Großbritannien eine Seeblockade gegen Deutschland.",
+          "ref": "Bald nach dem Ausbruch von Kampfhandlungen initiierte Großbritannien eine Seeblockade gegen Deutschland.",
+          "speaker": "10400220672903290490.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10438132720416552229.wav",
+          "hyp": "",
+          "hyp_live": "Man sieht nichts außer dem darüber liegenden klaren wunderschönen Himmel und den zahlreichen umliegenden Bergen. Vom Innern der Höhle aus ist es sehr wenig von dieser Welt zu sehen oder zu hören.",
+          "ref": "Man sieht nichts außer dem darüber liegenden, klaren, wunderschönen Himmel und den zahlreichen umliegenden Bergen. Vom Innern der Höhle aus ist sehr wenig von dieser Welt zu sehen oder zu hören.",
+          "speaker": "10438132720416552229.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10468958335301071458.wav",
+          "hyp": "",
+          "hyp_live": "Ganze 20% des Wassers, das über die Flüsse des Planeten in die Ozeane fließt, kommt aus dem Amazonas.",
+          "ref": "Ganze 20 Prozent des Wassers, das über die Flüsse des Planeten in die Ozeane fließt, kommt aus dem Amazonas.",
+          "speaker": "10468958335301071458.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10477370799955229240.wav",
+          "hyp": "",
+          "hyp_live": "Das stimmt allerdings nicht. Obwohl auf der Rückseite des Schriftstücks etwas geschrieben steht, handelt es sich nicht um eine Schatzkarte.",
+          "ref": "Das stimmt allerdings nicht. Obwohl auf der Rückseite des Schriftstücks etwas geschrieben steht, handelt es sich nicht um eine Schatzkarte.",
+          "speaker": "10477370799955229240.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10504450071805589678.wav",
+          "hyp": "",
+          "hyp_live": "Während Goma einigermaßen sicher ist, sollte jeder Aufenthalt außer Gomas sorgfältig geplant werden, um den Stand der in der Provinz Nordkiewu andauernden Kämpfe zu erfahren.",
+          "ref": "Während Goma einigermaßen sicher ist, sollte jeder Aufenthalt außerhalb Gomas sorgfältig geplant werden, um den Stand der in der Provinz Nord-Kivu andauernden Kämpfe zu erfahren.",
+          "speaker": "10504450071805589678.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "1051177360594616241.wav",
+          "hyp": "",
+          "hyp_live": "Die meisten modernen Forschungsteleskope sind gewaltige Einrichtungen in entlegenen Gebieten mit günstigen atmosphärischen Bedingungen.",
+          "ref": "Die meisten modernen Forschungsteleskope sind gewaltige Einrichtungen in entlegenen Gebieten mit günstigen atmosphärischen Bedingungen.",
+          "speaker": "1051177360594616241.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10523281885564082084.wav",
+          "hyp": "",
+          "hyp_live": "Im 3. Jahrhundert vor Christus, von den Ägypten erbaut, ist die Cheops-Pyramide eine von vielen großen Pyramidenstrukturen. die zur Verehrung verstorbener Pharaonen erbaut wurden.",
+          "ref": "Im dritten Jahrhundert v. Chr. von den Ägyptern erbaut, ist die Cheops-Pyramide eine von vielen großen Pyramidenstrukturen, die zur Verehrung verstorbener Pharaonen erbaut wurden.",
+          "speaker": "10523281885564082084.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10534115037762380445.wav",
+          "hyp": "",
+          "hyp_live": "Dem Lieg zufolge bezieht sich das Dokument auf den Grenzstreit, in dem die Palästinenser ein Zurücksetzen der Grenzen in den Zustand vor dem Sechstagekrieg von 1967 fordern.",
+          "ref": "Dem Leak zufolge bezieht sich das Dokument auf den Grenzstreit, in dem die Palästinenser ein Zurücksetzen der Grenzen in den Zustand vor dem Sechstagekrieg von 1967 fordern.",
+          "speaker": "10534115037762380445.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10550358236047036338.wav",
+          "hyp": "",
+          "hyp_live": "Das Wort Zivilisation kommt vom lateinischen Zivilis, welches zivil bedeutet, verwandt mit dem lateinischen Zivis, welches Bürger bedeutet und Zivitas, welches Stadt oder Stadtstaat bedeutet und das auch irgendwie die Größe einer Gesellschaft definiert.",
+          "ref": "Das Wort Zivilisation kommt vom lateinischen civilis, welches zivil bedeutet, verwandt mit dem lateinischen civis, welches Bürger bedeutet, und civitas, welches Stadt oder Stadtstaat bedeutet und das auch irgendwie die Größe einer Gesellschaft definiert.",
+          "speaker": "10550358236047036338.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10555751885736126606.wav",
+          "hyp": "",
+          "hyp_live": "löwenrudel agieren ähnlich wie wolfs oder hunderudel tiere die den löwen aber nicht anderen großkatzen im verhalten überraschend ähneln und ebenso tödlich gegenüber ihrer beute sind",
+          "ref": "Löwenrudel agieren ähnlich wie Wolfs- oder Hunderudel, Tiere, die den Löwen (aber nicht anderen Großkatzen) im Verhalten überraschend ähneln und ebenso tödlich gegenüber ihrer Beute sind.",
+          "speaker": "10555751885736126606.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10559065632722111401.wav",
+          "hyp": "",
+          "hyp_live": "Weitere Themen auf der Tagesordnung in Bali sind die Rettung der noch verbliebenen Wälder der Welt und die gemeinsame Nutzung von Technologien, die den Entwicklungsländern helfen sollen, auf weniger umweltschädliche Weise zu wachsen.",
+          "ref": "Weitere Themen auf der Tagesordnung in Bali sind die Rettung der noch verbliebenen Wälder der Welt und die gemeinsame Nutzung von Technologien, die den Entwicklungsländern helfen sollen, auf weniger umweltschädliche Weise zu wachsen.",
+          "speaker": "10559065632722111401.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10592252053735102131.wav",
+          "hyp": "",
+          "hyp_live": "Eine Zivilisation ist eine eigenständige Kultur, die von einer signifikant großen Gruppe von Menschen geteilt wird, die zusammenleben und arbeiten in einer Gesellschaft.",
+          "ref": "Eine Zivilisation ist eine eigenständige Kultur, die von einer signifikant großen Gruppe von Menschen geteilt wird, die zusammen leben und arbeiten, einer Gesellschaft.",
+          "speaker": "10592252053735102131.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10618529918679729733.wav",
+          "hyp": "",
+          "hyp_live": "wegen der Un... der Wassertopologie konzentriert sich der Rückfluss in wenigen tieferen Bereichen und eine schnelle Strömung bis hin zu tiefem Wasser kann sich dort bilden.",
+          "ref": "Wegen der Unterwassertopologie konzentriert sich der Rückfluss in wenigen tieferen Bereichen und eine schnelle Strömung bis hin zu tiefem Wasser kann sich dort bilden.",
+          "speaker": "10618529918679729733.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10636710317803810431.wav",
+          "hyp": "",
+          "hyp_live": "Giancarlo Fisichella verlor die Kontrolle über sein Auto und musste das Rennen schon kurz nach dem Start beenden.",
+          "ref": "Giancarlo Fisichella verlor die Kontrolle über sein Auto und musste das Rennen schon kurz nach dem Start beenden.",
+          "speaker": "10636710317803810431.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10643749812001802208.wav",
+          "hyp": "",
+          "hyp_live": "Die... Sundarbans sind der größte Mangrovengürtel der Welt und erstrecken sich über 80 Kilometer vom bangladeschischen und indischen Hinterland bis an die Küste.",
+          "ref": "Die Sundarbans sind der größte Mangrovengürtel der Welt und erstrecken sich über 80 km vom bangladeschischen und indischen Hinterland bis an die Küste.",
+          "speaker": "10643749812001802208.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10665020118682546787.wav",
+          "hyp": "",
+          "hyp_live": "Mehrere große Fernsehschirme wurden an verschiedenen Orten in Rom aufgestellt. so dass die Leute die Zeremonie ansehen konnten.",
+          "ref": "Mehrere große Fernsehschirme wurden an verschiedenen Orten in Rom aufgestellt, so dass die Leute die Zeremonie ansehen konnten.",
+          "speaker": "10665020118682546787.wav"
+        },
+        {
+          "dur_s": 0,
+          "file": "10672259812560738589.wav",
+          "hyp": "",
+          "hyp_live": "Die Strategie erwies sich als effektiv, da sie das Land von lebenswichtigen militärischen und zivilen Lieferungen abschnitt, obwohl diese Blockade gegen das allgemein anerkannte Völkerrecht verstieß, das durch mehrere internationale Abkommen der letzten zwei Jahrhunderte kodifiziert worden war.",
+          "ref": "Die Strategie erwies sich als effektiv, da sie das Land von lebenswichtigen militärischen und zivilen Lieferungen abschnitt, obwohl diese Blockade gegen das allgemein anerkannte Völkerrecht verstieß, das durch mehrere internationale Abkommen der letzten zwei Jahrhunderte kodifiziert worden war.",
+          "speaker": "10672259812560738589.wav"
+        }
+      ]
+    }
+  ]
+}
