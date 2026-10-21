@@ -56,9 +56,12 @@ jobs:
       - name: Compilar e testar (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        # o PowerShell não para sozinho quando um script termina com erro: confere cada passo
         run: |
           scripts/cargo-windows.ps1 test --release -p praxis-engine --lib
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           scripts/cargo-windows.ps1 build --release -p praxis-engine
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item target/ct2-lib/*.dll target/release/
 
       - name: Guardar o motor compilado

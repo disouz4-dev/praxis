@@ -15,4 +15,13 @@ if true; then
     export CMAKE_LIBRARY_PATH="$PWD/target/ct2-lib"
     export RUSTFLAGS="$RUSTFLAGS -L native=$PWD/target/ct2-lib -C link-arg=-Wl,-rpath,@executable_path -C link-arg=-Wl,-rpath,@executable_path/../Frameworks -C link-arg=-Wl,-rpath,$PWD/target/ct2-lib"
 fi
+# O sherpa-onnx-sys baixa as bibliotecas prontas para target/sherpa-onnx-prebuilt/ e as
+# copia para target/<perfil>/, mas só quando o build.rs dele roda. O cache do GitHub
+# Actions (Swatinem/rust-cache) guarda o "já compilado" do sherpa-onnx-sys e apaga essas
+# pastas; sem elas, a ligação falha ("unable to find library -lsherpa-onnx-c-api").
+# Se as bibliotecas sumiram, apaga o registro de compilação dele para o build.rs rodar de novo.
+if ! compgen -G "target/sherpa-onnx-prebuilt/*/lib" >/dev/null; then
+    find target -maxdepth 4 -type d \( -path '*/build/sherpa-onnx-sys-*' -o -path '*/.fingerprint/sherpa-onnx-sys-*' \) \
+        -prune -exec rm -rf {} + 2>/dev/null || true
+fi
 exec cargo "$@"
