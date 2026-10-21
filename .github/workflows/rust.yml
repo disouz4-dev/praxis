@@ -1,0 +1,70 @@
+name: Motor em Rust
+
+on:
+  push:
+    paths: ["app/**", ".github/workflows/rust.yml"]
+  pull_request:
+    paths: ["app/**", ".github/workflows/rust.yml"]
+  workflow_dispatch:
+
+jobs:
+  motor:
+    name: Motor (${{ matrix.nome }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-22.04, nome: Linux }
+          - { os: macos-14, nome: macOS Apple Silicon }
+          - { os: windows-latest, nome: Windows }
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: app }
+
+      - name: Dependências do sistema (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev pkg-config cmake
+      - name: Dependências do sistema (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libomp
+
+      - name: Compilar e testar (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          PYTHON=python scripts/ct2-do-pacote-oficial.sh
+          scripts/cargo-linux.sh test --release -p praxis-engine --lib
+          scripts/cargo-linux.sh build --release -p praxis-engine
+          cp target/ct2-lib/*.so* target/release/
+      - name: Compilar e testar (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          PYTHON=python scripts/ct2-do-pacote-oficial.sh
+          scripts/cargo-macos.sh test --release -p praxis-engine --lib
+          scripts/cargo-macos.sh build --release -p praxis-engine
+          cp target/ct2-lib/*.dylib target/release/
+      - name: Compilar e testar (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo test --release -p praxis-engine --lib
+          cargo build --release -p praxis-engine
+
+      - name: Guardar o motor compilado
+        uses: actions/upload-artifact@v4
+        with:
+          name: praxis-motor-${{ runner.os }}
+          path: |
+            app/target/release/praxis-cli*
+            app/target/release/*.dll
+            app/target/release/*.so*
+            app/target/release/*.dylib
+          if-no-files-found: error
