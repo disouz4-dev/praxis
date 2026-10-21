@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use anyhow::{bail, Result};
-use praxis_engine::{asr::WhisperAsr, audio, mt, pipeline, tts, vad};
+use praxis_engine::{asr::WhisperAsr, audio, devices, mt, pipeline, tts, vad};
 use std::sync::Arc;
 
 /// Alto-falante de teste: espera a duração do áudio (como um de verdade) e não toca nada.
@@ -202,6 +202,92 @@ fn main() -> Result<()> {
                 "latency_audio_ms": {"p50": p50, "p95": p95, "max": max}, "lag_trend_ms": trend,
                 "drain_s": drain, "keeps_up": keeps_up, "segments": ends.len()});
             std::fs::write(pos[9], serde_json::to_string_pretty(&out)?)?;
+        }
+        Some("dispositivos") => {
+            println!("{}", serde_json::to_string_pretty(&serde_json::json!({
+                "entradas": devices::list_inputs(), "saidas": devices::list_outputs()}))?);
+        }
+        // run --src pt --tgt en --whisper D --silero F --tradutor nllb|argos --modelo-tradutor D --voz D
+        //     [--voz-in D (bilateral)] [--mic NOME] [--saida NOME] [--ouvir] [--fones] [--max-seg=S] [--segundos=N]
+        Some("run") => {
+            let opt = |k: &str| args.iter().position(|a| a == k).and_then(|i| args.get(i + 1)).cloned();
+            let need = |k: &str| opt(k).ok_or_else(|| anyhow::anyhow!("falta {k}"));
+            let (src, tgt) = (need("--src")?, need("--tgt")?);
+            let fones = args.iter().any(|a| a == "--fones");
+            let ouvir = args.iter().any(|a| a == "--ouvir");
+            let bilateral = opt("--voz-in").is_some();
+            let max_seg: f32 = args.iter().find_map(|a| a.strip_prefix("--max-seg=")).and_then(|v| v.parse().ok())
+                .unwrap_or(if gpu { 15.0 } else { 6.0 });
+            let secs: Option<f32> = args.iter().find_map(|a| a.strip_prefix("--segundos=")).and_then(|v| v.parse().ok());
+            let emit = |v: serde_json::Value| println!("{v}");
+            emit(serde_json::json!({"e": "progress", "pct": 10, "msg": "Preparando o microfone virtual…"}));
+            let vm = devices::VirtualMic::setup(bilateral)?;
+            emit(serde_json::json!({"e": "virtual_mic", "mic": vm.mic_label, "peer": vm.peer_label}));
+            emit(serde_json::json!({"e": "progress", "pct": 30, "msg": "Carregando o reconhecimento de fala…"}));
+            let asr = Arc::new(WhisperAsr::load(need("--whisper")?.as_ref(), gpu, threads)?);
+            emit(serde_json::json!({"e": "progress", "pct": 60, "msg": "Carregando a tradução…"}));
+            let load_tr = |a: &str, b: &str| -> Result<Arc<dyn pipeline::Translate>> {
+                let path = need("--modelo-tradutor")?;
+                Ok(match opt("--tradutor").as_deref() {
+                    Some("nllb") => Arc::new(mt::Nllb::load(path.as_ref(), gpu)?),
+                    _ => {
+                        let dir = PathBuf::from(&path);
+                        let route = if a != "en" && b != "en" {
+                            vec![mt::ArgosPair::load(&mt::argos_package(&dir, a, "en")?, gpu)?,
+                                 mt::ArgosPair::load(&mt::argos_package(&dir, "en", b)?, gpu)?]
+                        } else {
+                            vec![mt::ArgosPair::load(&mt::argos_package(&dir, a, b)?, gpu)?]
+                        };
+                        Arc::new(pipeline::ArgosRoute(route))
+                    }
+                })
+            };
+            emit(serde_json::json!({"e": "progress", "pct": 80, "msg": "Carregando a voz…"}));
+            let voice_out = Arc::new(tts::PiperVoice::load(need("--voz")?.as_ref(), 2)?);
+            let shared = pipeline::Shared::new();
+            let (etx, erx) = std::sync::mpsc::channel();
+            let mut handles = vec![];
+            let cfg = vad::SegmenterConfig { max_seg_s: max_seg, ..Default::default() };
+            let silero = need("--silero")?;
+            // ida: meu microfone → tradução → microfone virtual (+ meu fone, se pedi para ouvir)
+            let mut outs = vec![devices::OutputDevice::open(vm.target.clone())?];
+            if ouvir {
+                outs.push(devices::OutputDevice::open(opt("--saida"))?);
+            }
+            let (mtx, mrx) = std::sync::mpsc::channel();
+            handles.push(devices::spawn_capture(opt("--mic"), mtx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
+            let dir_out = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(),
+                to_speaker: ouvir, echo_gate: ouvir && !fones };
+            handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, voice_out,
+                Arc::new(devices::Speakers(outs)), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
+            // volta (bilateral): a outra pessoa → tradução → meu fone/caixa de som
+            if let Some(vin) = opt("--voz-in") {
+                let voice_in = Arc::new(tts::PiperVoice::load(vin.as_ref(), 2)?);
+                let (ptx, prx) = std::sync::mpsc::channel();
+                handles.push(devices::spawn_capture(vm.peer_capture.clone(), ptx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
+                let dir_in = pipeline::Direction { name: "in".into(), src: tgt.clone(), tgt: src.clone(),
+                    to_speaker: true, echo_gate: !fones };
+                // a trava de eco da ida também precisa saber quando a volta toca no alto-falante
+                handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, voice_in,
+                    Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?])), dir_in, cfg,
+                    silero.clone(), shared.clone(), etx.clone())?);
+            }
+            drop(etx);
+            emit(serde_json::json!({"e": "progress", "pct": 100, "msg": "Traduzindo"}));
+            emit(serde_json::json!({"e": "ready"}));
+            let t0 = Instant::now();
+            loop {
+                if let Some(s) = secs { if t0.elapsed().as_secs_f32() > s { break; } }
+                match erx.recv_timeout(std::time::Duration::from_millis(200)) {
+                    Ok(e) => println!("{}", serde_json::to_string(&e)?),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                    Err(_) => break,
+                }
+            }
+            shared.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            drop(vm); // remove os dispositivos virtuais (Linux)
+            emit(serde_json::json!({"e": "stopped"}));
+            std::process::exit(0);
         }
         Some("asr-corpus") if pos.len() == 5 => {
             let asr = WhisperAsr::load(pos[1].as_ref(), gpu, threads)?;

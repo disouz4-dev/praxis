@@ -17,6 +17,7 @@ anyhow = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 hound = "3.5"
+cpal = "0.18"
 realfft = "3"
 sentencepiece = "0.13"
 # detector de fala Silero v6 (o mesmo do Python), rodando no onnxruntime que o sherpa-onnx
@@ -31,6 +32,11 @@ sherpa-onnx = { version = "1.13", default-features = false, features = ["shared"
 # o Whisper em 8 bits levou 42 s numa frase que o faster-whisper faz em 0,6 s)
 # Linux x86-64: a biblioteca do pacote oficial (MKL + placa de vídeo NVIDIA), a mesma do
 # Python. Prepare com scripts/ct2-do-pacote-oficial.sh e compile com scripts/cargo-linux.sh
+# Linux: áudio pelo PulseAudio/PipeWire (os mesmos nomes de dispositivo do sistema e o
+# microfone virtual Praxis_Microfone); sem isso a lista vinha "crua" do ALSA
+[target.'cfg(target_os = "linux")'.dependencies]
+cpal = { version = "0.18", features = ["pulseaudio"] }
+
 [target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dependencies]
 ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
 

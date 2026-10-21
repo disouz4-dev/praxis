@@ -7,3 +7,4 @@ pub mod text;
 pub mod vad;
 pub mod tts;
 pub mod pipeline;
+pub mod devices;
