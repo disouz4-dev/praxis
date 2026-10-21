@@ -11,9 +11,17 @@ export RUSTFLAGS="${RUSTFLAGS:-} -L native=$PWD/target/ct2-lib -C link-arg=-Wl,-
 # copia para target/<perfil>/, mas só quando o build.rs dele roda. O cache do GitHub
 # Actions (Swatinem/rust-cache) guarda o "já compilado" do sherpa-onnx-sys e apaga essas
 # pastas; sem elas, a ligação falha ("unable to find library -lsherpa-onnx-c-api").
-# Se as bibliotecas sumiram, apaga o registro de compilação dele para o build.rs rodar de novo.
-if ! compgen -G "target/sherpa-onnx-prebuilt/*/lib" >/dev/null; then
-    find target -maxdepth 4 -type d \( -path '*/build/sherpa-onnx-sys-*' -o -path '*/.fingerprint/sherpa-onnx-sys-*' \) \
-        -prune -exec rm -rf {} + 2>/dev/null || true
-fi
+# Para cada compilação guardada, confere se a pasta que o build.rs indicou ainda tem a
+# biblioteca; se não tem, apaga o registro de compilação para o build.rs rodar de novo.
+for saida in target/*/build/sherpa-onnx-sys-*/output target/*/*/build/sherpa-onnx-sys-*/output; do
+    [[ -f "$saida" ]] || continue
+    pasta="$(sed -n 's/^cargo:rustc-link-search=native=//p' "$saida" | head -1)"
+    if ! compgen -G "$pasta/*sherpa-onnx-c-api*" >/dev/null; then
+        perfil="${saida%/build/*}"
+        echo "bibliotecas do sherpa-onnx ausentes em $pasta: o sherpa-onnx-sys será compilado de novo" >&2
+        rm -rf "$perfil"/build/sherpa-onnx-sys-* "$perfil"/.fingerprint/sherpa-onnx-sys-*
+        # uma pasta lib/ vazia que sobrou faria o build.rs achar que já baixou
+        [[ "$pasta" == */sherpa-onnx-prebuilt/*/lib ]] && rm -rf "$(dirname "$pasta")"
+    fi
+done
 exec cargo "$@"
