@@ -93,7 +93,9 @@ function preencherDispositivos() {
   for (const [id, lista] of [["mic", ESTADO.entradas], ["output", ESTADO.saidas]]) {
     const sel = $(id);
     sel.replaceChildren(opcao("", padrao));
-    for (const n of lista) if (!/^(Monitor of )?Praxis[ _]/.test(n)) sel.append(opcao(n, n));   // os do próprio Praxis
+    // os cabos virtuais do Praxis não são microfone nem fone de ninguém: escolhê-los fazia a
+    // tradução voltar para dentro do Praxis
+    for (const n of lista) if (!/^(Monitor of )?Praxis[ _]|VB-Audio Virtual Cable|BlackHole/.test(n)) sel.append(opcao(n, n));
     sel.value = cfg[id] || "";
     if (sel.selectedIndex < 0) sel.value = "";   // o aparelho salvo sumiu (desplugado): volta ao padrão
   }
@@ -163,6 +165,8 @@ function eventoDoMotor(e) {
     case "error":
       statusT("st_error", "erro");
       { const p = document.createElement("p"); p.className = "erro-msg"; p.textContent = e.msg; $("conversa").append(p); }
+      // o erro também vai para o alto da janela: ao voltar às configurações ele ficava escondido embaixo
+      fixo("erro_topo", e.msg); $("erro_topo").hidden = false; $("erro_topo").scrollIntoView({ block: "start" });
       break;
     case "stopped":
       rodando = false; $("iniciar").classList.remove("parar"); $("iniciar").disabled = false;
@@ -189,7 +193,7 @@ async function iniciarOuParar() {
   await salvar();
   rodando = true;
   $("config").hidden = true; $("painel").hidden = false; $("barra").hidden = false;
-  $("conversa").replaceChildren(); $("microfone_virtual").hidden = true;
+  $("conversa").replaceChildren(); $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
   $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
   try { await invoke("iniciar", { config: cfg }); }
   catch (err) { eventoDoMotor({ e: "error", msg: String(err) }); eventoDoMotor({ e: "stopped" }); }
@@ -229,6 +233,10 @@ async function main() {
 
   for (const id of ["src", "tgt", "bilateral"]) $(id).addEventListener("change", () => { verificarIdiomas(); salvar(); });
   for (const id of ["mic", "output", "monitor", "headphones", "model", "translator"]) $(id).addEventListener("change", salvar);
+  // sem fone e com tradução tocando na caixa de som, a trava de eco deixa o microfone surdo
+  const avisoEco = () => { $("aviso_eco").hidden = $("headphones").checked || !($("monitor").checked || $("bilateral").checked); };
+  for (const id of ["monitor", "headphones", "bilateral"]) $(id).addEventListener("change", avisoEco);
+  avisoEco();
   $("iniciar").onclick = iniciarOuParar;
 
   await listen("praxis", (ev) => {

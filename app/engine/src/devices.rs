@@ -297,7 +297,9 @@ pub const SINK_IN_DESC: &str = "Praxis Speaker";
 pub const SINK_OUT_DESC: &str = "Praxis interno";
 
 /// (trecho do nome do lado onde o Praxis toca, trecho do nome que o app de chamada grava)
-pub const LOOPBACK_DRIVERS: [(&str, &str); 6] = [
+pub const LOOPBACK_DRIVERS: [(&str, &str); 7] = [
+    // VB-Cable renomeado pelo install.ps1 ("Praxis interno" → "Praxis Mic")
+    ("Praxis interno", "Praxis Mic"),
     ("BlackHole 2ch", "BlackHole 2ch"),
     ("BlackHole", "BlackHole"),
     ("CABLE Input", "CABLE Output"),
@@ -393,7 +395,11 @@ impl VirtualMic {
         vm.mic_label = label;
         if bilateral {
             let (peer_out, peer_in) = pick(&PEER_LOOPBACK_DRIVERS)
-                .ok_or_else(|| anyhow!("o modo bilateral precisa de um segundo cabo de áudio virtual (BlackHole 16ch ou CABLE-A)"))?;
+                .ok_or_else(|| anyhow!(if cfg!(target_os = "macos") {
+                    "o modo bilateral precisa do BlackHole 16ch (o instalador do Praxis instala)"
+                } else {
+                    "o modo bilateral precisa de um segundo cabo de áudio virtual, que ainda não está instalado neste computador"
+                }))?;
             vm.peer_capture = Some(peer_in);
             vm.peer_label = peer_out;
         }

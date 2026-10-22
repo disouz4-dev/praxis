@@ -85,7 +85,8 @@
    "upd_available": "Versão {new} disponível (você tem a {cur}).",
    "upd_running": "Atualizando… (o sistema vai pedir a sua senha)",
    "err_open": "Erro ao abrir o Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — com placa de vídeo, mais idiomas"
+   "opt_model_large": "Whisper large-v3 — com placa de vídeo, mais idiomas",
+   "warn_echo": "Sem fone, o Praxis não ouve você enquanto a tradução toca na caixa de som, e partes da fala podem se perder. Use fone para a tradução simultânea completa."
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -172,7 +173,8 @@
    "upd_available": "Version {new} available (you have {cur}).",
    "upd_running": "Updating… (the system will ask for your password)",
    "err_open": "Error opening Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — with graphics card, more languages"
+   "opt_model_large": "Whisper large-v3 — with graphics card, more languages",
+   "warn_echo": "Without headphones, Praxis can't hear you while the translation plays on the speakers, so parts of your speech may be lost. Use headphones for full simultaneous translation."
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -259,7 +261,8 @@
    "upd_available": "Versión {new} disponible (tienes la {cur}).",
    "upd_running": "Actualizando… (el sistema te pedirá tu contraseña)",
    "err_open": "Error al abrir Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — con tarjeta gráfica, más idiomas"
+   "opt_model_large": "Whisper large-v3 — con tarjeta gráfica, más idiomas",
+   "warn_echo": "Sin auriculares, Praxis no te oye mientras la traducción suena en el altavoz, y partes de tu habla pueden perderse. Usa auriculares para la traducción simultánea completa."
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -346,7 +349,8 @@
    "upd_available": "Version {new} disponible (vous avez la {cur}).",
    "upd_running": "Mise à jour… (le système va demander votre mot de passe)",
    "err_open": "Erreur à l'ouverture de Praxis : {err}",
-   "opt_model_large": "Whisper large-v3 — avec carte graphique, plus de langues"
+   "opt_model_large": "Whisper large-v3 — avec carte graphique, plus de langues",
+   "warn_echo": "Sans casque, Praxis ne vous entend pas pendant que la traduction passe sur le haut-parleur : des morceaux de votre parole peuvent se perdre. Utilisez un casque pour la traduction simultanée complète."
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -433,7 +437,8 @@
    "upd_available": "Version {new} verfügbar (Sie haben {cur}).",
    "upd_running": "Wird aktualisiert… (das System fragt nach Ihrem Passwort)",
    "err_open": "Fehler beim Öffnen von Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — mit Grafikkarte, mehr Sprachen"
+   "opt_model_large": "Whisper large-v3 — mit Grafikkarte, mehr Sprachen",
+   "warn_echo": "Ohne Kopfhörer hört Praxis Sie nicht, während die Übersetzung über den Lautsprecher läuft – Teile Ihrer Rede können verloren gehen. Nutzen Sie Kopfhörer für die vollständige Simultanübersetzung."
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -520,7 +525,8 @@
    "upd_available": "Versione {new} disponibile (hai la {cur}).",
    "upd_running": "Aggiornamento… (il sistema chiederà la tua password)",
    "err_open": "Errore nell'apertura di Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — con scheda video, più lingue"
+   "opt_model_large": "Whisper large-v3 — con scheda video, più lingue",
+   "warn_echo": "Senza cuffie, Praxis non ti sente mentre la traduzione suona dall'altoparlante e parti del discorso possono perdersi. Usa le cuffie per la traduzione simultanea completa."
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -607,7 +613,8 @@
    "upd_available": "Доступна версия {new} (у вас {cur}).",
    "upd_running": "Обновление… (система запросит ваш пароль)",
    "err_open": "Ошибка при запуске Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — с видеокартой, больше языков"
+   "opt_model_large": "Whisper large-v3 — с видеокартой, больше языков",
+   "warn_echo": "Без наушников Praxis не слышит вас, пока перевод звучит из динамика, и часть речи может потеряться. Используйте наушники для полного синхронного перевода."
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -694,7 +701,8 @@
    "upd_available": "有新版本 {new}（当前为 {cur}）。",
    "upd_running": "正在更新…（系统会要求输入密码）",
    "err_open": "打开 Praxis 时出错：{err}",
-   "opt_model_large": "Whisper large-v3 — 需要显卡，支持更多语言"
+   "opt_model_large": "Whisper large-v3 — 需要显卡，支持更多语言",
+   "warn_echo": "不戴耳机时，翻译从扬声器播放期间 Praxis 听不到你的声音，部分讲话可能会丢失。请使用耳机以获得完整的同声传译。"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -781,7 +789,8 @@
    "upd_available": "Versie {new} beschikbaar (je hebt {cur}).",
    "upd_running": "Bezig met bijwerken… (het systeem vraagt om je wachtwoord)",
    "err_open": "Fout bij het openen van Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — met videokaart, meer talen"
+   "opt_model_large": "Whisper large-v3 — met videokaart, meer talen",
+   "warn_echo": "Zonder koptelefoon hoort Praxis je niet terwijl de vertaling via de luidspreker speelt, waardoor delen van je spraak verloren kunnen gaan. Gebruik een koptelefoon voor volledige simultaanvertaling."
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -868,7 +877,8 @@
    "upd_available": "Dostępna wersja {new} (masz {cur}).",
    "upd_running": "Aktualizowanie… (system poprosi o hasło)",
    "err_open": "Błąd podczas otwierania Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — z kartą graficzną, więcej języków"
+   "opt_model_large": "Whisper large-v3 — z kartą graficzną, więcej języków",
+   "warn_echo": "Bez słuchawek Praxis nie słyszy cię, gdy tłumaczenie gra z głośnika, więc część wypowiedzi może zginąć. Użyj słuchawek, aby mieć pełne tłumaczenie symultaniczne."
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -955,7 +965,8 @@
    "upd_available": "Доступна версія {new} (у вас {cur}).",
    "upd_running": "Оновлення… (система попросить ваш пароль)",
    "err_open": "Помилка під час запуску Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — з відеокартою, більше мов"
+   "opt_model_large": "Whisper large-v3 — з відеокартою, більше мов",
+   "warn_echo": "Без навушників Praxis не чує вас, поки переклад звучить із динаміка, і частина мовлення може загубитися. Використовуйте навушники для повного синхронного перекладу."
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -1042,7 +1053,8 @@
    "upd_available": "{new} sürümü mevcut (sizdeki: {cur}).",
    "upd_running": "Güncelleniyor… (sistem şifrenizi soracak)",
    "err_open": "Praxis açılırken hata: {err}",
-   "opt_model_large": "Whisper large-v3 — ekran kartıyla, daha fazla dil"
+   "opt_model_large": "Whisper large-v3 — ekran kartıyla, daha fazla dil",
+   "warn_echo": "Kulaklık olmadan, çeviri hoparlörden çalarken Praxis sizi duyamaz ve konuşmanızın bazı kısımları kaybolabilir. Tam eşzamanlı çeviri için kulaklık kullanın."
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -1129,7 +1141,8 @@
    "upd_available": "الإصدار {new} متاح (لديك {cur}).",
    "upd_running": "جارٍ التحديث… (سيطلب النظام كلمة المرور)",
    "err_open": "خطأ أثناء فتح Praxis: {err}",
-   "opt_model_large": "Whisper large-v3 — مع بطاقة رسومات، لغات أكثر"
+   "opt_model_large": "Whisper large-v3 — مع بطاقة رسومات، لغات أكثر",
+   "warn_echo": "بدون سماعات، لا يسمعك Praxis أثناء تشغيل الترجمة على مكبر الصوت، وقد تضيع أجزاء من كلامك. استخدم السماعات للحصول على ترجمة فورية كاملة."
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -1216,7 +1229,8 @@
    "upd_available": "संस्करण {new} उपलब्ध है (आपके पास {cur} है)।",
    "upd_running": "अपडेट हो रहा है… (सिस्टम आपका पासवर्ड माँगेगा)",
    "err_open": "Praxis खोलने में त्रुटि: {err}",
-   "opt_model_large": "Whisper large-v3 — ग्राफ़िक्स कार्ड के साथ, अधिक भाषाएँ"
+   "opt_model_large": "Whisper large-v3 — ग्राफ़िक्स कार्ड के साथ, अधिक भाषाएँ",
+   "warn_echo": "हेडफ़ोन के बिना, जब अनुवाद स्पीकर पर चलता है तब Praxis आपको नहीं सुन पाता, और आपकी बात के कुछ हिस्से छूट सकते हैं। पूरे साथ-साथ अनुवाद के लिए हेडफ़ोन का उपयोग करें।"
   }
  },
  "lang_names": {

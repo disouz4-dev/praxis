@@ -16,8 +16,8 @@ Onde testar:
 | Bibliotecas da placa de vídeo baixadas e conferidas | ✅ | — (sem placa) |
 | Microfone virtual instalado (VB-Cable) | — | ✅ (já instalado: detectado e mantido) |
 | Atalho no menu de aplicativos e ícone | ⏳ | ✅ Menu Iniciar e área de trabalho; abre pelo ícone sem erro |
-| Aviso de versão nova na janela | ✅ simulador | ⏳ |
-| Botão "Atualizar": senha → atualiza → reabre | ⏳ | ⏳ |
+| Aviso de versão nova na janela | ✅ simulador; ✅ lab2 (0.3.2 → 0.3.3) | ❌ não existia no Windows (corrigido: avisa e atualiza sozinho; falta reconferir) |
+| Botão "Atualizar": senha → atualiza → reabre | ⏳ | ⏳ (novo: baixa o instalador, instala sem perguntas e reabre) |
 | Atualização pelo sistema (`apt upgrade`) | ⏳ | — |
 | Falha na atualização mostra o motivo e permite tentar de novo | ✅ simulador | ⏳ |
 | Desinstalar remove tudo (inclui as bibliotecas da placa) | ⏳ | ✅ pasta, atalho e registro removidos |
@@ -32,7 +32,7 @@ Onde testar:
 | Erro ao iniciar → mensagem + volta às configurações + tentar de novo | ✅ |
 | Erro durante a tradução → mensagem + volta às configurações | ✅ (corrigido) |
 | Iniciar/parar 3 vezes seguidas | ✅ |
-| Fechar e reabrir: configurações mantidas | ⏳ |
+| Fechar e reabrir: configurações mantidas | ✅ Windows |
 | Fechar durante a tradução remove os dispositivos virtuais | ✅ lab2 |
 
 ## 3. Botões e opções
@@ -42,10 +42,10 @@ Onde testar:
 | Idiomas: listas, idioma bloqueado desativado com motivo | ✅ |
 | Mesmo idioma nos dois lados: aviso + Iniciar desativado | ✅ |
 | Bilateral com idioma bloqueado do outro lado: aviso | ✅ |
-| Microfone e saída: listas | ✅ |
+| Microfone e saída: listas | ❌ aparelho salvo que sumiu deixava a lista vazia; ❌ Windows listava os lados do cabo virtual (escolhê-los fazia a tradução voltar) — corrigidos |
 | Ouvir a tradução / Estou de fone / Bilateral: salvam a configuração | ✅ |
-| Tema claro/escuro | ✅ |
-| Idioma da interface: todos os textos traduzidos | ✅ (corrigido: 39 textos em 14 idiomas) |
+| Tema escuro | ❌ listas e caixas de marcar brancas com letra cinza (Linux e Windows) — corrigido: o Praxis desenha os controles; ✅ Linux |
+| Idioma da interface: todos os textos traduzidos | ✅ 14 idiomas no Windows, árabe da direita para a esquerda |
 | Avançado: modelos oferecidos | ✅ (corrigido: turbo, large-v3, small; o Parakeet é escolhido sozinho por idioma) |
 | Diagnóstico do reconhecedor | ✅ |
 
@@ -59,6 +59,17 @@ Onde testar:
 | Sem fone: a trava de eco não deixa a tradução voltar pelo microfone | ⏳ | ⏳ |
 | Primeira vez sem internet: mensagem clara | ⏳ | ⏳ |
 | Download interrompido: tenta de novo e retoma | ⏳ | ⏳ |
+
+## 4b. QA do Windows 0.3.3 (máquina virtual, janela real controlada por depuração)
+
+| Item | Resultado |
+|---|---|
+| Iniciar → Traduzindo → Parar, 3 vezes | ✅ |
+| Mesmo idioma: aviso + Iniciar desativado | ✅ |
+| Bilateral | ❌ exige um 2º cabo virtual que o instalador não instala; baixava 66 MB antes de dar o erro; erro escondido embaixo da tela e citando o BlackHole (do Mac). Corrigidos: dispositivos conferidos antes de baixar, erro no alto da janela, mensagem por sistema. **Falta o 2º cabo no Windows** (Hi-Fi Cable descartado: de 2014, sem instalação silenciosa) |
+| Fala real entrando pelo cabo virtual (5 frases) | ✅ traduz; ❌ sem fone, no modo simultâneo, a trava de eco corta a fala enquanto a tradução toca ("paciência e compreensão…" virou "que passar"). Paliativo: aviso na janela. Solução: cancelador de eco de verdade |
+| Nomes "Praxis Mic" / "Praxis Speaker" | ✅ Linux; ✅ Windows ("Praxis Mic" pelo install.ps1) |
+| install.ps1 lido na codificação antiga do Windows | ❌ "instalaÃ§Ã£o" e símbolos que viram aspas quebravam o script — corrigido |
 
 ## 5. O que falta no aplicativo (existia na versão em Python ou é esperado)
 

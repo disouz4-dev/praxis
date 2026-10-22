@@ -215,6 +215,11 @@ impl Session {
         let tr_in = translator_for(&cfg.tgt, &cfg.src, gpu, &cfg.translator);
         emit(SessionEvent::Hardware { gpu, model: model.clone(), translator: tr_out.into(), max_seg_s });
 
+        // os dispositivos primeiro: sem o cabo virtual não adianta baixar nada (e o erro vem na hora)
+        progress(2, "Preparando o microfone virtual…");
+        let vm = VirtualMic::setup(cfg.bilateral)?;
+        emit(SessionEvent::VirtualMic { mic: vm.mic_label.clone(), peer: vm.peer_label.clone() });
+
         progress(5, "Preparando os modelos…");
         let ensure_asr = |m: &str| if m.starts_with("parakeet") { store.ensure_parakeet(m, &dl) } else { store.ensure_whisper(m, &dl) };
         let asr_dir = ensure_asr(&model)?;
@@ -252,10 +257,6 @@ impl Session {
         } else {
             None
         };
-
-        progress(40, "Preparando o microfone virtual…");
-        let vm = VirtualMic::setup(cfg.bilateral)?;
-        emit(SessionEvent::VirtualMic { mic: vm.mic_label.clone(), peer: vm.peer_label.clone() });
 
         progress(55, "Carregando o reconhecimento de fala…");
         let threads = 0;

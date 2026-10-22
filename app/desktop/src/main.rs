@@ -75,16 +75,40 @@ const LINUX_UPDATER: &str = "/opt/praxis/praxis-atualizar";
 #[tauri::command]
 async fn verificar_atualizacao() -> Value {
     let atual = env!("CARGO_PKG_VERSION");
-    if !(cfg!(target_os = "linux") && std::path::Path::new(LINUX_UPDATER).exists()) {
+    if !(cfg!(windows) || (cfg!(target_os = "linux") && std::path::Path::new(LINUX_UPDATER).exists())) {
         return json!({"atual": atual, "nova": null});
     }
     let nova = tauri::async_runtime::spawn_blocking(praxis_engine::update::latest_version).await.ok().and_then(|r| r.ok());
     json!({"atual": atual, "nova": nova.filter(|n| praxis_engine::update::is_newer(n, atual))})
 }
 
-/// Instala a versão nova (pede a senha do sistema) e reabre o Praxis.
+/// Instala a versão nova e reabre o Praxis. Linux: pede a senha e chama o apt. Windows: baixa
+/// o instalador; um PowerShell à parte espera o Praxis fechar, instala sem perguntas e reabre.
 #[tauri::command]
 async fn atualizar(app: tauri::AppHandle) -> Result<(), String> {
+    if cfg!(windows) {
+        let setup = tauri::async_runtime::spawn_blocking(|| -> anyhow::Result<std::path::PathBuf> {
+            let v = praxis_engine::update::latest_version()?;
+            praxis_engine::update::download_windows_setup(&v)
+        })
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("não foi possível baixar a versão nova: {e}"))?;
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let ps = format!(
+            "Wait-Process -Id {} -ErrorAction SilentlyContinue; Start-Process -Wait -FilePath '{}' -ArgumentList '/S'; Start-Process -FilePath '{}'",
+            std::process::id(), setup.display(), exe.display());
+        let mut cmd = std::process::Command::new("powershell");
+        cmd.args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", &ps]);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x0000_0008 | 0x0800_0000);   // DETACHED_PROCESS | CREATE_NO_WINDOW
+        }
+        cmd.spawn().map_err(|e| format!("não foi possível iniciar a atualização: {e}"))?;
+        app.exit(0);
+        return Ok(());
+    }
     let ok = tauri::async_runtime::spawn_blocking(|| std::process::Command::new("pkexec").arg(LINUX_UPDATER).status())
         .await
         .map_err(|e| e.to_string())?

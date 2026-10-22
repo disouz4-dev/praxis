@@ -93,3 +93,6 @@ option:disabled { color: var(--suave); }
 }
 .chave input[type="checkbox"]:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
 .topo select { padding: 4px 24px 4px 8px; background-position: right 7px center; }
+.erro-topo { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: var(--texto);
+  background: rgba(239, 68, 68, .12); border: 1px solid var(--erro); }
+.erro-topo[hidden] { display: none; }
