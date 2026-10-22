@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis — simulador de QA</title>
+  <!-- a interface real (../ui), com um motor de mentira no lugar do Tauri -->
+  <base href="../ui/">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<script>
+// Cenários (?cenario=...): ok | erro-inicio | erro-saida | atualizacao
+const cenario = new URLSearchParams(location.search).get("cenario") || "ok";
+const ouvintes = [];
+const emitir = (payload) => ouvintes.forEach((f) => f({ payload }));
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+window.QA = { chamadas: [], cenario };
+const idiomas = ["pt", "en", "es", "fr", "de", "it", "ja", "zh", "ko", "ru", "ar", "hi", "nl", "pl", "uk", "tr"]
+  .map((c) => ({ codigo: c, liberado: !["ko", "hi"].includes(c), motivo: "erra demais neste computador",
+                 tem_voz: true, modelo: "parakeet-ultra-int8", erro: 0.029 }));
+window.__TAURI__ = {
+  core: {
+    invoke: async (cmd, args) => {
+      window.QA.chamadas.push(cmd);
+      switch (cmd) {
+        case "estado_inicial":
+          return { placa_de_video: true, entradas: ["Microfone USB", "Scarlett 2i2"], saidas: ["Scarlett 2i2"],
+                   idiomas, idioma_do_sistema: "pt", config: null, rodando: false };
+        case "salvar_config": return null;
+        case "modo_qa": return false;
+        case "verificar_atualizacao":
+          return { atual: "0.3.2", nova: cenario === "atualizacao" ? "0.3.3" : null };
+        case "atualizar": await esperar(300); throw "a atualização não terminou (senha cancelada)";
+        case "iniciar":
+          if (cenario === "erro-inicio") throw "microfone virtual não encontrado";
+          (async () => {
+            for (const [pct, msg] of [[5, "Preparando os modelos…"], [55, "Carregando o reconhecimento de fala…"], [100, "Traduzindo"]]) {
+              emitir({ e: "progress", pct, msg }); await esperar(150);
+            }
+            emitir({ e: "virtual_mic", mic: "Praxis_Microfone", peer: "" });
+            emitir({ e: "ready" });
+            if (cenario === "erro-saida") {
+              await esperar(200);
+              emitir({ e: "error", msg: "formato da saída de áudio não suportado: I32" });
+              emitir({ e: "stopped" });
+              return;
+            }
+            await esperar(200);
+            emitir({ e: "engine", ev: { e: "transcript", dir: "out", text: "Bom dia a todos." } });
+            emitir({ e: "engine", ev: { e: "translation", dir: "out", text: "Good morning everyone." } });
+          })();
+          return null;
+        case "parar": setTimeout(() => emitir({ e: "stopped" }), 100); return null;
+        default: return null;
+      }
+    },
+  },
+  event: { listen: async (_nome, f) => { ouvintes.push(f); return () => {}; } },
+};
+// carrega o corpo e o script da interface real
+fetch("index.html").then((r) => r.text()).then((html) => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  document.body.innerHTML = doc.body.innerHTML.replace(/<script[^>]*><\/script>/g, "");
+  const s = document.createElement("script");
+  s.src = "app.js";
+  document.body.appendChild(s);
+});
+</script>
+</body>
+</html>

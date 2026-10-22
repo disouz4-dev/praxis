@@ -9,10 +9,19 @@ let cfg = {};
 let rodando = false;
 
 const t = (k) => (I18N.strings[cfg.ui_lang] || I18N.strings.pt)[k] || I18N.strings.pt[k] || k;
+// texto com partes variáveis: tf("dl_progress", {what, got, total}) troca {what}, {got}, {total}
+const tf = (k, v = {}) => t(k).replace(/\{(\w+)\}/g, (m, n) => (n in v ? v[n] : m));
 const nomeIdioma = (c) => ((I18N.lang_names[cfg.ui_lang] || {})[c]) || I18N.native_names[c] || c;
+
+// Textos montados pelo código: guarda como gerar cada um, para refazer quando o idioma muda.
+const VIVOS = {};
+function vivo(id, gerar) { VIVOS[id] = gerar; $(id).textContent = gerar(); }
+function fixo(id, texto) { delete VIVOS[id]; $(id).textContent = texto; }   // texto que vem pronto (do motor)
 
 function aplicarTextos() {
   document.querySelectorAll("[data-t]").forEach((el) => (el.textContent = t(el.dataset.t)));
+  document.querySelectorAll("[data-t-title]").forEach((el) => (el.title = t(el.dataset.tTitle)));
+  for (const [id, gerar] of Object.entries(VIVOS)) $(id).textContent = gerar();
   $("iniciar").textContent = rodando ? t("btn_stop") : t("btn_start");
   document.documentElement.lang = cfg.ui_lang;
   document.documentElement.dir = cfg.ui_lang === "ar" ? "rtl" : "ltr";
@@ -28,7 +37,7 @@ function preencherIdiomas() {
   const src = $("src"), tgt = $("tgt");
   src.replaceChildren(); tgt.replaceChildren();
   for (const i of ESTADO.idiomas) {
-    const marca = i.liberado ? "" : "  — indisponível neste computador";
+    const marca = i.liberado ? "" : " " + t("lang_unavailable");
     src.append(opcao(i.codigo, nomeIdioma(i.codigo) + marca, !i.liberado));
     if (i.tem_voz) tgt.append(opcao(i.codigo, nomeIdioma(i.codigo)));
   }
@@ -45,7 +54,7 @@ function preencherIdiomas() {
 function nomeModelo(m) {
   if (!m) return "?";
   if (m.startsWith("parakeet")) {
-    const v = m.includes("ultra") ? "ultra" : m.includes("-ja-") ? "japonês" : m.includes("v2") ? "v2 (inglês)" : "v3";
+    const v = m.includes("ultra") ? "ultra" : m.includes("-ja-") ? t("model_ja") : m.includes("v2") ? t("model_v2_en") : "v3";
     return "Parakeet " + v;
   }
   return "Whisper " + m;
@@ -56,25 +65,27 @@ function diagnostico() {
   const linha = (c) => {
     const i = info(c);
     if (!i) return "";
-    const erro = i.erro == null ? "sem medição" : `erra cerca de ${(i.erro * 100).toFixed(1).replace(".", ",")}% das palavras`;
-    return `${nomeModelo(i.modelo)} para ${nomeIdioma(c)}: ${erro}`;
+    const pct = () => (i.erro * 100).toLocaleString(cfg.ui_lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    const erro = i.erro == null ? t("diag_none") : tf("diag_err", { pct: pct() });
+    return tf("diag_line", { model: nomeModelo(i.modelo), lang: nomeIdioma(c), err: erro });
   };
-  const partes = [linha($("src").value)];
-  if ($("bilateral").checked) partes.push(linha($("tgt").value));
-  $("diagnostico").textContent = partes.filter(Boolean).join(" · ");
+  const s = $("src").value, d = $("tgt").value, bi = $("bilateral").checked;
+  vivo("diagnostico", () => [linha(s), bi ? linha(d) : ""].filter(Boolean).join(" · "));
 }
 
 function verificarIdiomas() {
   diagnostico();
   const s = $("src").value, d = $("tgt").value;
   const info = (c) => ESTADO.idiomas.find((i) => i.codigo === c) || { liberado: true };
-  let msg = "";
-  if (s === d) msg = "Escolha idiomas diferentes para falar e para a tradução.";
-  else if (!info(s).liberado) msg = info(s).motivo;
-  else if ($("bilateral").checked && !info(d).liberado) msg = "No bilateral a outra pessoa fala " + nomeIdioma(d) + ": " + info(d).motivo;
-  const aviso = $("aviso_idioma");
-  aviso.hidden = !msg; aviso.textContent = msg;
-  $("iniciar").disabled = !rodando && !!msg;
+  const bi = $("bilateral").checked;
+  // o "motivo" vem do motor como está; só a moldura do aviso é traduzida
+  const aviso = () => s === d ? t("warn_same_lang")
+    : !info(s).liberado ? info(s).motivo
+    : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
+    : "";
+  vivo("aviso_idioma", aviso);
+  $("aviso_idioma").hidden = !aviso();
+  $("iniciar").disabled = !rodando && !!aviso();
 }
 
 function preencherDispositivos() {
@@ -103,8 +114,15 @@ async function salvar() {
   try { await invoke("salvar_config", { config: cfg }); } catch (e) { console.warn(e); }
 }
 
+// status com texto do motor (vem pronto)
 function status(texto, tipo = "") {
-  $("status_texto").textContent = texto;
+  fixo("status_texto", texto);
+  $("status_ponto").className = tipo;
+}
+
+// status com texto da interface (chave do i18n.json)
+function statusT(chave, tipo = "") {
+  vivo("status_texto", () => t(chave));
   $("status_ponto").className = tipo;
 }
 
@@ -126,29 +144,30 @@ function eventoDoMotor(e) {
       status(e.msg); $("barra_cheia").style.width = e.pct + "%"; break;
     case "download": {
       const mb = (x) => (x / 1e6).toFixed(0);
-      $("baixando").textContent = e.total
-        ? `Baixando ${e.what}: ${mb(e.got)} de ${mb(e.total)} MB (só na primeira vez)`
-        : `Baixando ${e.what}: ${mb(e.got)} MB (só na primeira vez)`;
+      const v = { what: e.what, got: mb(e.got), total: mb(e.total) };
+      vivo("baixando", () => tf(e.total ? "dl_progress" : "dl_progress_nototal", v));
       break;
     }
     case "hardware":
-      $("hardware").textContent = (e.gpu ? "Placa de vídeo NVIDIA" : "Sem placa de vídeo: processador") +
-        ` · reconhecimento de fala ${e.model.startsWith("parakeet") ? "Parakeet" : "Whisper " + e.model} · tradutor ${e.translator}`;
+      vivo("hardware", () => tf("hw_detail", {
+        hw: t(e.gpu ? "hw_gpu" : "hw_cpu"),
+        asr: e.model.startsWith("parakeet") ? "Parakeet" : "Whisper " + e.model, tr: e.translator }));
       break;
     case "virtual_mic":
       $("microfone_virtual").hidden = false;
-      $("microfone_virtual").textContent = `No seu app de chamada, escolha "${e.mic}" como microfone.` +
-        (e.peer ? ` E mande a saída de som do app para "${e.peer}".` : "");
+      vivo("microfone_virtual", () => tf("vmic_choose", { mic: e.mic }) + (e.peer ? tf("vmic_peer", { peer: e.peer }) : ""));
       break;
     case "ready":
-      status("Traduzindo", "ok"); $("baixando").textContent = ""; $("barra").hidden = true; break;
+      statusT("st_translating", "ok"); fixo("baixando", ""); $("barra").hidden = true; break;
     case "error":
-      status("Erro", "erro");
+      statusT("st_error", "erro");
       { const p = document.createElement("p"); p.className = "erro-msg"; p.textContent = e.msg; $("conversa").append(p); }
       break;
     case "stopped":
       rodando = false; $("iniciar").classList.remove("parar"); $("iniciar").disabled = false;
-      aplicarTextos(); status("Parado");
+      aplicarTextos(); statusT("st_stopped");
+      // volta às configurações (a conversa e o erro, se houver, continuam visíveis embaixo)
+      $("config").hidden = false; $("barra").hidden = true;
       break;
   }
 }
@@ -162,7 +181,7 @@ function eventoDoMotorInterno(x) {
 
 async function iniciarOuParar() {
   if (rodando) {
-    $("iniciar").disabled = true; status("Parando…");
+    $("iniciar").disabled = true; statusT("st_stopping");
     await invoke("parar");
     return;
   }
@@ -170,7 +189,7 @@ async function iniciarOuParar() {
   rodando = true;
   $("config").hidden = true; $("painel").hidden = false; $("barra").hidden = false;
   $("conversa").replaceChildren(); $("microfone_virtual").hidden = true;
-  $("iniciar").classList.add("parar"); aplicarTextos(); status("Iniciando…");
+  $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
   try { await invoke("iniciar", { config: cfg }); }
   catch (err) { eventoDoMotor({ e: "error", msg: String(err) }); eventoDoMotor({ e: "stopped" }); }
 }
@@ -200,7 +219,10 @@ async function main() {
 
   for (const id of ["monitor", "headphones", "bilateral"]) $(id).checked = !!cfg[id];
   $("model").value = cfg.model; $("translator").value = cfg.translator;
-  $("hardware").textContent = ESTADO.placa_de_video ? "Placa de vídeo NVIDIA encontrada" : "Sem placa de vídeo compatível: o Praxis usa o processador";
+  // opção salva que não existe mais nesta versão (ex.: "Parakeet v3"): volta ao automático
+  if (!$("model").value) { $("model").value = "auto"; cfg.model = "auto"; }
+  if (!$("translator").value) { $("translator").value = "auto"; cfg.translator = "auto"; }
+  vivo("hardware", () => t(ESTADO.placa_de_video ? "hw_gpu_found" : "hw_no_gpu"));
   aplicarTemaInicial();
   aplicarTextos(); preencherIdiomas(); preencherDispositivos();
 
@@ -223,13 +245,13 @@ async function verificarAtualizacao() {
   let r;
   try { r = await invoke("verificar_atualizacao"); } catch { return; }
   if (!r || !r.nova) return;
-  $("atualizacao_texto").textContent = `Versão ${r.nova} disponível (você tem a ${r.atual}).`;
+  vivo("atualizacao_texto", () => tf("upd_available", { new: r.nova, cur: r.atual }));
   $("atualizacao").hidden = false;
   $("atualizar").onclick = async () => {
     $("atualizar").disabled = true;
-    $("atualizacao_texto").textContent = "Atualizando… (o sistema vai pedir a sua senha)";
+    vivo("atualizacao_texto", () => t("upd_running"));
     try { await invoke("atualizar"); }
-    catch (e) { $("atualizacao_texto").textContent = String(e); $("atualizar").disabled = false; }
+    catch (e) { fixo("atualizacao_texto", String(e)); $("atualizar").disabled = false; }
   };
 }
 
@@ -238,4 +260,5 @@ function aplicarTemaInicial() {
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!cfg.theme) aplicarTema(); });
 }
 
-main().catch((e) => { document.body.textContent = "Erro ao abrir o Praxis: " + e; });
+// sem o i18n.json carregado não há tradução: cai no português
+main().catch((e) => { document.body.textContent = I18N ? tf("err_open", { err: e }) : "Erro ao abrir o Praxis: " + e; });

@@ -143,15 +143,25 @@ pub fn spawn_capture(device: Option<String>, tx: Sender<Vec<f32>>, stop: Arc<Ato
                     let _ = tx.send(chunk);
                 }
             };
-            let err = |e| eprintln!("microfone: {e}");
             let cfg = sup.config();
+            // qualquer formato da placa (16 ou 32 bits inteiros, ponto flutuante…): a média dos
+            // canais em f32 (placas profissionais, como a Scarlett, usam 32 bits inteiros)
+            fn input<T: cpal::SizedSample>(dev: &cpal::Device, cfg: cpal::StreamConfig, ch: usize,
+                    mut push: impl FnMut(Vec<f32>) + Send + 'static) -> Result<cpal::Stream>
+            where f32: cpal::FromSample<T> {
+                Ok(dev.build_input_stream(cfg, move |d: &[T], _: &_| {
+                    push(d.chunks(ch).map(|f| f.iter().map(|&x| x.to_sample::<f32>()).sum::<f32>() / ch as f32).collect())
+                }, |e| eprintln!("microfone: {e}"), None)?)
+            }
+            use cpal::SampleFormat as F;
             let stream = match fmt {
-                cpal::SampleFormat::F32 => dev.build_input_stream(cfg, move |d: &[f32], _: &_| {
-                    push(d.chunks(ch).map(|f| f.iter().sum::<f32>() / ch as f32).collect())
-                }, err, None)?,
-                cpal::SampleFormat::I16 => dev.build_input_stream(cfg, move |d: &[i16], _: &_| {
-                    push(d.chunks(ch).map(|f| f.iter().map(|&x| x as f32 / 32768.0).sum::<f32>() / ch as f32).collect())
-                }, err, None)?,
+                F::F32 => input::<f32>(&dev, cfg, ch, push)?,
+                F::I16 => input::<i16>(&dev, cfg, ch, push)?,
+                F::I32 => input::<i32>(&dev, cfg, ch, push)?,
+                F::U16 => input::<u16>(&dev, cfg, ch, push)?,
+                F::I8 => input::<i8>(&dev, cfg, ch, push)?,
+                F::U8 => input::<u8>(&dev, cfg, ch, push)?,
+                F::F64 => input::<f64>(&dev, cfg, ch, push)?,
                 other => return Err(anyhow!("formato de áudio do microfone não suportado: {other:?}")),
             };
             stream.play()?;
@@ -192,24 +202,28 @@ impl OutputDevice {
                 let dev = find_output(name.as_deref())?;
                 let sup = dev.default_output_config().context("configuração da saída de áudio")?;
                 let (ch, rate, fmt) = (sup.channels() as usize, sup.sample_rate(), sup.sample_format());
-                let err = |e| eprintln!("saída de áudio: {e}");
                 let cfg = sup.config();
                 let q2 = q.clone();
+                // qualquer formato da placa: a mesma amostra em todos os canais
+                fn output<T: cpal::SizedSample + cpal::FromSample<f32>>(dev: &cpal::Device, cfg: cpal::StreamConfig,
+                        ch: usize, q: Arc<Mutex<VecDeque<f32>>>) -> Result<cpal::Stream> {
+                    Ok(dev.build_output_stream(cfg, move |d: &mut [T], _: &_| {
+                        let mut qq = q.lock().unwrap();
+                        for f in d.chunks_mut(ch) {
+                            let v = T::from_sample(qq.pop_front().unwrap_or(0.0).clamp(-1.0, 1.0));
+                            f.iter_mut().for_each(|x| *x = v);
+                        }
+                    }, |e| eprintln!("saída de áudio: {e}"), None)?)
+                }
+                    use cpal::SampleFormat as F;
                 let stream = match fmt {
-                    cpal::SampleFormat::F32 => dev.build_output_stream(cfg, move |d: &mut [f32], _: &_| {
-                        let mut qq = q2.lock().unwrap();
-                        for f in d.chunks_mut(ch) {
-                            let v = qq.pop_front().unwrap_or(0.0);
-                            f.iter_mut().for_each(|x| *x = v);
-                        }
-                    }, err, None)?,
-                    cpal::SampleFormat::I16 => dev.build_output_stream(cfg, move |d: &mut [i16], _: &_| {
-                        let mut qq = q2.lock().unwrap();
-                        for f in d.chunks_mut(ch) {
-                            let v = (qq.pop_front().unwrap_or(0.0).clamp(-1.0, 1.0) * 32767.0) as i16;
-                            f.iter_mut().for_each(|x| *x = v);
-                        }
-                    }, err, None)?,
+                    F::F32 => output::<f32>(&dev, cfg, ch, q2)?,
+                    F::I16 => output::<i16>(&dev, cfg, ch, q2)?,
+                    F::I32 => output::<i32>(&dev, cfg, ch, q2)?,
+                    F::U16 => output::<u16>(&dev, cfg, ch, q2)?,
+                    F::I8 => output::<i8>(&dev, cfg, ch, q2)?,
+                    F::U8 => output::<u8>(&dev, cfg, ch, q2)?,
+                    F::F64 => output::<f64>(&dev, cfg, ch, q2)?,
                     other => return Err(anyhow!("formato da saída de áudio não suportado: {other:?}")),
                 };
                 stream.play()?;

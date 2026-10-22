@@ -11,14 +11,14 @@
     <img id="logo" src="logo.png" alt="Praxis">
     <p id="tagline" data-t="tagline"></p>
     <div class="topo">
-      <select id="ui_lang" title="Idioma da interface"></select>
-      <button id="tema" class="icone" title="Tema claro/escuro">◐</button>
+      <select id="ui_lang" data-t-title="ttl_ui_lang"></select>
+      <button id="tema" class="icone" data-t-title="ttl_theme">◐</button>
     </div>
   </header>
 
   <div id="atualizacao" class="atualizacao" hidden>
     <span id="atualizacao_texto"></span>
-    <button id="atualizar" class="pequeno">Atualizar</button>
+    <button id="atualizar" class="pequeno" data-t="btn_update"></button>
   </div>
 
   <main>
@@ -37,29 +37,29 @@
         <label><span data-t="lbl_input"></span><select id="mic"></select></label>
         <label><span data-t="lbl_output"></span><select id="output"></select></label>
         <label class="chave"><input type="checkbox" id="monitor"><span data-t="mon_hint"></span></label>
-        <label class="chave"><input type="checkbox" id="headphones"><span>Estou de fone de ouvido</span></label>
+        <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
       </div>
 
       <div class="cartao">
-        <h2>Bilateral</h2>
-        <label class="chave"><input type="checkbox" id="bilateral"><span>Traduzir também a outra pessoa (a voz dela chega pelo app de chamada)</span></label>
+        <h2 data-t="sec_bilateral"></h2>
+        <label class="chave"><input type="checkbox" id="bilateral"><span data-t="lbl_bilateral"></span></label>
       </div>
 
       <details class="cartao">
-        <summary>Avançado</summary>
+        <summary data-t="sec_advanced"></summary>
         <label><span data-t="sec_whisper"></span>
           <select id="model">
-            <option value="auto">Automático (o melhor para este computador)</option>
-            <option value="parakeet-tdt-0.6b-v3-int8">Parakeet — sem placa de vídeo, idiomas europeus</option>
-            <option value="small">Whisper small — sem placa de vídeo</option>
-            <option value="large-v3-turbo">Whisper large-v3-turbo — com placa de vídeo</option>
+            <option value="auto" data-t="opt_model_auto"></option>
+            <option value="large-v3-turbo" data-t="opt_model_turbo"></option>
+            <option value="large-v3" data-t="opt_model_large"></option>
+            <option value="small" data-t="opt_model_small"></option>
           </select>
         </label>
-        <label><span>Tradutor</span>
+        <label><span data-t="lbl_translator"></span>
           <select id="translator">
-            <option value="auto">Automático</option>
+            <option value="auto" data-t="opt_tr_auto"></option>
             <option value="argos">Argos</option>
-            <option value="nllb">NLLB (Meta, uso não comercial)</option>
+            <option value="nllb" data-t="opt_tr_nllb"></option>
           </select>
         </label>
         <p id="hardware" class="dica"></p>
