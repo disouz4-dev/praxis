@@ -120,9 +120,11 @@ function dicaBilateral() {
   $("bilateral_opcoes").hidden = !$("bilateral").checked;
   vivo("dica_peer_app", () => sel.value ? tf("hint_peer_app_auto", { app: sel.selectedOptions[0].textContent })
     : t(ESTADO.sistema === "windows" ? "hint_peer_win" : "hint_peer_manual"));
-  // só legenda: a voz original já toca inteira. No Windows o próprio app toca a voz original.
-  $("original_linha").hidden = $("peer_legenda").checked || ESTADO.sistema === "windows";
-  $("original_volume_linha").hidden = $("original_linha").hidden || !$("original").checked;
+  // só legenda: a voz original já toca inteira. No Windows a voz original sai do próprio app,
+  // sempre (no mínimo 5%): só o volume dela é escolhido.
+  const win = ESTADO.sistema === "windows", legenda = $("peer_legenda").checked;
+  $("original_linha").hidden = legenda || win;
+  $("original_volume_linha").hidden = legenda || (!win && !$("original").checked);
   $("original_volume_valor").textContent = $("original_volume").value + "%";
 }
 
@@ -156,7 +158,7 @@ function coletar() {
     peer_app_nome: $("peer_app").selectedOptions[0]?.dataset.nome || null,
     peer_voice: !$("peer_legenda").checked,
     original_nivel: +$("original_volume").value,
-    original_volume: $("original").checked ? +$("original_volume").value / 100 : 0,
+    original_volume: ($("original").checked || ESTADO.sistema === "windows") ? +$("original_volume").value / 100 : 0,
   };
 }
 

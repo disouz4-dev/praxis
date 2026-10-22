@@ -209,6 +209,42 @@ mod imp {
         v
     }
 
+    /// Volume atual do app `exe` no mixer do Windows (da primeira sessão de som dele).
+    pub fn get_volume(exe: &str) -> Option<f32> {
+        let mut v = None;
+        com_sessoes(exe, |c| {
+            if v.is_none() {
+                if let Ok(vol) = c.cast::<ISimpleAudioVolume>() {
+                    v = unsafe { vol.GetMasterVolume() }.ok();
+                }
+            }
+        });
+        v
+    }
+
+    /// Chama `f` para cada sessão de som do programa `exe`, em todas as saídas.
+    fn com_sessoes(exe: &str, mut f: impl FnMut(&IAudioSessionControl)) {
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+            let en: windows::core::Result<IMMDeviceEnumerator> = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL);
+            let Ok(en) = en else { return };
+            let Ok(col) = en.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE) else { return };
+            for d in 0..col.GetCount().unwrap_or(0) {
+                let Ok(dev) = col.Item(d) else { continue };
+                let Ok(mgr) = dev.Activate::<IAudioSessionManager2>(CLSCTX_ALL, None) else { continue };
+                let Ok(se) = mgr.GetSessionEnumerator() else { continue };
+                for i in 0..se.GetCount().unwrap_or(0) {
+                    let Ok(c) = se.GetSession(i) else { continue };
+                    let Ok(c2) = c.cast::<IAudioSessionControl2>() else { continue };
+                    let pid = c2.GetProcessId().unwrap_or(0);
+                    if exe_name(pid).is_some_and(|e| e.eq_ignore_ascii_case(exe)) {
+                        f(&c);
+                    }
+                }
+            }
+        }
+    }
+
     /// Muda o volume do app `exe` no mixer do Windows (0 a 1). Devolve quantas sessões mudou.
     pub fn set_volume(exe: &str, v: f32) -> usize {
         let mut n = 0;
@@ -401,6 +437,26 @@ mod imp {
 #[cfg(windows)]
 pub fn set_app_volume(app_id: &str, v: f32) -> usize {
     imp::set_volume(app_id, v)
+}
+
+/// Windows: enquanto `stop` não chega, mantém o app no volume `vol` (a voz original baixinha;
+/// reaplica a cada segundo, porque o app abre sessões novas quando a chamada começa) e, no
+/// fim, devolve o volume que ele tinha.
+#[cfg(windows)]
+pub fn spawn_volume_keeper(app_id: String, vol: f32, stop: Arc<AtomicBool>) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let antes = imp::get_volume(&app_id).unwrap_or(1.0);
+        while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+            imp::set_volume(&app_id, vol);
+            for _ in 0..10 {
+                if stop.load(std::sync::atomic::Ordering::Relaxed) {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(100));
+            }
+        }
+        imp::set_volume(&app_id, antes);
+    })
 }
 
 /// Windows: grava o som do app `app_id` (ex.: "Discord.exe") em blocos de 32 ms, mono, 16 kHz.

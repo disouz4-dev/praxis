@@ -343,13 +343,28 @@ impl Session {
                 // só legenda: a voz original inteira. No Windows o próprio app de chamada continua
                 // tocando a voz original (a gravação não a desvia): o Praxis não a repete.
                 let gain = if cfg!(windows) { 0.0 } else if cfg.peer_voice { cfg.original_volume.clamp(0.0, 1.0) } else { 1.0 };
+                // Windows, tradução falada: o app fica no volume da voz original (mínimo 5%; a
+                // gravação do app sai depois do volume dele, então não dá para emudecer) e o
+                // Praxis compensa esse volume no que grava.
+                let app_vol = if cfg!(windows) && vm.peer_app.is_some() && cfg.peer_voice { cfg.original_volume.clamp(0.05, 1.0) } else { 1.0 };
+                #[cfg(windows)]
+                if let (Some(app), true) = (vm.peer_app.clone(), app_vol < 1.0) {
+                    handles.push(crate::app_audio::spawn_volume_keeper(app, app_vol, stop_capture.clone()));
+                }
+                // o que a pessoa ouve da voz original (para a trava de eco sem fone)
+                let ouvida = if cfg!(windows) && vm.peer_app.is_some() { app_vol } else { gain };
                 let (out, leaks, shared) = (my_output.clone(), !cfg.headphones, shared.clone());
                 handles.push(std::thread::spawn(move || {
-                    while let Ok(chunk) = crx.recv() {
+                    while let Ok(mut chunk) = crx.recv() {
+                        if app_vol < 1.0 {
+                            chunk.iter_mut().for_each(|x| *x = (*x / app_vol).clamp(-1.0, 1.0));
+                        }
                         if gain > 0.0 {
                             out.feed_bed(&chunk, gain);
+                        }
+                        if ouvida > 0.0 {
                             let rms = (chunk.iter().map(|x| x * x).sum::<f32>() / chunk.len().max(1) as f32).sqrt();
-                            if leaks && rms * gain > 0.002 {
+                            if leaks && rms * ouvida > 0.002 {
                                 let until = ((shared.now_s() + 0.3) * 1000.0) as u64;
                                 shared.speaker_busy_until_ms.fetch_max(until, std::sync::atomic::Ordering::Relaxed);
                             }
