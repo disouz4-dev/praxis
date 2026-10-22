@@ -277,6 +277,13 @@ mod imp {
         Some(pid)
     }
 
+    /// marca de progresso (PRAXIS_DEPURAR=1)
+    fn passo(p: &str) {
+        if std::env::var_os("PRAXIS_DEPURAR").is_some() {
+            eprintln!("captura: {p}");
+        }
+    }
+
     #[implement(IActivateAudioInterfaceCompletionHandler)]
     struct Pronto(std::sync::mpsc::Sender<()>);
 
@@ -294,6 +301,7 @@ mod imp {
         let abrir = || -> anyhow::Result<(IAudioClient, IAudioCaptureClient, windows::Win32::Foundation::HANDLE)> {
             unsafe {
                 let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+                passo("com");
                 let mut params = AUDIOCLIENT_ACTIVATION_PARAMS {
                     ActivationType: AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK,
                     Anonymous: AUDIOCLIENT_ACTIVATION_PARAMS_0 {
@@ -311,24 +319,29 @@ mod imp {
                 };
                 let (tx, rx) = std::sync::mpsc::channel();
                 let handler: IActivateAudioInterfaceCompletionHandler = Pronto(tx).into();
+                passo("ativar");
                 let op = ActivateAudioInterfaceAsync(VIRTUAL_AUDIO_DEVICE_PROCESS_LOOPBACK, &IAudioClient::IID, Some(&pv), &handler)?;
                 rx.recv_timeout(std::time::Duration::from_secs(5))
                     .map_err(|_| anyhow::anyhow!("o Windows não respondeu ao pedido de gravar o som do app"))?;
+                passo("ativado");
                 let mut hr = HRESULT(0);
                 let mut unk = None;
                 op.GetActivateResult(&mut hr, &mut unk)?;
                 hr.ok()?;
+                passo("resultado");
                 let client: IAudioClient = unk.ok_or_else(|| anyhow::anyhow!("captura do app indisponível"))?.cast()?;
                 let fmt = WAVEFORMATEX {
                     wFormatTag: WAVE_FORMAT_PCM as u16, nChannels: 2, nSamplesPerSec: 48_000,
                     nAvgBytesPerSec: 48_000 * 4, nBlockAlign: 4, wBitsPerSample: 16, cbSize: 0,
                 };
+                passo("iniciar");
                 client.Initialize(AUDCLNT_SHAREMODE_SHARED,
                     AUDCLNT_STREAMFLAGS_LOOPBACK | AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM,
                     2_000_000, 0, &fmt, None)?;
                 let ev = CreateEventW(None, false, false, None)?;
                 client.SetEventHandle(ev)?;
                 let cap: IAudioCaptureClient = client.GetService()?;
+                passo("start");
                 client.Start()?;
                 Ok((client, cap, ev))
             }
@@ -360,6 +373,7 @@ mod imp {
                         s.chunks(2).map(|f| (f[0] as f32 + f[1] as f32) / (2.0 * 32768.0)).collect()
                     };
                     let _ = cap.ReleaseBuffer(frames);
+                    if std::env::var_os("PRAXIS_DEPURAR").is_some() { eprintln!("pacote {frames} flags {flags}"); }
                     push(mono);
                 }
             }
