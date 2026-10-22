@@ -18,7 +18,7 @@ New-Item -ItemType Directory -Path $Tmp | Out-Null
 # O Windows PowerShell lê este script na codificação antiga do Windows (pelo arquivo ou pelo
 # "irm | iex"): as letras acentuadas chegam trocadas ("instalaÃ§Ã£o"). Say desfaz a troca.
 function Say($t) {
-    if ($t -match "[\u00C3\u00C2]") { $t = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(1252).GetBytes($t)) }
+    if ($t -match "[\u00C3\u00C2\u00E2]") { $t = [Text.Encoding]::UTF8.GetString([Text.Encoding]::GetEncoding(1252).GetBytes($t)) }
     Write-Host "  $t"
 }
 
