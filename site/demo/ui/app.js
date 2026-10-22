@@ -177,14 +177,32 @@ function statusT(chave, tipo = "") {
   $("status_ponto").className = tipo;
 }
 
+// Conversa como num aplicativo de mensagens: a minha fala em balões à esquerda, a da outra
+// pessoa à direita. A linha de cima fica sempre no meu idioma. Os pedaços da tradução
+// simultânea entram no mesmo balão até a frase terminar ou haver uma pausa.
+let ultimoBalao = null;
 function adicionarFala(dir, original, traducao) {
   const c = $("conversa");
-  const div = document.createElement("div");
-  div.className = "fala " + dir;
-  div.innerHTML = '<div class="original"></div><div class="traducao"></div>';
-  div.querySelector(".original").textContent = original;
-  div.querySelector(".traducao").textContent = traducao;
-  c.append(div);
+  const agora = Date.now();
+  const meu = dir === "out";
+  const [cima, baixo] = meu ? [original, traducao] : [traducao, original];
+  const u = ultimoBalao;
+  if (u && u.dir === dir && agora - u.t < 2500 && !/[.?!…]$/.test(u.cima.textContent.trim())) {
+    u.cima.textContent += " " + cima;
+    u.baixo.textContent += " " + baixo;
+    u.t = agora;
+  } else {
+    const div = document.createElement("div");
+    div.className = "fala " + dir;
+    div.innerHTML = '<div class="rotulo"><span class="quem"></span><span class="hora"></span></div><div class="cima"></div><div class="baixo"></div>';
+    div.querySelector(".quem").dataset.t = meu ? "lbl_you" : "lbl_other";
+    div.querySelector(".quem").textContent = t(meu ? "lbl_you" : "lbl_other");
+    div.querySelector(".hora").textContent = new Date().toLocaleTimeString(cfg.ui_lang, { hour: "2-digit", minute: "2-digit" });
+    div.querySelector(".cima").textContent = cima;
+    div.querySelector(".baixo").textContent = baixo;
+    c.append(div);
+    ultimoBalao = { dir, t: agora, cima: div.querySelector(".cima"), baixo: div.querySelector(".baixo") };
+  }
   c.scrollTop = c.scrollHeight;
 }
 
@@ -241,7 +259,7 @@ async function iniciarOuParar() {
   await salvar();
   rodando = true;
   $("config").hidden = true; $("painel").hidden = false; $("barra").hidden = false;
-  $("conversa").replaceChildren(); $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
+  $("conversa").replaceChildren(); ultimoBalao = null; $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
   $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
   try { await invoke("iniciar", { config: cfg }); }
   catch (err) { eventoDoMotor({ e: "error", msg: String(err) }); eventoDoMotor({ e: "stopped" }); }

@@ -43,7 +43,7 @@ window.__TAURI__ = {
             for (const [pct, msg] of [[10, "Preparando os modelos…"], [60, "Carregando o reconhecimento de fala…"], [100, "Traduzindo"]]) {
               emitir({ e: "progress", pct, msg }); await esperar(380);
             }
-            emitir({ e: "virtual_mic", mic: "Praxis_Microfone", peer: "Praxis_Entrada" });
+            emitir({ e: "virtual_mic", mic: "Praxis Mic", peer: "Praxis Speaker" });
             emitir({ e: "ready" });
             for (let i = 0; motorLigado; i = (i + 1) % conversa.length) {
               const [dir, fala, trad] = conversa[i];

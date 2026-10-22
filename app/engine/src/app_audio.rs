@@ -300,11 +300,16 @@ mod imp {
     /// blocos mono f32 a 44,1 kHz até `stop`.
     pub fn capture(pid: u32, stop: &std::sync::atomic::AtomicBool, ready: impl FnOnce(anyhow::Result<()>),
                    mut push: impl FnMut(Vec<f32>)) {
-        let abrir = || -> anyhow::Result<(IAudioClient, IAudioCaptureClient, windows::Win32::Foundation::HANDLE)> {
+        // a operação de ativação e o objeto que recebe o "pronto" ficam vivos até o fim da gravação
+        // (como o exemplo da Microsoft e a versão em C#): soltá-los logo derrubava o Praxis
+        type Aberto = (IAudioClient, IAudioCaptureClient, windows::Win32::Foundation::HANDLE,
+                       IActivateAudioInterfaceAsyncOperation, IActivateAudioInterfaceCompletionHandler);
+        let abrir = || -> anyhow::Result<Aberto> {
             unsafe {
                 let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
                 passo("com");
-                let mut params = AUDIOCLIENT_ACTIVATION_PARAMS {
+                // os parâmetros ficam numa memória que não some (o Windows pode lê-los depois)
+                let params: &'static mut AUDIOCLIENT_ACTIVATION_PARAMS = Box::leak(Box::new(AUDIOCLIENT_ACTIVATION_PARAMS {
                     ActivationType: AUDIOCLIENT_ACTIVATION_TYPE_PROCESS_LOOPBACK,
                     Anonymous: AUDIOCLIENT_ACTIVATION_PARAMS_0 {
                         ProcessLoopbackParams: AUDIOCLIENT_PROCESS_LOOPBACK_PARAMS {
@@ -312,12 +317,12 @@ mod imp {
                             ProcessLoopbackMode: PROCESS_LOOPBACK_MODE_INCLUDE_TARGET_PROCESS_TREE,
                         },
                     },
-                };
+                }));
                 let mut pv = PROPVARIANT::default();
                 (*pv.Anonymous.Anonymous).vt = VT_BLOB;
                 (*pv.Anonymous.Anonymous).Anonymous.blob = BLOB {
                     cbSize: std::mem::size_of::<AUDIOCLIENT_ACTIVATION_PARAMS>() as u32,
-                    pBlobData: &mut params as *mut _ as *mut u8,
+                    pBlobData: params as *mut _ as *mut u8,
                 };
                 let (tx, rx) = std::sync::mpsc::channel();
                 let handler: IActivateAudioInterfaceCompletionHandler = Pronto(tx).into();
@@ -346,10 +351,10 @@ mod imp {
                 passo("start");
                 client.Start()?;
                 passo("começou");
-                Ok((client, cap, ev))
+                Ok((client, cap, ev, op, handler))
             }
         };
-        let (client, cap, ev) = match abrir() {
+        let (client, cap, ev, op, handler) = match abrir() {
             Ok(x) => {
                 ready(Ok(()));
                 x
@@ -387,7 +392,7 @@ mod imp {
             let _ = CloseHandle(ev);
             passo("parou");
         }
-        drop((cap, client));
+        drop((cap, client, op, handler));
         passo("soltou");
     }
 }

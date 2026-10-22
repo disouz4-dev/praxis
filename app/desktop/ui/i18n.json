@@ -108,7 +108,9 @@
    "btn_open_github": "Abrir no GitHub",
    "btn_copy": "Copiar",
    "btn_close": "Fechar",
-   "report_copied": "Copiado ✓"
+   "report_copied": "Copiado ✓",
+   "lbl_you": "Você",
+   "lbl_other": "Outra pessoa"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -218,7 +220,9 @@
    "btn_open_github": "Open on GitHub",
    "btn_copy": "Copy",
    "btn_close": "Close",
-   "report_copied": "Copied ✓"
+   "report_copied": "Copied ✓",
+   "lbl_you": "You",
+   "lbl_other": "Other person"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -328,7 +332,9 @@
    "btn_open_github": "Abrir en GitHub",
    "btn_copy": "Copiar",
    "btn_close": "Cerrar",
-   "report_copied": "Copiado ✓"
+   "report_copied": "Copiado ✓",
+   "lbl_you": "Tú",
+   "lbl_other": "Otra persona"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -438,7 +444,9 @@
    "btn_open_github": "Ouvrir sur GitHub",
    "btn_copy": "Copier",
    "btn_close": "Fermer",
-   "report_copied": "Copié ✓"
+   "report_copied": "Copié ✓",
+   "lbl_you": "Vous",
+   "lbl_other": "L'autre personne"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -548,7 +556,9 @@
    "btn_open_github": "Auf GitHub öffnen",
    "btn_copy": "Kopieren",
    "btn_close": "Schließen",
-   "report_copied": "Kopiert ✓"
+   "report_copied": "Kopiert ✓",
+   "lbl_you": "Sie",
+   "lbl_other": "Andere Person"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -658,7 +668,9 @@
    "btn_open_github": "Apri su GitHub",
    "btn_copy": "Copia",
    "btn_close": "Chiudi",
-   "report_copied": "Copiato ✓"
+   "report_copied": "Copiato ✓",
+   "lbl_you": "Tu",
+   "lbl_other": "L'altra persona"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -768,7 +780,9 @@
    "btn_open_github": "Открыть на GitHub",
    "btn_copy": "Копировать",
    "btn_close": "Закрыть",
-   "report_copied": "Скопировано ✓"
+   "report_copied": "Скопировано ✓",
+   "lbl_you": "Вы",
+   "lbl_other": "Собеседник"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -878,7 +892,9 @@
    "btn_open_github": "在 GitHub 上打开",
    "btn_copy": "复制",
    "btn_close": "关闭",
-   "report_copied": "已复制 ✓"
+   "report_copied": "已复制 ✓",
+   "lbl_you": "你",
+   "lbl_other": "对方"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -988,7 +1004,9 @@
    "btn_open_github": "Openen op GitHub",
    "btn_copy": "Kopiëren",
    "btn_close": "Sluiten",
-   "report_copied": "Gekopieerd ✓"
+   "report_copied": "Gekopieerd ✓",
+   "lbl_you": "Jij",
+   "lbl_other": "De ander"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1098,7 +1116,9 @@
    "btn_open_github": "Otwórz na GitHubie",
    "btn_copy": "Kopiuj",
    "btn_close": "Zamknij",
-   "report_copied": "Skopiowano ✓"
+   "report_copied": "Skopiowano ✓",
+   "lbl_you": "Ty",
+   "lbl_other": "Rozmówca"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -1208,7 +1228,9 @@
    "btn_open_github": "Відкрити на GitHub",
    "btn_copy": "Копіювати",
    "btn_close": "Закрити",
-   "report_copied": "Скопійовано ✓"
+   "report_copied": "Скопійовано ✓",
+   "lbl_you": "Ви",
+   "lbl_other": "Співрозмовник"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -1318,7 +1340,9 @@
    "btn_open_github": "GitHub'da aç",
    "btn_copy": "Kopyala",
    "btn_close": "Kapat",
-   "report_copied": "Kopyalandı ✓"
+   "report_copied": "Kopyalandı ✓",
+   "lbl_you": "Siz",
+   "lbl_other": "Karşıdaki kişi"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -1428,7 +1452,9 @@
    "btn_open_github": "فتح على GitHub",
    "btn_copy": "نسخ",
    "btn_close": "إغلاق",
-   "report_copied": "تم النسخ ✓"
+   "report_copied": "تم النسخ ✓",
+   "lbl_you": "أنت",
+   "lbl_other": "الطرف الآخر"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -1538,7 +1564,9 @@
    "btn_open_github": "GitHub पर खोलें",
    "btn_copy": "कॉपी करें",
    "btn_close": "बंद करें",
-   "report_copied": "कॉपी हो गया ✓"
+   "report_copied": "कॉपी हो गया ✓",
+   "lbl_you": "आप",
+   "lbl_other": "दूसरा व्यक्ति"
   }
  },
  "lang_names": {

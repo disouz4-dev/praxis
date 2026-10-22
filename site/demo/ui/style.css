@@ -57,11 +57,18 @@ button.icone { border: 1px solid var(--borda); background: var(--cartao); border
 #status_ponto.erro { background: var(--erro); }
 #barra { height: 4px; background: var(--borda); border-radius: 2px; margin-top: 10px; overflow: hidden; }
 #barra_cheia { height: 100%; width: 0; background: var(--destaque); transition: width .3s; }
-.conversa { min-height: 180px; max-height: 340px; overflow-y: auto; }
-.fala { margin: 0 0 10px; }
-.fala .original { color: var(--suave); font-size: 12.5px; }
-.fala .traducao { font-size: 14.5px; }
-.fala.in .traducao { color: var(--destaque); }
+.conversa { min-height: 220px; height: calc(100vh - 330px); max-height: none; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+/* balões: a minha fala à esquerda (azul), a da outra pessoa à direita (verde-azulado) */
+.fala { max-width: 84%; padding: 7px 11px 8px; border-radius: 14px; line-height: 1.35; }
+.fala.out { align-self: flex-start; background: rgba(59, 130, 246, .2); border: 1px solid rgba(59, 130, 246, .35); border-top-left-radius: 4px; }
+.fala.in { align-self: flex-end; background: rgba(20, 184, 166, .16); border: 1px solid rgba(20, 184, 166, .35); border-top-right-radius: 4px; }
+.fala .rotulo { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; font-weight: 600; margin-bottom: 3px; }
+.fala.out .quem { color: #93c5fd; }
+.fala.in .quem { color: #5eead4; }
+.fala .hora { color: var(--suave); font-weight: 400; }
+.fala .cima { font-size: 14.5px; }
+.fala .baixo { color: var(--suave); font-size: 12.5px; margin-top: 2px; }
+.conversa .erro-msg { align-self: center; text-align: center; }
 .erro-msg { color: var(--erro); font-size: 12.5px; }
 .atualizacao { display: flex; align-items: center; justify-content: space-between; gap: 10px;
   margin: 0 16px 6px; padding: 8px 12px; border-radius: 10px; font-size: 13px;
