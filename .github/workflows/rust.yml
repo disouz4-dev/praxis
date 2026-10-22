@@ -7,6 +7,13 @@ on:
     paths: ["app/**", ".github/workflows/rust.yml"]
   workflow_dispatch:
 
+
+# um envio novo cancela a compilação anterior do mesmo ramo, e o envio e o pull request do
+# mesmo ramo não compilam a mesma coisa duas vezes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   motor:
     name: Motor (${{ matrix.nome }})
