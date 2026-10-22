@@ -10,6 +10,55 @@ use anyhow::{anyhow, bail, Context, Result};
 use sha2::{Digest, Sha256};
 
 /// Progresso: (o que está baixando, bytes recebidos, total de bytes; 0 se desconhecido)
+/// Marca de "instalação completa": só existe depois que o pacote inteiro foi baixado e
+/// extraído. Sem ela o modelo é instalado de novo (um Praxis fechado no meio da extração
+/// deixava um modelo pela metade que derrubava o aplicativo a cada abertura).
+const COMPLETO: &str = ".praxis-completo";
+
+fn completo(dir: &Path) -> bool {
+    dir.join(COMPLETO).exists()
+}
+
+fn marcar(dir: &Path) -> Result<()> {
+    std::fs::write(dir.join(COMPLETO), b"ok\n").with_context(|| format!("marcando {}", dir.display()))
+}
+
+/// Extrai um .tar.bz2 que contém a pasta `nome` numa pasta temporária e só então a põe em
+/// `pai/nome`, já marcada como completa.
+fn extrair_pacote(arc: &Path, pai: &Path, nome: &str) -> Result<PathBuf> {
+    let tmp = pai.join(format!(".{nome}.extraindo"));
+    let _ = std::fs::remove_dir_all(&tmp);
+    criar_pasta(&tmp)?;
+    let f = std::fs::File::open(arc)?;
+    tar::Archive::new(bzip2::read::BzDecoder::new(f)).unpack(&tmp).with_context(|| format!("extraindo {nome}"))?;
+    let dentro = tmp.join(nome);
+    if !dentro.is_dir() {
+        let _ = std::fs::remove_dir_all(&tmp);
+        bail!("o pacote {nome} não tinha o formato esperado");
+    }
+    let destino = pai.join(nome);
+    let _ = std::fs::remove_dir_all(&destino);
+    std::fs::rename(&dentro, &destino)?;
+    let _ = std::fs::remove_dir_all(&tmp);
+    marcar(&destino)?;
+    Ok(destino)
+}
+
+/// Impressão digital de um arquivo já baixado.
+fn sha256_arquivo(p: &Path) -> Result<String> {
+    let mut f = std::fs::File::open(p)?;
+    let mut h = Sha256::new();
+    let mut buf = vec![0u8; 1 << 20];
+    loop {
+        let n = f.read(&mut buf)?;
+        if n == 0 {
+            break;
+        }
+        h.update(&buf[..n]);
+    }
+    Ok(h.finalize().iter().map(|b| format!("{b:02x}")).collect())
+}
+
 /// Cria uma pasta de modelos; o erro diz qual pasta (antes vinha só "Arquivo existe (os error 17)").
 fn criar_pasta(p: impl AsRef<Path>) -> Result<()> {
     let p = p.as_ref();
@@ -169,7 +218,7 @@ impl ModelStore {
     /// Instala um par do Argos (pacote .argosmodel do índice oficial).
     pub fn ensure_argos_pair(&self, src: &str, tgt: &str, p: Progress) -> Result<()> {
         let dir = self.argos_dir();
-        if crate::mt::argos_package(&dir, src, tgt).is_ok() {
+        if crate::mt::argos_package(&dir, src, tgt).map(|p| completo(&p)).unwrap_or(false) {
             return Ok(());
         }
         criar_pasta(&dir)?;
@@ -180,8 +229,18 @@ impl ModelStore {
         let url = pkg["links"].get(0).and_then(|v| v.as_str()).ok_or_else(|| anyhow!("pacote {src}→{tgt} sem link"))?;
         let file = dir.join(format!("{src}_{tgt}.argosmodel"));
         download(url, &file, None, &|_, a, b| p(&format!("tradução {src}→{tgt}"), a, b))?;
-        extract_zip(&file, &dir)?;
+        // extrai à parte e só então põe o pacote (uma pasta) entre os instalados, marcado
+        let tmp = dir.join(format!(".{src}_{tgt}.extraindo"));
+        let _ = std::fs::remove_dir_all(&tmp);
+        extract_zip(&file, &tmp)?;
         let _ = std::fs::remove_file(&file);
+        let pacote = std::fs::read_dir(&tmp)?.filter_map(|e| e.ok()).map(|e| e.path()).find(|p| p.is_dir())
+            .ok_or_else(|| anyhow!("o pacote {src}→{tgt} não tinha o formato esperado"))?;
+        let destino = dir.join(pacote.file_name().unwrap());
+        let _ = std::fs::remove_dir_all(&destino);
+        std::fs::rename(&pacote, &destino)?;
+        let _ = std::fs::remove_dir_all(&tmp);
+        marcar(&destino)?;
         Ok(())
     }
 
@@ -192,11 +251,17 @@ impl ModelStore {
     /// Parakeet pelo sherpa-onnx (`name`: "parakeet-tdt-0.6b-v3-int8" etc.).
     pub fn ensure_parakeet(&self, name: &str, p: Progress) -> Result<PathBuf> {
         let dir = self.parakeet_dir(name);
-        if dir.join("tokens.txt").exists() {
+        if completo(&dir) {
             return Ok(dir);
         }
         criar_pasta(&self.root)?;
         if let Some((_, base, files)) = PARAKEET_FILES.iter().find(|(n, _, _)| *n == name) {
+            // instalação de uma versão anterior (sem a marca): confere as impressões digitais
+            // em vez de baixar tudo de novo
+            if files.iter().all(|(f, sha)| sha256_arquivo(&dir.join(f)).map(|h| h == *sha).unwrap_or(false)) {
+                marcar(&dir)?;
+                return Ok(dir);
+            }
             let tmp = self.root.join(format!("sherpa-onnx-nemo-{name}.part"));
             let _ = std::fs::remove_dir_all(&tmp);
             criar_pasta(&tmp)?;
@@ -206,14 +271,13 @@ impl ModelStore {
             }
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::rename(&tmp, &dir)?;
+            marcar(&dir)?;
             return Ok(dir);
         }
         let arc = self.root.join(format!("{name}.tar.bz2"));
         download(&format!("{ASR_MODELS_URL}/sherpa-onnx-nemo-{name}.tar.bz2"), &arc, None,
                  &|_, a, b| p("reconhecimento de fala (Parakeet)", a, b))?;
-        let f = std::fs::File::open(&arc)?;
-        tar::Archive::new(bzip2::read::BzDecoder::new(f)).unpack(&self.root)
-            .with_context(|| format!("extraindo o {name}"))?;
+        let dir = extrair_pacote(&arc, &self.root, &format!("sherpa-onnx-nemo-{name}"))?;
         let _ = std::fs::remove_file(&arc);
         let _ = std::fs::remove_dir_all(dir.join("test_wavs"));
         if !dir.join("tokens.txt").exists() {
@@ -233,15 +297,13 @@ impl ModelStore {
 
     fn ensure_tts_package(&self, pkg: &str, what: &str, marker: &str, p: Progress) -> Result<PathBuf> {
         let dir = self.voices_dir().join(pkg);
-        if dir.join(marker).exists() {
+        if completo(&dir) {
             return Ok(dir);
         }
         criar_pasta(self.voices_dir())?;
         let arc = self.voices_dir().join(format!("{pkg}.tar.bz2"));
         download(&format!("{VOICES_URL}/{pkg}.tar.bz2"), &arc, None, &|_, a, b| p(what, a, b))?;
-        let f = std::fs::File::open(&arc)?;
-        tar::Archive::new(bzip2::read::BzDecoder::new(f)).unpack(self.voices_dir())
-            .with_context(|| format!("extraindo {pkg}"))?;
+        let dir = extrair_pacote(&arc, &self.voices_dir(), pkg)?;
         let _ = std::fs::remove_file(&arc);
         if !dir.join(marker).exists() {
             bail!("o pacote {pkg} não tinha o formato esperado");
@@ -251,16 +313,14 @@ impl ModelStore {
 
     pub fn ensure_voice(&self, voice: &str, p: Progress) -> Result<PathBuf> {
         let dir = self.voice_dir(voice);
-        if dir.join("tokens.txt").exists() {
+        if completo(&dir) {
             return Ok(dir);
         }
         criar_pasta(self.voices_dir())?;
         let arc = self.voices_dir().join(format!("{voice}.tar.bz2"));
         download(&format!("{VOICES_URL}/vits-piper-{voice}.tar.bz2"), &arc, None,
                  &|_, a, b| p(&format!("voz {voice}"), a, b))?;
-        let f = std::fs::File::open(&arc)?;
-        tar::Archive::new(bzip2::read::BzDecoder::new(f)).unpack(self.voices_dir())
-            .with_context(|| format!("extraindo a voz {voice}"))?;
+        let dir = extrair_pacote(&arc, &self.voices_dir(), &format!("vits-piper-{voice}"))?;
         let _ = std::fs::remove_file(&arc);
         if !dir.join("tokens.txt").exists() {
             bail!("o pacote da voz {voice} não tinha o formato esperado");
@@ -343,6 +403,39 @@ fn find_dir_with(root: &Path, file: &str) -> Option<PathBuf> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod testes_instalacao {
+    use super::*;
+
+    #[test]
+    fn pacote_so_conta_como_instalado_depois_de_extraido_inteiro() {
+        let base = std::env::temp_dir().join(format!("praxis-teste-pacote-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&base);
+        std::fs::create_dir_all(base.join("origem/modelo")).unwrap();
+        std::fs::write(base.join("origem/modelo/tokens.txt"), "a").unwrap();
+        std::fs::write(base.join("origem/modelo/encoder.onnx"), vec![7u8; 4096]).unwrap();
+        // um pacote .tar.bz2 com a pasta "modelo"
+        let arc = base.join("modelo.tar.bz2");
+        {
+            let f = std::fs::File::create(&arc).unwrap();
+            let mut t = tar::Builder::new(bzip2::write::BzEncoder::new(f, bzip2::Compression::fast()));
+            t.append_dir_all("modelo", base.join("origem/modelo")).unwrap();
+            t.into_inner().unwrap().finish().unwrap();
+        }
+        let destino = base.join("instalados");
+        std::fs::create_dir_all(&destino).unwrap();
+        // instalação antiga interrompida: o tokens.txt existe, mas falta a marca
+        std::fs::create_dir_all(destino.join("modelo")).unwrap();
+        std::fs::write(destino.join("modelo/tokens.txt"), "a").unwrap();
+        assert!(!completo(&destino.join("modelo")));
+        let dir = extrair_pacote(&arc, &destino, "modelo").unwrap();
+        assert!(completo(&dir));
+        assert_eq!(std::fs::metadata(dir.join("encoder.onnx")).unwrap().len(), 4096);
+        assert!(!destino.join(".modelo.extraindo").exists());
+        let _ = std::fs::remove_dir_all(&base);
+    }
 }
 
 #[cfg(test)]
