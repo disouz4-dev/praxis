@@ -309,7 +309,7 @@ fn main() -> Result<()> {
             let dir_out = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(),
                 to_speaker: ouvir, echo_gate: ouvir && !fones };
             handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, voice_out,
-                Arc::new(devices::Speakers(outs)), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
+                Arc::new(devices::Speakers(outs, Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
             // volta (bilateral): a outra pessoa → tradução → meu fone/caixa de som
             if let Some(vin) = opt("--voz-in") {
                 let voice_in = Arc::new(tts::PiperVoice::load(vin.as_ref(), 2)?);
@@ -319,7 +319,7 @@ fn main() -> Result<()> {
                     to_speaker: true, echo_gate: !fones };
                 // a trava de eco da ida também precisa saber quando a volta toca no alto-falante
                 handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, voice_in,
-                    Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?])), dir_in, cfg,
+                    Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?], Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_in, cfg,
                     silero.clone(), shared.clone(), etx.clone())?);
             }
             drop(etx);

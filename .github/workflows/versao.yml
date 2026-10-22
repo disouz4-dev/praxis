@@ -115,6 +115,11 @@ jobs:
           scripts/cargo-windows.ps1 build --release -p praxis-engine
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Copy-Item target/ct2-lib/*.dll target/release/
+          # bibliotecas do Visual C++ ao lado do Praxis: um Windows recém-instalado não as tem
+          # (sem elas: erro 0xC0000135); a Microsoft permite levá-las junto do programa
+          $crt = Get-ChildItem "$env:VCToolsRedistDir\x64" -Directory -Filter "Microsoft.VC*.CRT" | Select-Object -First 1
+          Copy-Item "$($crt.FullName)\*.dll" target/release/
+          Get-ChildItem target/release/*.dll | Select-Object -Expand Name
           scripts/cargo-windows.ps1 build --release -p praxis-desktop
           if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Montar o instalador

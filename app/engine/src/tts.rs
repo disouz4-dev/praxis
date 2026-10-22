@@ -46,6 +46,18 @@ pub struct Voice {
 /// Nome antigo: o Praxis começou só com o Piper.
 pub type PiperVoice = Voice;
 
+/// Placa de vídeo para o sherpa-onnx, pedindo só a memória de que precisa: o padrão do
+/// onnxruntime reserva em blocos que dobram de tamanho e, no bilateral (voz + Parakeet +
+/// Whisper + NLLB), estourava os 6 GB da RTX 3050.
+pub fn cuda_provider() -> String {
+    let cfg = std::env::temp_dir().join("praxis-cuda.cfg");
+    if std::fs::write(&cfg, "arena_extend_strategy=kSameAsRequested\n").is_ok() {
+        format!("cuda:{}", cfg.display())
+    } else {
+        "cuda".into()
+    }
+}
+
 /// A biblioteca do onnxruntime com placa de vídeo NVIDIA está ao lado do programa?
 pub fn cuda_provider_available() -> bool {
     let name = if cfg!(target_os = "windows") { "onnxruntime_providers_cuda.dll" } else { "libonnxruntime_providers_cuda.so" };
@@ -88,7 +100,7 @@ impl Voice {
         let s = |p: &Path| Some(p.to_string_lossy().to_string());
         let mut model = OfflineTtsModelConfig { num_threads: threads, ..Default::default() };
         if gpu && dir.join("voices.bin").exists() && cuda_provider_available() {
-            model.provider = Some("cuda".into());
+            model.provider = Some(cuda_provider());
         }
         let mut config = OfflineTtsConfig { max_num_sentences: 1, ..Default::default() };
         let kind = if dir.join("voices.bin").exists() {

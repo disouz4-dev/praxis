@@ -258,9 +258,15 @@ impl Session {
             None => asr.clone(),
         };
         progress(75, "Carregando a tradução…");
+        // um único NLLB para os dois lados (o mesmo modelo traduz nos dois sentidos): duas cópias
+        // estouravam os 6 GB da placa de vídeo no bilateral (medido no lab2, RTX 3050)
+        let nllb: std::cell::OnceCell<Arc<mt::Nllb>> = std::cell::OnceCell::new();
         let make_tr = |kind: &str, a: &str, b: &str| -> Result<Arc<dyn Translate>> {
             Ok(if kind == "nllb" {
-                Arc::new(mt::Nllb::load(&store.nllb_dir(), gpu)?)
+                if nllb.get().is_none() {
+                    let _ = nllb.set(Arc::new(mt::Nllb::load(&store.nllb_dir(), gpu)?));
+                }
+                nllb.get().unwrap().clone() as Arc<dyn Translate>
             } else {
                 let dir = store.argos_dir();
                 let route = if a != "en" && b != "en" {
@@ -293,7 +299,7 @@ impl Session {
         let out_dir = Direction { name: "out".into(), src: cfg.src.clone(), tgt: cfg.tgt.clone(),
             to_speaker: cfg.monitor, echo_gate: cfg.monitor && !cfg.headphones };
         handles.extend(pipeline::spawn_direction(mrx, asr.clone(), make_tr(tr_out, &cfg.src, &cfg.tgt)?, voice_out,
-            Arc::new(Speakers(outs)), out_dir, seg, silero.clone(), shared.clone(), ptx.clone())?);
+            Arc::new(Speakers(outs, stop_capture.clone())), out_dir, seg, silero.clone(), shared.clone(), ptx.clone())?);
 
         // volta (bilateral): a outra pessoa → tradução → minha saída
         if let Some(dir) = voice_in_dir {
@@ -304,7 +310,7 @@ impl Session {
                 to_speaker: true, echo_gate: !cfg.headphones };
             let seg_in = SegmenterConfig { max_seg_s: max_segment_s(&model_in, gpu), ..Default::default() };
             handles.extend(pipeline::spawn_direction(irx, asr_in, make_tr(tr_in, &cfg.tgt, &cfg.src)?, voice_in,
-                Arc::new(Speakers(vec![OutputDevice::open(cfg.output.clone())?])), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);
+                Arc::new(Speakers(vec![OutputDevice::open(cfg.output.clone())?], stop_capture.clone())), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);
         }
         drop(ptx);
         // repassa os eventos do motor

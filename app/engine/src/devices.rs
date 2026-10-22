@@ -265,15 +265,21 @@ impl Drop for OutputDevice {
 }
 
 /// Toca em uma ou mais saídas ao mesmo tempo (ex.: microfone virtual + fone para ouvir).
-pub struct Speakers(pub Vec<Arc<OutputDevice>>);
+/// Saídas que tocam juntas; o segundo campo é o sinal de parar: ao parar ou fechar, o som
+/// em fila é descartado na hora (antes, fechar esperava terminar de tocar tudo).
+pub struct Speakers(pub Vec<Arc<OutputDevice>>, pub Arc<AtomicBool>);
 
 impl crate::pipeline::Speaker for Speakers {
     fn play(&self, samples: &[f32], sample_rate: u32) {
         for o in &self.0 {
             o.enqueue(samples, sample_rate);
         }
-        // espera todas terminarem (como um alto-falante de verdade)
+        // espera todas terminarem (como um alto-falante de verdade), ou até mandarem parar
         while self.0.iter().any(|o| o.pending_s() > 0.0) {
+            if self.1.load(Ordering::Relaxed) {
+                self.0.iter().for_each(|o| o.queue.lock().unwrap().clear());
+                return;
+            }
             std::thread::sleep(Duration::from_millis(10));
         }
     }
@@ -328,6 +334,17 @@ impl VirtualMic {
     pub fn setup(bilateral: bool) -> Result<Self> {
         let mut vm = VirtualMic::default();
         if cfg!(target_os = "linux") && which("pactl") {
+            // sobras de uma execução que terminou à força (travou, foi morta): sem isto os
+            // dispositivos se duplicam a cada abertura
+            if let Ok(mods) = pactl(&["list", "short", "modules"]) {
+                for line in mods.lines() {
+                    let ours = [format!("sink_name={SINK_OUT} "), format!("sink_name={SINK_IN} "), format!("source_name={SRC_MIC} ")]
+                        .iter().any(|k| format!("{line} ").contains(k.as_str()));
+                    if let (true, Some(id)) = (ours, line.split_whitespace().next()) {
+                        let _ = pactl(&["unload-module", id]);
+                    }
+                }
+            }
             let mut load = |args: &[&str]| -> Result<()> {
                 let id: u32 = pactl(&[&["load-module"], args].concat())?.parse().unwrap_or(0);
                 vm.pulse_modules.push(id);
@@ -342,7 +359,9 @@ impl VirtualMic {
             vm.target = Some(SINK_OUT.into());
             vm.mic_label = SRC_DESC.into();
             if bilateral {
-                vm.peer_capture = Some(format!("{SINK_IN}.monitor"));
+                // o sistema lista a gravação da saída pelo nome de exibição ("Monitor of
+                // Praxis_Entrada"), não pelo nome técnico (Praxis_In.monitor)
+                vm.peer_capture = Some(SINK_IN_DESC.into());
                 vm.peer_label = SINK_IN_DESC.into();
             }
             return Ok(vm);

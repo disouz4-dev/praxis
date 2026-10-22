@@ -160,7 +160,12 @@ pub fn spawn_direction(
                 }
                 for audio in seg.push(&chunk) {
                     let end = *seg.ends.last().unwrap_or(&0);
-                    let speech_end = (end - (audio.len() - voiced_end(&audio))) as f32 / SR as f32;
+                    // fim da fala no relógio do aplicativo (o mesmo da reprodução): o áudio chega
+                    // em tempo real, então a amostra `fim` tocou há (posição − fim) amostras. O
+                    // relógio do áudio começa quando o microfone abre, depois de carregar os
+                    // modelos, e a diferença aparecia como atraso falso de 2 a 5 s.
+                    let fim = end - (audio.len() - voiced_end(&audio));
+                    let speech_end = shared.now_s() - seg.position().saturating_sub(fim) as f32 / SR as f32;
                     let _ = events.send(Event::Segment { dir: dir.name.clone(), id, speech_end_s: speech_end, emitted_s: shared.now_s() });
                     let _ = seg_tx.send(Job::Final(id, audio));
                     id += 1;

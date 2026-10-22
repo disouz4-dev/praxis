@@ -383,6 +383,11 @@ impl<P: SpeechProbe> Segmenter<P> {
         out
     }
 
+    /// Amostras entregues até agora (relógio do áudio).
+    pub fn position(&self) -> usize {
+        self.pos
+    }
+
     /// Depois de `push`: o trecho em curso, se a fala parece ter acabado e ele ainda não foi
     /// adiantado. O trecho final (quando o fim se confirmar) começa com este mesmo áudio.
     pub fn tentative(&mut self) -> Option<Vec<f32>> {

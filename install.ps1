@@ -9,6 +9,7 @@
 #
 # Opção: $env:PRAXIS_SETUP = "C:\caminho\Praxis_x.y.z_x64-setup.exe" instala um já baixado.
 $ErrorActionPreference = "Stop"
+[Console]::OutputEncoding = [Text.Encoding]::UTF8   # acentos certos na janela do PowerShell
 $ProgressPreference = "SilentlyContinue"   # o download fica muito mais rápido sem a barra
 $Repo = "disouz4-dev/praxis"
 $Tmp = Join-Path $env:TEMP ("praxis-" + [guid]::NewGuid())

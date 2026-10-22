@@ -195,9 +195,9 @@ async function iniciarOuParar() {
 }
 
 function aplicarTema() {
-  const escuro = cfg.theme ? cfg.theme === "escuro" : matchMedia("(prefers-color-scheme: dark)").matches;
-  document.documentElement.dataset.tema = escuro ? "escuro" : "claro";
-  $("logo").src = escuro ? "logo-escuro.png" : "logo.png";
+  // só o modo escuro (decisão do produto)
+  document.documentElement.dataset.tema = "escuro";
+  $("logo").src = "logo-escuro.png";
 }
 
 async function main() {
@@ -229,7 +229,6 @@ async function main() {
   for (const id of ["src", "tgt", "bilateral"]) $(id).addEventListener("change", () => { verificarIdiomas(); salvar(); });
   for (const id of ["mic", "output", "monitor", "headphones", "model", "translator"]) $(id).addEventListener("change", salvar);
   $("iniciar").onclick = iniciarOuParar;
-  $("tema").onclick = () => { cfg.theme = document.documentElement.dataset.tema === "escuro" ? "claro" : "escuro"; aplicarTema(); salvar(); };
 
   await listen("praxis", (ev) => {
     const e = ev.payload;
@@ -257,7 +256,6 @@ async function verificarAtualizacao() {
 
 function aplicarTemaInicial() {
   aplicarTema();
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!cfg.theme) aplicarTema(); });
 }
 
 // sem o i18n.json carregado não há tradução: cai no português

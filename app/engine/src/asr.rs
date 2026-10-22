@@ -152,7 +152,7 @@ impl ParakeetAsr {
         }
         config.model_config.tokens = Some(dir.join("tokens.txt").to_string_lossy().to_string());
         config.model_config.num_threads = threads as i32;
-        config.model_config.provider = Some(if gpu { "cuda" } else { "cpu" }.into());
+        config.model_config.provider = Some(if gpu { crate::tts::cuda_provider() } else { "cpu".into() });
         let rec = sherpa_onnx::OfflineRecognizer::create(&config)
             .ok_or_else(|| anyhow!("não foi possível carregar o Parakeet de {}", dir.display()))?;
         Ok(Self { rec, device: if gpu { "cuda" } else { "cpu" } })
