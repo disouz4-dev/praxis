@@ -224,13 +224,14 @@ fn painel_lateral(handle: tauri::AppHandle, aberto: bool) -> Result<(), String> 
     let tam = w.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(esc);
     let largura = if aberto { tam.width.max(LARGA) } else if tam.width > NORMAL + 200.0 { NORMAL } else { tam.width };
     w.set_size(tauri::LogicalSize::new(largura, tam.height)).map_err(|e| e.to_string())?;
+    // cresce (ou encolhe) igual para os dois lados: o centro da janela fica no mesmo lugar,
+    // sem passar das bordas da tela
     if let (Ok(Some(tela)), Ok(pos)) = (w.current_monitor(), w.outer_position()) {
-        let fim_tela = (tela.position().x as f64 + tela.size().width as f64) / esc;
-        let x = pos.x as f64 / esc;
-        if x + largura > fim_tela {
-            let novo_x = (fim_tela - largura - 8.0).max(tela.position().x as f64 / esc);
-            let _ = w.set_position(tauri::LogicalPosition::new(novo_x, pos.y as f64 / esc));
-        }
+        let ini_tela = tela.position().x as f64 / esc;
+        let fim_tela = ini_tela + tela.size().width as f64 / esc;
+        let x = pos.x as f64 / esc - (largura - tam.width) / 2.0;
+        let novo_x = x.min(fim_tela - largura).max(ini_tela);
+        let _ = w.set_position(tauri::LogicalPosition::new(novo_x, pos.y as f64 / esc));
     }
     Ok(())
 }

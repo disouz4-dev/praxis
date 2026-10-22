@@ -240,7 +240,8 @@ dialog#tutorial .botoes .secundario { padding: 8px 14px; }
 .painel-topo h2 { margin: 0; font-size: 15px; color: var(--texto); }
 body.monitorando main { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 18px; align-items: start; }
 body.monitorando #painel { position: sticky; top: 0; }
-body.monitorando .conversa { height: calc(100vh - 290px); }
+body.monitorando .conversa { height: calc(100vh - 340px); }
+#painel #iniciar { margin-top: 10px; }
 #config[inert] { opacity: .55; }
 body.rodando #painel_fechar { visibility: hidden; }
 @media (max-width: 900px) {

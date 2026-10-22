@@ -160,6 +160,9 @@ function aplicarMonitor() {
 async function abrirPainel(aberto) {
   document.body.classList.toggle("monitorando", aberto);
   $("painel").hidden = !aberto;
+  // o botão Começar/Parar vai para debaixo da conversa (não se estica pela janela larga)
+  (aberto ? $("painel") : document.querySelector("footer")).append($("iniciar"));
+  document.querySelector("footer").hidden = aberto;
   try { await invoke("painel_lateral", { aberto }); } catch { /* janela já do tamanho certo */ }
 }
 
