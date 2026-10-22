@@ -130,6 +130,20 @@ async function atualizarApps() {
   try { preencherApps(await invoke("apps_com_som")); } catch { /* lista fica como está */ }
 }
 
+// Monitor de erros: o usuário vê tudo o que vai no relato antes de abrir o GitHub.
+async function abrirRelatorio() {
+  let r = "";
+  try { r = await invoke("relatorio_de_erros"); } catch (err) { r = String(err); }
+  $("relatorio_texto").textContent = r;
+  $("relatorio_descricao").value = "";
+  $("relatorio").showModal();
+}
+
+function textoDoRelato() {
+  const o_que = $("relatorio_descricao").value.trim();
+  return (o_que ? "### O que eu estava fazendo\n" + o_que + "\n\n" : "") + $("relatorio_texto").textContent;
+}
+
 function coletar() {
   return {
     ...cfg,
@@ -200,7 +214,7 @@ function eventoDoMotor(e) {
       statusT("st_error", "erro");
       { const p = document.createElement("p"); p.className = "erro-msg"; p.textContent = e.msg; $("conversa").append(p); }
       // o erro também vai para o alto da janela: ao voltar às configurações ele ficava escondido embaixo
-      fixo("erro_topo", e.msg); $("erro_topo").hidden = false; $("erro_topo").scrollIntoView({ block: "start" });
+      fixo("erro_texto", e.msg); $("erro_topo").hidden = false; $("erro_topo").scrollIntoView({ block: "start" });
       break;
     case "stopped":
       rodando = false; $("iniciar").classList.remove("parar"); $("iniciar").disabled = false;
@@ -283,6 +297,16 @@ async function main() {
   for (const id of ["monitor", "headphones", "bilateral"]) $(id).addEventListener("change", avisoEco);
   avisoEco();
   $("iniciar").onclick = iniciarOuParar;
+  $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;
+  $("relatorio_fechar").onclick = () => $("relatorio").close();
+  $("relatorio_copiar").onclick = async () => {
+    try { await navigator.clipboard.writeText(textoDoRelato()); fixo("relatorio_copiar", t("report_copied")); } catch { /* sem área de transferência */ }
+    setTimeout(() => { $("relatorio_copiar").textContent = t("btn_copy"); }, 1500);
+  };
+  $("relatorio_abrir").onclick = async () => {
+    try { await invoke("abrir_relato", { corpo: textoDoRelato() }); $("relatorio").close(); }
+    catch (err) { fixo("relatorio_texto", String(err)); }
+  };
 
   await listen("praxis", (ev) => {
     const e = ev.payload;

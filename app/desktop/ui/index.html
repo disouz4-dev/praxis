@@ -11,6 +11,7 @@
     <img id="logo" src="logo.png" alt="Praxis">
     <p id="tagline" data-t="tagline"></p>
     <div class="topo">
+      <button id="relatar" class="icone" data-t-title="btn_report" aria-label="Relatar problema">⚑</button>
       <select id="ui_lang" data-t-title="ttl_ui_lang"></select>
     </div>
   </header>
@@ -21,7 +22,10 @@
   </div>
 
   <main>
-    <p id="erro_topo" class="erro-topo" role="alert" hidden></p>
+    <div id="erro_topo" class="erro-topo" role="alert" hidden>
+      <span id="erro_texto"></span>
+      <button id="erro_relatar" class="pequeno" data-t="btn_send_report"></button>
+    </div>
     <section id="config">
       <div class="cartao">
         <h2 data-t="sec_langs"></h2>
@@ -95,6 +99,18 @@
   <footer>
     <button id="iniciar" class="principal" data-t="btn_start"></button>
   </footer>
+
+  <dialog id="relatorio">
+    <h2 data-t="report_title"></h2>
+    <p class="dica" data-t="report_intro"></p>
+    <label><span data-t="report_what"></span><textarea id="relatorio_descricao" rows="3"></textarea></label>
+    <pre id="relatorio_texto"></pre>
+    <div class="botoes">
+      <button id="relatorio_fechar" class="secundario" data-t="btn_close"></button>
+      <button id="relatorio_copiar" class="secundario" data-t="btn_copy"></button>
+      <button id="relatorio_abrir" class="pequeno" data-t="btn_open_github"></button>
+    </div>
+  </dialog>
 
   <script src="app.js"></script>
 </body>

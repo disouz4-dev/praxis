@@ -5,6 +5,8 @@
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+mod erros;
+
 use praxis_engine::devices;
 use praxis_engine::models::ModelStore;
 use praxis_engine::session::{self, Session, SessionConfig, SessionEvent};
@@ -146,6 +148,7 @@ fn iniciar(handle: tauri::AppHandle, config: SessionConfig) -> Result<(), String
         let mut log = std::env::var_os("PRAXIS_REGISTRO").and_then(|p| std::fs::File::create(p).ok());
         let fwd = std::thread::spawn(move || {
             while let Ok(e) = rx.recv() {
+                erros::registrar_evento(&serde_json::to_value(&e).unwrap_or_default());
                 if let Some(f) = log.as_mut() {
                     use std::io::Write;
                     let _ = writeln!(f, "{}", serde_json::to_string(&e).unwrap_or_default());
@@ -167,6 +170,19 @@ fn iniciar(handle: tauri::AppHandle, config: SessionConfig) -> Result<(), String
     Ok(())
 }
 
+/// Monitor de erros: o relatório que vai para o GitHub (o usuário vê tudo antes).
+#[tauri::command]
+fn relatorio_de_erros(app: State<App>) -> String {
+    let gpu = *app.gpu.lock().unwrap().get_or_insert_with(session::has_nvidia_gpu);
+    let cfg: Value = std::fs::read_to_string(config_path()).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or(Value::Null);
+    erros::relatorio(&cfg, gpu)
+}
+
+#[tauri::command]
+fn abrir_relato(corpo: String) -> Result<(), String> {
+    erros::abrir_relato(&corpo)
+}
+
 #[tauri::command]
 fn parar(handle: tauri::AppHandle) {
     let s = handle.state::<App>().session.lock().unwrap().take();
@@ -179,9 +195,10 @@ fn parar(handle: tauri::AppHandle) {
 }
 
 fn main() {
+    erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, relatorio_de_erros, abrir_relato, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

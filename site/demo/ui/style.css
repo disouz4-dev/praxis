@@ -93,7 +93,7 @@ option:disabled { color: var(--suave); }
 }
 .chave input[type="checkbox"]:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
 .topo select { padding: 4px 24px 4px 8px; background-position: right 7px center; }
-.erro-topo { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: var(--texto);
+.erro-topo { display: flex; gap: 10px; align-items: center; justify-content: space-between; margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: var(--texto);
   background: rgba(239, 68, 68, .12); border: 1px solid var(--erro); }
 .erro-topo[hidden] { display: none; }
 .linha-botao { display: flex; gap: 6px; align-items: center; }
@@ -114,3 +114,15 @@ option:disabled { color: var(--suave); }
 }
 .chave input[type="radio"]:checked { border: 5px solid var(--destaque); background: #fff; }
 #original_linha[hidden] { display: none; }
+.topo button.icone { color: var(--texto); font-size: 14px; }
+dialog#relatorio { width: min(520px, 92vw); max-height: 86vh; border: 1px solid var(--borda); border-radius: 14px;
+  background: var(--cartao); color: var(--texto); padding: 16px; }
+dialog#relatorio::backdrop { background: rgba(0, 0, 0, .6); }
+dialog#relatorio h2 { margin-bottom: 4px; }
+dialog#relatorio textarea { width: 100%; resize: vertical; font: inherit; color: var(--texto); background: var(--campo);
+  border: 1px solid var(--borda); border-radius: 8px; padding: 8px; }
+#relatorio_texto { max-height: 34vh; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 11.5px;
+  background: var(--campo); border: 1px solid var(--borda); border-radius: 8px; padding: 10px; margin: 8px 0 12px; }
+dialog#relatorio .botoes { display: flex; gap: 8px; justify-content: flex-end; }
+button.secundario { border: 1px solid var(--borda); border-radius: 8px; padding: 6px 12px; background: var(--campo);
+  color: var(--texto); cursor: pointer; }

@@ -10,6 +10,12 @@ use anyhow::{anyhow, bail, Context, Result};
 use sha2::{Digest, Sha256};
 
 /// Progresso: (o que está baixando, bytes recebidos, total de bytes; 0 se desconhecido)
+/// Cria uma pasta de modelos; o erro diz qual pasta (antes vinha só "Arquivo existe (os error 17)").
+fn criar_pasta(p: impl AsRef<Path>) -> Result<()> {
+    let p = p.as_ref();
+    std::fs::create_dir_all(p).with_context(|| format!("não foi possível criar a pasta de modelos {}", p.display()))
+}
+
 pub type Progress<'a> = &'a dyn Fn(&str, u64, u64);
 
 pub const SILERO_URL: &str = "https://github.com/SYSTRAN/faster-whisper/raw/master/faster_whisper/assets/silero_vad_v6.onnx";
@@ -121,7 +127,7 @@ impl ModelStore {
         let (_, repo, files) = WHISPER_MODELS.iter().find(|(n, _, _)| *n == name)
             .ok_or_else(|| anyhow!("modelo Whisper desconhecido: {name}"))?;
         let dir = self.whisper_dir(name);
-        std::fs::create_dir_all(&dir)?;
+        criar_pasta(&dir)?;
         for f in *files {
             let dest = dir.join(f);
             if !dest.exists() {
@@ -135,7 +141,7 @@ impl ModelStore {
     pub fn ensure_silero(&self, p: Progress) -> Result<PathBuf> {
         let dest = self.silero_path();
         if !dest.exists() {
-            std::fs::create_dir_all(&self.root)?;
+            criar_pasta(&self.root)?;
             download(SILERO_URL, &dest, None, &|_, a, b| p("detector de fala", a, b))?;
         }
         Ok(dest)
@@ -146,7 +152,7 @@ impl ModelStore {
         if dir.join("model.bin").exists() {
             return Ok(dir);
         }
-        std::fs::create_dir_all(&self.root)?;
+        criar_pasta(&self.root)?;
         let zip = self.root.join("nllb.zip");
         download(NLLB_URL, &zip, Some(NLLB_SHA256), &|_, a, b| p("tradutor NLLB", a, b))?;
         let tmp = self.root.join("nllb.tmp");
@@ -166,7 +172,7 @@ impl ModelStore {
         if crate::mt::argos_package(&dir, src, tgt).is_ok() {
             return Ok(());
         }
-        std::fs::create_dir_all(&dir)?;
+        criar_pasta(&dir)?;
         let index: serde_json::Value = serde_json::from_str(&get_text(ARGOS_INDEX)?)?;
         let pkg = index.as_array().and_then(|a| {
             a.iter().find(|x| x["from_code"] == src && x["to_code"] == tgt)
@@ -189,11 +195,11 @@ impl ModelStore {
         if dir.join("tokens.txt").exists() {
             return Ok(dir);
         }
-        std::fs::create_dir_all(&self.root)?;
+        criar_pasta(&self.root)?;
         if let Some((_, base, files)) = PARAKEET_FILES.iter().find(|(n, _, _)| *n == name) {
             let tmp = self.root.join(format!("sherpa-onnx-nemo-{name}.part"));
             let _ = std::fs::remove_dir_all(&tmp);
-            std::fs::create_dir_all(&tmp)?;
+            criar_pasta(&tmp)?;
             for (f, sha) in *files {
                 download(&format!("{base}/{f}"), &tmp.join(f), Some(sha),
                          &|_, a, b| p("reconhecimento de fala (Parakeet)", a, b))?;
@@ -230,7 +236,7 @@ impl ModelStore {
         if dir.join(marker).exists() {
             return Ok(dir);
         }
-        std::fs::create_dir_all(self.voices_dir())?;
+        criar_pasta(self.voices_dir())?;
         let arc = self.voices_dir().join(format!("{pkg}.tar.bz2"));
         download(&format!("{VOICES_URL}/{pkg}.tar.bz2"), &arc, None, &|_, a, b| p(what, a, b))?;
         let f = std::fs::File::open(&arc)?;
@@ -248,7 +254,7 @@ impl ModelStore {
         if dir.join("tokens.txt").exists() {
             return Ok(dir);
         }
-        std::fs::create_dir_all(self.voices_dir())?;
+        criar_pasta(self.voices_dir())?;
         let arc = self.voices_dir().join(format!("{voice}.tar.bz2"));
         download(&format!("{VOICES_URL}/vits-piper-{voice}.tar.bz2"), &arc, None,
                  &|_, a, b| p(&format!("voz {voice}"), a, b))?;

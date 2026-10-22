@@ -99,7 +99,16 @@
    "opt_peer_voice": "Tradução falada",
    "opt_peer_subtitles": "Só legenda: ouço a voz original e leio a tradução",
    "lbl_original": "Ouvir também a voz original, baixinho",
-   "lbl_original_volume": "Volume da voz original"
+   "lbl_original_volume": "Volume da voz original",
+   "btn_report": "Relatar problema",
+   "btn_send_report": "Enviar relatório",
+   "report_title": "Relatar um problema",
+   "report_intro": "Isto é tudo o que vai no relato: sem áudio e sem o texto das conversas. Ele abre no GitHub e só é enviado se você confirmar lá.",
+   "report_what": "O que você estava fazendo quando deu errado? (opcional)",
+   "btn_open_github": "Abrir no GitHub",
+   "btn_copy": "Copiar",
+   "btn_close": "Fechar",
+   "report_copied": "Copiado ✓"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -200,7 +209,16 @@
    "opt_peer_voice": "Spoken translation",
    "opt_peer_subtitles": "Subtitles only: I hear the original voice and read the translation",
    "lbl_original": "Also hear the original voice, softly",
-   "lbl_original_volume": "Original voice volume"
+   "lbl_original_volume": "Original voice volume",
+   "btn_report": "Report a problem",
+   "btn_send_report": "Send report",
+   "report_title": "Report a problem",
+   "report_intro": "This is everything the report contains: no audio and no conversation text. It opens on GitHub and is only sent if you confirm there.",
+   "report_what": "What were you doing when it went wrong? (optional)",
+   "btn_open_github": "Open on GitHub",
+   "btn_copy": "Copy",
+   "btn_close": "Close",
+   "report_copied": "Copied ✓"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -301,7 +319,16 @@
    "opt_peer_voice": "Traducción hablada",
    "opt_peer_subtitles": "Solo subtítulos: oigo la voz original y leo la traducción",
    "lbl_original": "Oír también la voz original, bajito",
-   "lbl_original_volume": "Volumen de la voz original"
+   "lbl_original_volume": "Volumen de la voz original",
+   "btn_report": "Informar un problema",
+   "btn_send_report": "Enviar informe",
+   "report_title": "Informar un problema",
+   "report_intro": "Esto es todo lo que lleva el informe: sin audio y sin el texto de las conversaciones. Se abre en GitHub y solo se envía si lo confirmas allí.",
+   "report_what": "¿Qué estabas haciendo cuando falló? (opcional)",
+   "btn_open_github": "Abrir en GitHub",
+   "btn_copy": "Copiar",
+   "btn_close": "Cerrar",
+   "report_copied": "Copiado ✓"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -402,7 +429,16 @@
    "opt_peer_voice": "Traduction parlée",
    "opt_peer_subtitles": "Sous-titres seulement : j'entends la voix originale et je lis la traduction",
    "lbl_original": "Entendre aussi la voix originale, doucement",
-   "lbl_original_volume": "Volume de la voix originale"
+   "lbl_original_volume": "Volume de la voix originale",
+   "btn_report": "Signaler un problème",
+   "btn_send_report": "Envoyer le rapport",
+   "report_title": "Signaler un problème",
+   "report_intro": "Voici tout ce que contient le rapport : ni audio, ni texte des conversations. Il s'ouvre sur GitHub et n'est envoyé que si vous confirmez là-bas.",
+   "report_what": "Que faisiez-vous quand le problème est survenu ? (facultatif)",
+   "btn_open_github": "Ouvrir sur GitHub",
+   "btn_copy": "Copier",
+   "btn_close": "Fermer",
+   "report_copied": "Copié ✓"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -503,7 +539,16 @@
    "opt_peer_voice": "Gesprochene Übersetzung",
    "opt_peer_subtitles": "Nur Untertitel: Ich höre die Originalstimme und lese die Übersetzung",
    "lbl_original": "Auch die Originalstimme leise hören",
-   "lbl_original_volume": "Lautstärke der Originalstimme"
+   "lbl_original_volume": "Lautstärke der Originalstimme",
+   "btn_report": "Problem melden",
+   "btn_send_report": "Bericht senden",
+   "report_title": "Ein Problem melden",
+   "report_intro": "Das ist alles, was der Bericht enthält: kein Audio und kein Gesprächstext. Er öffnet sich auf GitHub und wird nur gesendet, wenn Sie dort bestätigen.",
+   "report_what": "Was haben Sie gemacht, als der Fehler auftrat? (optional)",
+   "btn_open_github": "Auf GitHub öffnen",
+   "btn_copy": "Kopieren",
+   "btn_close": "Schließen",
+   "report_copied": "Kopiert ✓"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -604,7 +649,16 @@
    "opt_peer_voice": "Traduzione parlata",
    "opt_peer_subtitles": "Solo sottotitoli: sento la voce originale e leggo la traduzione",
    "lbl_original": "Sentire anche la voce originale, a basso volume",
-   "lbl_original_volume": "Volume della voce originale"
+   "lbl_original_volume": "Volume della voce originale",
+   "btn_report": "Segnala un problema",
+   "btn_send_report": "Invia segnalazione",
+   "report_title": "Segnala un problema",
+   "report_intro": "Questo è tutto ciò che contiene la segnalazione: niente audio e niente testo delle conversazioni. Si apre su GitHub e viene inviata solo se confermi lì.",
+   "report_what": "Cosa stavi facendo quando si è verificato il problema? (facoltativo)",
+   "btn_open_github": "Apri su GitHub",
+   "btn_copy": "Copia",
+   "btn_close": "Chiudi",
+   "report_copied": "Copiato ✓"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -705,7 +759,16 @@
    "opt_peer_voice": "Озвученный перевод",
    "opt_peer_subtitles": "Только субтитры: слышу оригинальный голос и читаю перевод",
    "lbl_original": "Также слышать оригинальный голос, тихо",
-   "lbl_original_volume": "Громкость оригинального голоса"
+   "lbl_original_volume": "Громкость оригинального голоса",
+   "btn_report": "Сообщить о проблеме",
+   "btn_send_report": "Отправить отчёт",
+   "report_title": "Сообщить о проблеме",
+   "report_intro": "Это всё, что входит в отчёт: без звука и без текста разговоров. Он откроется на GitHub и будет отправлен, только если вы подтвердите там.",
+   "report_what": "Что вы делали, когда возникла ошибка? (необязательно)",
+   "btn_open_github": "Открыть на GitHub",
+   "btn_copy": "Копировать",
+   "btn_close": "Закрыть",
+   "report_copied": "Скопировано ✓"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -806,7 +869,16 @@
    "opt_peer_voice": "语音翻译",
    "opt_peer_subtitles": "仅字幕：我听原声并阅读翻译",
    "lbl_original": "同时小声听原声",
-   "lbl_original_volume": "原声音量"
+   "lbl_original_volume": "原声音量",
+   "btn_report": "报告问题",
+   "btn_send_report": "发送报告",
+   "report_title": "报告问题",
+   "report_intro": "这就是报告的全部内容：不含音频，也不含对话文字。它会在 GitHub 上打开，只有你在那里确认后才会发送。",
+   "report_what": "出错时你在做什么？（可选）",
+   "btn_open_github": "在 GitHub 上打开",
+   "btn_copy": "复制",
+   "btn_close": "关闭",
+   "report_copied": "已复制 ✓"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -907,7 +979,16 @@
    "opt_peer_voice": "Gesproken vertaling",
    "opt_peer_subtitles": "Alleen ondertitels: ik hoor de originele stem en lees de vertaling",
    "lbl_original": "Ook de originele stem zacht horen",
-   "lbl_original_volume": "Volume van de originele stem"
+   "lbl_original_volume": "Volume van de originele stem",
+   "btn_report": "Probleem melden",
+   "btn_send_report": "Rapport versturen",
+   "report_title": "Een probleem melden",
+   "report_intro": "Dit is alles wat het rapport bevat: geen audio en geen tekst van gesprekken. Het opent op GitHub en wordt alleen verstuurd als je daar bevestigt.",
+   "report_what": "Wat deed je toen het misging? (optioneel)",
+   "btn_open_github": "Openen op GitHub",
+   "btn_copy": "Kopiëren",
+   "btn_close": "Sluiten",
+   "report_copied": "Gekopieerd ✓"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1008,7 +1089,16 @@
    "opt_peer_voice": "Tłumaczenie mówione",
    "opt_peer_subtitles": "Tylko napisy: słyszę oryginalny głos i czytam tłumaczenie",
    "lbl_original": "Słyszeć też cicho oryginalny głos",
-   "lbl_original_volume": "Głośność oryginalnego głosu"
+   "lbl_original_volume": "Głośność oryginalnego głosu",
+   "btn_report": "Zgłoś problem",
+   "btn_send_report": "Wyślij raport",
+   "report_title": "Zgłoś problem",
+   "report_intro": "To wszystko, co zawiera raport: bez dźwięku i bez tekstu rozmów. Otworzy się na GitHubie i zostanie wysłany tylko wtedy, gdy tam potwierdzisz.",
+   "report_what": "Co robiłeś, gdy wystąpił błąd? (opcjonalnie)",
+   "btn_open_github": "Otwórz na GitHubie",
+   "btn_copy": "Kopiuj",
+   "btn_close": "Zamknij",
+   "report_copied": "Skopiowano ✓"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -1109,7 +1199,16 @@
    "opt_peer_voice": "Озвучений переклад",
    "opt_peer_subtitles": "Лише субтитри: чую оригінальний голос і читаю переклад",
    "lbl_original": "Також чути оригінальний голос, тихо",
-   "lbl_original_volume": "Гучність оригінального голосу"
+   "lbl_original_volume": "Гучність оригінального голосу",
+   "btn_report": "Повідомити про проблему",
+   "btn_send_report": "Надіслати звіт",
+   "report_title": "Повідомити про проблему",
+   "report_intro": "Це все, що містить звіт: без звуку й без тексту розмов. Він відкриється на GitHub і буде надісланий, лише якщо ви підтвердите там.",
+   "report_what": "Що ви робили, коли сталася помилка? (необов'язково)",
+   "btn_open_github": "Відкрити на GitHub",
+   "btn_copy": "Копіювати",
+   "btn_close": "Закрити",
+   "report_copied": "Скопійовано ✓"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -1210,7 +1309,16 @@
    "opt_peer_voice": "Sesli çeviri",
    "opt_peer_subtitles": "Yalnızca altyazı: orijinal sesi duyar, çeviriyi okurum",
    "lbl_original": "Orijinal sesi de alçak sesle duy",
-   "lbl_original_volume": "Orijinal ses düzeyi"
+   "lbl_original_volume": "Orijinal ses düzeyi",
+   "btn_report": "Sorun bildir",
+   "btn_send_report": "Raporu gönder",
+   "report_title": "Bir sorun bildir",
+   "report_intro": "Raporun içeriği bundan ibaret: ses yok, konuşma metni yok. GitHub'da açılır ve yalnızca orada onaylarsanız gönderilir.",
+   "report_what": "Hata olduğunda ne yapıyordunuz? (isteğe bağlı)",
+   "btn_open_github": "GitHub'da aç",
+   "btn_copy": "Kopyala",
+   "btn_close": "Kapat",
+   "report_copied": "Kopyalandı ✓"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -1311,7 +1419,16 @@
    "opt_peer_voice": "ترجمة منطوقة",
    "opt_peer_subtitles": "ترجمة نصية فقط: أسمع الصوت الأصلي وأقرأ الترجمة",
    "lbl_original": "سماع الصوت الأصلي أيضًا بصوت منخفض",
-   "lbl_original_volume": "مستوى الصوت الأصلي"
+   "lbl_original_volume": "مستوى الصوت الأصلي",
+   "btn_report": "الإبلاغ عن مشكلة",
+   "btn_send_report": "إرسال التقرير",
+   "report_title": "الإبلاغ عن مشكلة",
+   "report_intro": "هذا كل ما يحتويه التقرير: لا صوت ولا نص للمحادثات. يُفتح على GitHub ولا يُرسل إلا إذا أكدت هناك.",
+   "report_what": "ماذا كنت تفعل عندما حدث الخطأ؟ (اختياري)",
+   "btn_open_github": "فتح على GitHub",
+   "btn_copy": "نسخ",
+   "btn_close": "إغلاق",
+   "report_copied": "تم النسخ ✓"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -1412,7 +1529,16 @@
    "opt_peer_voice": "बोला गया अनुवाद",
    "opt_peer_subtitles": "केवल उपशीर्षक: मूल आवाज़ सुनूँ और अनुवाद पढ़ूँ",
    "lbl_original": "मूल आवाज़ भी धीमे सुनें",
-   "lbl_original_volume": "मूल आवाज़ का वॉल्यूम"
+   "lbl_original_volume": "मूल आवाज़ का वॉल्यूम",
+   "btn_report": "समस्या बताएँ",
+   "btn_send_report": "रिपोर्ट भेजें",
+   "report_title": "समस्या बताएँ",
+   "report_intro": "रिपोर्ट में बस इतना ही है: न ऑडियो, न बातचीत का टेक्स्ट। यह GitHub पर खुलती है और तभी भेजी जाती है जब आप वहाँ पुष्टि करें।",
+   "report_what": "गड़बड़ी होने पर आप क्या कर रहे थे? (वैकल्पिक)",
+   "btn_open_github": "GitHub पर खोलें",
+   "btn_copy": "कॉपी करें",
+   "btn_close": "बंद करें",
+   "report_copied": "कॉपी हो गया ✓"
   }
  },
  "lang_names": {

@@ -34,6 +34,9 @@ window.__TAURI__ = {
                    config: { src: "pt", tgt: "en", bilateral: true, headphones: true, monitor: false } };
         case "verificar_atualizacao": return { atual: "0.3.3", nova: null };
         case "modo_qa": return false;
+        case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
+        case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;
+        case "apps_com_som": return [{ id: "discord", name: "Discord" }];
         case "iniciar":
           motorLigado = true;
           (async () => {
