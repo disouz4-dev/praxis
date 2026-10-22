@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # dispara a publicação da página (cópia do repositório apt em /apt)
 
 concurrency:
   group: publicar-versao
@@ -83,6 +84,8 @@ jobs:
           # o .deb antigo sai do repositório (o apt só precisa da versão atual)
           for a in $(gh release view apt --json assets --jq '.assets[].name' | grep '_amd64\.deb$'); do gh release delete-asset apt "$a" -y; done
           gh release upload apt "$R"/* --clobber
+          # a página leva uma cópia do repositório apt (as versões até a 0.3.3 buscam lá)
+          gh workflow run site.yml --ref "$GITHUB_REF_NAME" || echo "::warning::não consegui atualizar a página"
 
   windows:
     name: Instalador .exe (Windows)

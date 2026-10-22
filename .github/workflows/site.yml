@@ -9,9 +9,6 @@ on:
   push:
     branches: [main, feat/multiplatform-qa]
     paths: ["site/**", "install.sh", "install.ps1", ".github/workflows/site.yml"]
-  workflow_run:
-    workflows: ["Publicar versão"]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
