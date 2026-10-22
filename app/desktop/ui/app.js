@@ -93,8 +93,9 @@ function preencherDispositivos() {
   for (const [id, lista] of [["mic", ESTADO.entradas], ["output", ESTADO.saidas]]) {
     const sel = $(id);
     sel.replaceChildren(opcao("", padrao));
-    for (const n of lista) if (!/^Praxis_/.test(n)) sel.append(opcao(n, n));
+    for (const n of lista) if (!/^(Monitor of )?Praxis[ _]/.test(n)) sel.append(opcao(n, n));   // os do próprio Praxis
     sel.value = cfg[id] || "";
+    if (sel.selectedIndex < 0) sel.value = "";   // o aparelho salvo sumiu (desplugado): volta ao padrão
   }
 }
 

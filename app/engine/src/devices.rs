@@ -1,7 +1,8 @@
 //! Áudio de verdade: microfone, caixa de som e o microfone virtual de cada sistema.
 //!
-//!   Linux    PulseAudio/PipeWire: cria uma saída "muda" (Praxis_Out) e uma entrada
-//!            remapeada a partir dela (Praxis_Microfone) — sem instalar driver
+//!   Linux    PulseAudio/PipeWire: cria uma saída "muda" (Praxis interno) e uma entrada
+//!            remapeada a partir dela ("Praxis Mic"); no bilateral, a saída "Praxis Speaker",
+//!            onde o app de chamada toca a outra pessoa — sem instalar driver
 //!   macOS    BlackHole (o instalador do Praxis instala)
 //!   Windows  VB-Audio Virtual Cable (o instalador do Praxis instala)
 //!
@@ -289,9 +290,11 @@ impl crate::pipeline::Speaker for Speakers {
 
 pub const SINK_OUT: &str = "Praxis_Out";
 pub const SRC_MIC: &str = "Praxis_Mic";
-pub const SRC_DESC: &str = "Praxis_Microfone";
+/// nomes que o usuário vê no app de chamada
+pub const SRC_DESC: &str = "Praxis Mic";
 pub const SINK_IN: &str = "Praxis_In";
-pub const SINK_IN_DESC: &str = "Praxis_Entrada";
+pub const SINK_IN_DESC: &str = "Praxis Speaker";
+pub const SINK_OUT_DESC: &str = "Praxis interno";
 
 /// (trecho do nome do lado onde o Praxis toca, trecho do nome que o app de chamada grava)
 pub const LOOPBACK_DRIVERS: [(&str, &str); 6] = [
@@ -322,6 +325,11 @@ pub struct VirtualMic {
     pulse_modules: Vec<u32>,
 }
 
+/// "sink_properties='device.description=\"Praxis Mic\"'": as aspas deixam o nome ter espaço
+fn props(kind: &str, desc: &str) -> String {
+    format!("{kind}_properties='device.description=\"{desc}\"'")
+}
+
 fn pactl(args: &[&str]) -> Result<String> {
     let out = std::process::Command::new("pactl").args(args).output().context("pactl")?;
     if !out.status.success() {
@@ -350,17 +358,18 @@ impl VirtualMic {
                 vm.pulse_modules.push(id);
                 Ok(())
             };
-            load(&["module-null-sink", &format!("sink_name={SINK_OUT}"), &format!("sink_properties=device.description={SINK_OUT}")])?;
+            load(&["module-null-sink", &format!("sink_name={SINK_OUT}"), &props("sink", SINK_OUT_DESC)])?;
             load(&["module-remap-source", &format!("source_name={SRC_MIC}"), &format!("master={SINK_OUT}.monitor"),
-                   &format!("source_properties=device.description={SRC_DESC}")])?;
+                   &props("source", SRC_DESC)])?;
             if bilateral {
-                load(&["module-null-sink", &format!("sink_name={SINK_IN}"), &format!("sink_properties=device.description={SINK_IN_DESC}")])?;
+                load(&["module-null-sink", &format!("sink_name={SINK_IN}"), &props("sink", SINK_IN_DESC)])?;
             }
-            vm.target = Some(SINK_OUT.into());
+            // o sistema lista as saídas pelo nome de exibição, não pelo nome técnico
+            vm.target = Some(SINK_OUT_DESC.into());
             vm.mic_label = SRC_DESC.into();
             if bilateral {
                 // o sistema lista a gravação da saída pelo nome de exibição ("Monitor of
-                // Praxis_Entrada"), não pelo nome técnico (Praxis_In.monitor)
+                // Praxis Speaker"), não pelo nome técnico (Praxis_In.monitor)
                 vm.peer_capture = Some(SINK_IN_DESC.into());
                 vm.peer_label = SINK_IN_DESC.into();
             }

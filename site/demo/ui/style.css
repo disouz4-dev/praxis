@@ -70,3 +70,26 @@ button.pequeno { border: 0; border-radius: 8px; padding: 6px 12px; background: v
   color: var(--destaque-texto); font-weight: 600; cursor: pointer; }
 button.pequeno:disabled { opacity: .6; cursor: default; }
 .atualizacao[hidden] { display: none; }   /* o display:flex acima não pode vencer o hidden */
+
+/* Controles desenhados pelo próprio Praxis: no Linux (WebKitGTK) e no Windows o sistema
+   desenhava listas e caixas de marcar no tema claro — caixas brancas com letra cinza. */
+:root[data-tema="escuro"] { color-scheme: dark; }
+select {
+  -webkit-appearance: none; appearance: none; padding-right: 30px; color: var(--texto);
+  background: var(--campo) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%239ca3af' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+}
+select:focus { outline: 2px solid var(--destaque); outline-offset: -1px; }
+select:disabled { opacity: .6; }
+option, optgroup { background: var(--cartao); color: var(--texto); }
+option:disabled { color: var(--suave); }
+.chave input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; flex: 0 0 auto; margin: 0; cursor: pointer;
+  width: 18px; height: 18px; border-radius: 5px; border: 1.5px solid var(--suave); background: var(--campo);
+  display: grid; place-items: center; transition: background .15s, border-color .15s;
+}
+.chave input[type="checkbox"]:checked {
+  border-color: var(--destaque);
+  background: var(--destaque) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='10' viewBox='0 0 12 10'%3E%3Cpath d='M1 5l3.5 3.5L11 1.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center;
+}
+.chave input[type="checkbox"]:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.topo select { padding: 4px 24px 4px 8px; background-position: right 7px center; }

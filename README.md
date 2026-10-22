@@ -128,7 +128,19 @@ Por enquanto, a versão anterior em Python: `scripts/instalar-python.sh`.
 
 ## Uso
 
-Abra o **Praxis** pelo menu de aplicativos, escolha os dois idiomas e clique em **Iniciar**. Na primeira vez ele baixa os modelos para os seus idiomas. No app de chamada, escolha o microfone **Praxis_Microfone** (Linux) ou **CABLE Output** (Windows).
+Abra o **Praxis** pelo menu de aplicativos, escolha os dois idiomas e clique em **Iniciar**. Na primeira vez ele baixa os modelos para os seus idiomas. No app de chamada, escolha o microfone **Praxis Mic**.
+
+**Bilateral** (a outra pessoa também é traduzida):
+
+| Onde | Microfone | Saída de som |
+|---|---|---|
+| App de chamada | **Praxis Mic** | **Praxis Speaker** |
+| Praxis | o seu microfone | o seu fone |
+
+```
+Você fala ─► seu microfone ─► Praxis ─► Praxis Mic ─► app de chamada ─► a outra pessoa ouve traduzido
+A outra pessoa ─► app de chamada ─► Praxis Speaker ─► Praxis ─► seu fone (você ouve traduzido)
+```
 
 ---
 
