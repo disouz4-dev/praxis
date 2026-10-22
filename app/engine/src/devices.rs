@@ -326,9 +326,11 @@ pub const SINK_IN_DESC: &str = "Praxis Speaker";
 pub const SINK_OUT_DESC: &str = "Praxis interno";
 
 /// (trecho do nome do lado onde o Praxis toca, trecho do nome que o app de chamada grava)
-pub const LOOPBACK_DRIVERS: [(&str, &str); 7] = [
+pub const LOOPBACK_DRIVERS: [(&str, &str); 8] = [
     // VB-Cable renomeado pelo install.ps1 ("Praxis interno" → "Praxis Mic")
     ("Praxis interno", "Praxis Mic"),
+    // macOS: driver de áudio do próprio Praxis (o mesmo dispositivo toca e grava)
+    ("Praxis Mic", "Praxis Mic"),
     ("BlackHole 2ch", "BlackHole 2ch"),
     ("BlackHole", "BlackHole"),
     ("CABLE Input", "CABLE Output"),
@@ -337,7 +339,8 @@ pub const LOOPBACK_DRIVERS: [(&str, &str); 7] = [
     ("Soundflower (2ch)", "Soundflower (2ch)"),
 ];
 /// Segundo cabo, para o modo bilateral (saída do app de chamada → Praxis)
-pub const PEER_LOOPBACK_DRIVERS: [(&str, &str); 3] = [
+pub const PEER_LOOPBACK_DRIVERS: [(&str, &str); 4] = [
+    ("Praxis Speaker", "Praxis Speaker"),
     ("BlackHole 16ch", "BlackHole 16ch"),
     ("CABLE-A Input", "CABLE-A Output"),
     ("VoiceMeeter Aux Input", "VoiceMeeter Aux Output"),
@@ -426,7 +429,7 @@ impl VirtualMic {
             })
         };
         let (target, label) = pick(&LOOPBACK_DRIVERS).ok_or_else(|| anyhow!(if cfg!(target_os = "macos") {
-            "microfone virtual não encontrado: instale o BlackHole (o instalador do Praxis faz isso)"
+            "microfone virtual \"Praxis Mic\" não encontrado: instale o Praxis de novo (o instalador cria os dispositivos)"
         } else {
             "microfone virtual não encontrado: instale o VB-Audio Virtual Cable (o instalador do Praxis faz isso)"
         }))?;
@@ -438,7 +441,7 @@ impl VirtualMic {
         } else if bilateral {
             let (peer_out, peer_in) = pick(&PEER_LOOPBACK_DRIVERS)
                 .ok_or_else(|| anyhow!(if cfg!(target_os = "macos") {
-                    "o modo bilateral precisa do BlackHole 16ch (o instalador do Praxis instala)"
+                    "o modo bilateral precisa do dispositivo \"Praxis Speaker\" (o instalador do Praxis instala)"
                 } else {
                     "o modo bilateral precisa de um segundo cabo de áudio virtual, que ainda não está instalado neste computador"
                 }))?;

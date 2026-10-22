@@ -31,10 +31,19 @@ fn main() -> anyhow::Result<()> {
         let fim = std::time::Instant::now() + std::time::Duration::from_secs_f32(a[2].parse()?);
         let mut n = 0usize;
         let mut soma = 0f64;
+        let (mut janela, mut sj, mut nj) = (std::time::Instant::now(), 0f64, 0usize);
         while std::time::Instant::now() < fim {
             if let Ok(c) = rx.recv_timeout(std::time::Duration::from_millis(100)) {
                 n += c.len();
-                soma += c.iter().map(|x| (*x as f64).powi(2)).sum::<f64>();
+                let q = c.iter().map(|x| (*x as f64).powi(2)).sum::<f64>();
+                soma += q;
+                sj += q;
+                nj += c.len();
+            }
+            // nível a cada 2 s (mostra se o som volta depois que o app troca de processo)
+            if janela.elapsed().as_secs_f32() >= 2.0 {
+                println!("  {:>5.1}s nível {:.4} ({} amostras)", fim.saturating_duration_since(std::time::Instant::now()).as_secs_f32(), (sj / nj.max(1) as f64).sqrt(), nj);
+                (janela, sj, nj) = (std::time::Instant::now(), 0.0, 0);
             }
         }
         stop.store(true, std::sync::atomic::Ordering::Relaxed);
