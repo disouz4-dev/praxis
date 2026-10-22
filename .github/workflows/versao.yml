@@ -111,9 +111,12 @@ jobs:
       - name: Compilar
         run: |
           $ErrorActionPreference = "Stop"
-          scripts/cargo-windows.ps1 build --release -p praxis-engine -p praxis-desktop
+          # o motor primeiro: o aplicativo confere, ao compilar, as DLLs que o instalador leva
+          scripts/cargo-windows.ps1 build --release -p praxis-engine
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Copy-Item target/ct2-lib/*.dll target/release/
+          scripts/cargo-windows.ps1 build --release -p praxis-desktop
+          if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Montar o instalador
         working-directory: app/desktop
         run: |
