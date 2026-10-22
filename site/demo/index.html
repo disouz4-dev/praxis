@@ -11,8 +11,9 @@
 </head>
 <body>
 <script>
-const ouvintes = [];
-const emitir = (payload) => ouvintes.forEach((f) => f({ payload }));
+const ouvintes = {};
+const emitir = (payload, nome = "praxis") => (ouvintes[nome] || []).forEach((f) => f({ payload }));
+let testeMic = null;
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 let motorLigado = false;
 const conversa = [
@@ -31,10 +32,16 @@ window.__TAURI__ = {
         case "estado_inicial":
           return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
                    idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.5", apps: [{ id: "discord", name: "Discord" }],
-                   config: { src: "pt", tgt: "en", bilateral: true, headphones: true, monitor: false } };
+                   config: { src: "pt", tgt: "en", bilateral: false, headphones: true, monitor: false, tutorial_feito: !location.search.includes("tutorial") } };
         case "verificar_atualizacao": await esperar(600); return { atual: "0.3.5", nova: null, pode_atualizar: true };
         case "abrir_link": window.open(args?.url, "_blank"); return null;
         case "modo_qa": return false;
+        case "testar_microfone": {
+          clearInterval(testeMic); let fase = 0;
+          testeMic = setInterval(() => { fase += 0.35; emitir({ nivel: Math.max(0, 0.15 + 0.55 * Math.abs(Math.sin(fase) * Math.cos(fase * 0.37))) }, "nivel_mic"); }, 90);
+          return null;
+        }
+        case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;
         case "apps_com_som": return [{ id: "discord", name: "Discord" }];
@@ -60,7 +67,7 @@ window.__TAURI__ = {
       }
     },
   },
-  event: { listen: async (_n, f) => { ouvintes.push(f); return () => {}; } },
+  event: { listen: async (nome, f) => { (ouvintes[nome] ||= []).push(f); return () => {}; } },
 };
 fetch("index.html").then((r) => r.text()).then((html) => {
   const doc = new DOMParser().parseFromString(html, "text/html");

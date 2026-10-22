@@ -146,6 +146,137 @@ function textoDoRelato() {
   return (o_que ? "### O que eu estava fazendo\n" + o_que + "\n\n" : "") + $("relatorio_texto").textContent;
 }
 
+// "Quem é traduzido?": Só eu / Nós dois liga o modo bilateral (a caixa escondida #bilateral)
+function aplicarModo() {
+  $("modo_dois").checked = $("bilateral").checked;
+  $("modo_eu").checked = !$("bilateral").checked;
+}
+
+function escolherModo(dois) {
+  if ($("bilateral").checked === dois) return;
+  $("bilateral").checked = dois;
+  $("bilateral").dispatchEvent(new Event("change"));
+}
+
+// ⇄ troca os idiomas de lado (o que eu falo passa a ser o que eles ouvem e vice-versa)
+function trocarIdiomas() {
+  const s = $("src").value, d = $("tgt").value;
+  const podeSrc = [...$("src").options].some((o) => o.value === d && !o.disabled);
+  const podeTgt = [...$("tgt").options].some((o) => o.value === s);
+  if (!podeSrc || !podeTgt) { vivo("aviso_idioma", () => t("warn_swap")); $("aviso_idioma").hidden = false; return; }
+  $("src").value = d; $("tgt").value = s;
+  verificarIdiomas(); salvar();
+}
+
+// Teste do microfone: a barra mostra o volume da voz antes de começar a traduzir
+let testandoMic = false;
+async function testarMicrofone(ligar = !testandoMic) {
+  if (!ligar) {
+    testandoMic = false;
+    try { await invoke("parar_teste_microfone"); } catch { /* já parou */ }
+    $("medidor").hidden = true; $("dica_medidor").hidden = true;
+    document.querySelectorAll(".medidor i").forEach((b) => (b.style.transform = "scaleX(0)"));
+    $("testar_mic").textContent = t("btn_test_mic");
+    return;
+  }
+  try { await invoke("testar_microfone", { nome: $("mic").value || null }); }
+  catch (e) { fixo("erro_texto", String(e)); $("erro_topo").hidden = false; return; }
+  testandoMic = true;
+  $("medidor").hidden = false; $("dica_medidor").hidden = false;
+  $("testar_mic").textContent = t("btn_test_stop");
+}
+
+function mostrarNivel(n) {
+  // todas as barras de nível visíveis (a da tela e a do tutorial)
+  document.querySelectorAll(".medidor i").forEach((b) => (b.style.transform = `scaleX(${n.toFixed(3)})`));
+}
+
+// ── Tutorial ─────────────────────────────────────────────────────────────────
+// Obrigatório na primeira vez (com "Pular tutorial"); de novo em ⓘ Sobre. Os campos dos
+// passos são cópias ligadas aos de verdade: mudar aqui muda na tela principal.
+function copiaSelect(id) {
+  const orig = $(id), sel = document.createElement("select");
+  sel.innerHTML = orig.innerHTML; sel.value = orig.value;
+  sel.onchange = () => { orig.value = sel.value; orig.dispatchEvent(new Event("change")); };
+  return sel;
+}
+
+function copiaCaixa(id, chave) {
+  const lab = document.createElement("label"); lab.className = "chave";
+  const c = document.createElement("input"); c.type = "checkbox"; c.checked = $(id).checked;
+  c.onchange = () => { $(id).checked = c.checked; $(id).dispatchEvent(new Event("change")); };
+  const sp = document.createElement("span"); sp.textContent = t(chave);
+  lab.append(c, sp);
+  return lab;
+}
+
+function campo(chave, el) {
+  const lab = document.createElement("label"); lab.className = "campo";
+  const sp = document.createElement("span"); sp.textContent = t(chave);
+  lab.append(sp, el);
+  return lab;
+}
+
+const PASSOS = [
+  { k: "tut1" },
+  { k: "tut2", montar: (c) => {
+      const par = document.createElement("div"); par.className = "par tut-par";
+      const eu = campo("lbl_you_speak", copiaSelect("src")); eu.classList.add("lado", "eu");
+      const eles = campo("lbl_they_hear", copiaSelect("tgt")); eles.classList.add("lado", "eles");
+      par.append(eu, eles); c.append(par);
+    } },
+  { k: "tut3", montar: (c) => {
+      c.append(campo("lbl_your_mic", copiaSelect("mic")));
+      const m = document.createElement("div"); m.className = "medidor grande"; m.innerHTML = "<i></i>"; c.append(m);
+      c.append(copiaCaixa("headphones", "tut3_fone"));
+      c.querySelector("select").addEventListener("change", () => testarMicrofone(true));
+    }, entrar: () => testarMicrofone(true), sair: () => testarMicrofone(false) },
+  { k: "tut4", montar: (c) => { const p = document.createElement("p"); p.className = "praxis-mic grande"; p.innerHTML = "<b>Praxis Mic</b>"; c.append(p); } },
+  { k: "tut5", montar: (c) => {
+      const f = document.createElement("div"); f.className = "modo";
+      for (const [dois, ch, dica] of [[false, "opt_only_me", "opt_only_me_hint"], [true, "opt_both", "opt_both_hint"]]) {
+        const lab = document.createElement("label"); lab.className = "opcao-modo";
+        const r = document.createElement("input"); r.type = "radio"; r.name = "tut_modo"; r.checked = $("bilateral").checked === dois;
+        r.onchange = () => escolherModo(dois);
+        const sp = document.createElement("span"); sp.innerHTML = "<b></b><small></small>";
+        sp.querySelector("b").textContent = t(ch); sp.querySelector("small").textContent = t(dica);
+        lab.append(r, sp); f.append(lab);
+      }
+      c.append(f);
+    } },
+  { k: "tut6" },
+];
+let passoAtual = 0;
+
+function mostrarPasso(i) {
+  PASSOS[passoAtual]?.sair?.();
+  passoAtual = i;
+  const p = PASSOS[i];
+  vivo("tut_passo", () => tf("tut_step", { n: i + 1, total: PASSOS.length }));
+  vivo("tut_titulo", () => tf(p.k + "_title", { mic: "Praxis Mic" }));
+  vivo("tut_texto", () => tf(p.k + "_body", { mic: "Praxis Mic" }));
+  const c = $("tut_conteudo"); c.replaceChildren(); p.montar?.(c);
+  $("tut_pontos").replaceChildren(...PASSOS.map((_, j) => { const d = document.createElement("i"); if (j === i) d.className = "atual"; return d; }));
+  $("tut_voltar").hidden = i === 0;
+  $("tut_seguir").textContent = t(i === PASSOS.length - 1 ? "tut_done" : i === 0 ? "tut_start" : "tut_next");
+  $("tut_pular").hidden = i === PASSOS.length - 1;
+  p.entrar?.();
+  $("tut_seguir").focus();
+}
+
+function abrirTutorial() {
+  $("sobre").open && $("sobre").close();
+  $("tutorial").showModal();
+  mostrarPasso(0);
+}
+
+function fecharTutorial() {
+  PASSOS[passoAtual]?.sair?.();
+  $("tutorial").close();
+  cfg.tutorial_feito = true; salvar();
+  $("iniciar").focus();
+}
+
 function coletar() {
   return {
     ...cfg,
@@ -258,6 +389,7 @@ async function iniciarOuParar() {
     await invoke("parar");
     return;
   }
+  if (testandoMic) await testarMicrofone(false);
   await salvar();
   rodando = true;
   $("config").hidden = true; $("painel").hidden = false; $("barra").hidden = false;
@@ -317,6 +449,20 @@ async function main() {
   for (const id of ["monitor", "headphones", "bilateral"]) $(id).addEventListener("change", avisoEco);
   avisoEco();
   $("iniciar").onclick = iniciarOuParar;
+  $("trocar").onclick = trocarIdiomas;
+  $("modo_eu").onchange = () => escolherModo(false);
+  $("modo_dois").onchange = () => escolherModo(true);
+  $("bilateral").addEventListener("change", aplicarModo);
+  aplicarModo();
+  $("testar_mic").onclick = () => testarMicrofone();
+  $("mic").addEventListener("change", () => { if (testandoMic) testarMicrofone(true); });
+  await listen("nivel_mic", (ev) => { if (ev.payload.parou) { if (testandoMic) testarMicrofone(false); } else mostrarNivel(ev.payload.nivel); });
+  $("tut_seguir").onclick = () => (passoAtual < PASSOS.length - 1 ? mostrarPasso(passoAtual + 1) : fecharTutorial());
+  $("tut_voltar").onclick = () => mostrarPasso(passoAtual - 1);
+  $("tut_pular").onclick = fecharTutorial;
+  // Esc não fecha o tutorial (ele é obrigatório na primeira vez): use "Pular tutorial"
+  $("tutorial").addEventListener("cancel", (ev) => ev.preventDefault());
+  $("sobre_tutorial").onclick = abrirTutorial;
   $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;
   $("sobre_abrir").onclick = abrirSobre;
   $("sobre_fechar").onclick = () => $("sobre").close();
@@ -341,6 +487,7 @@ async function main() {
     else eventoDoMotor(e);
   });
   if (await invoke("modo_qa")) iniciarOuParar();   // verificação de qualidade automática
+  else if (!cfg.tutorial_feito) abrirTutorial();    // primeira vez: tutorial obrigatório
   verificarAtualizacao();
 }
 

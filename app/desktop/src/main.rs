@@ -17,6 +17,8 @@ use tauri::{Emitter, Manager, State};
 struct App {
     session: Mutex<Option<Session>>,
     gpu: Mutex<Option<bool>>,
+    /// teste do microfone em andamento (o sinal de parar)
+    teste_mic: Mutex<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>>,
 }
 
 fn config_path() -> PathBuf {
@@ -150,8 +152,50 @@ fn dispositivos() -> Value {
 
 /// Liga o Praxis. Baixa o que faltar (com progresso) e carrega os modelos numa tarefa à
 /// parte; a janela recebe tudo pelo evento "praxis".
+/// Teste do microfone antes de traduzir: grava o microfone escolhido e manda o volume para a
+/// janela ("nivel_mic", de 0 a 1, ~12 vezes por segundo) até parar ou passar 2 minutos.
+#[tauri::command]
+fn testar_microfone(handle: tauri::AppHandle, nome: Option<String>) -> Result<(), String> {
+    parar_teste_microfone(handle.clone());
+    if handle.state::<App>().session.lock().unwrap().is_some() {
+        return Err("o Praxis já está traduzindo".into());
+    }
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
+    devices::spawn_capture(nome.filter(|n| !n.is_empty()), tx, stop.clone()).map_err(|e| format!("{e:#}"))?;
+    *handle.state::<App>().teste_mic.lock().unwrap() = Some(stop.clone());
+    std::thread::spawn(move || {
+        let inicio = std::time::Instant::now();
+        let mut ultimo = std::time::Instant::now();
+        let mut pico = 0f32;
+        while let Ok(bloco) = rx.recv() {
+            let rms = (bloco.iter().map(|x| x * x).sum::<f32>() / bloco.len().max(1) as f32).sqrt();
+            pico = pico.max(rms);
+            if ultimo.elapsed().as_millis() >= 80 {
+                // escala de voz: fala normal (~0,05) enche boa parte da barra
+                let _ = handle.emit("nivel_mic", json!({"nivel": (pico * 8.0).min(1.0)}));
+                pico = 0.0;
+                ultimo = std::time::Instant::now();
+            }
+            if inicio.elapsed().as_secs() > 120 {
+                stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+        let _ = handle.emit("nivel_mic", json!({"nivel": 0.0, "parou": true}));
+    });
+    Ok(())
+}
+
+#[tauri::command]
+fn parar_teste_microfone(handle: tauri::AppHandle) {
+    if let Some(stop) = handle.state::<App>().teste_mic.lock().unwrap().take() {
+        stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
 #[tauri::command]
 fn iniciar(handle: tauri::AppHandle, config: SessionConfig) -> Result<(), String> {
+    parar_teste_microfone(handle.clone());
     if handle.state::<App>().session.lock().unwrap().is_some() {
         return Err("o Praxis já está traduzindo".into());
     }
@@ -212,7 +256,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, testar_microfone, parar_teste_microfone, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

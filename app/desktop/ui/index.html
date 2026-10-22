@@ -28,45 +28,59 @@
       <button id="erro_relatar" class="pequeno" data-t="btn_send_report"></button>
     </div>
     <section id="config">
-      <div class="cartao">
-        <h2 data-t="sec_langs"></h2>
-        <div class="linha2">
-          <label><span data-t="lbl_src_lang"></span><select id="src"></select></label>
-          <label><span data-t="lbl_tgt_lang"></span><select id="tgt"></select></label>
-        </div>
-        <p id="aviso_idioma" class="aviso" hidden></p>
+      <!-- o que mais importa: quem fala o quê -->
+      <div class="par">
+        <label class="lado eu"><span data-t="lbl_you_speak"></span><select id="src"></select></label>
+        <button id="trocar" class="trocar" type="button" data-t-title="ttl_swap" aria-label="Trocar os idiomas">⇄</button>
+        <label class="lado eles"><span data-t="lbl_they_hear"></span><select id="tgt"></select></label>
       </div>
+      <p id="aviso_idioma" class="aviso" hidden></p>
 
-      <div class="cartao">
-        <h2 data-t="sec_audio"></h2>
-        <label><span data-t="lbl_input"></span><select id="mic"></select></label>
-        <label><span data-t="lbl_output"></span><select id="output"></select></label>
-        <label class="chave"><input type="checkbox" id="monitor"><span data-t="mon_hint"></span></label>
-        <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
-        <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
-      </div>
-
-      <div class="cartao">
-        <h2 data-t="sec_bilateral"></h2>
-        <label class="chave"><input type="checkbox" id="bilateral"><span data-t="lbl_bilateral"></span></label>
-        <div id="bilateral_opcoes" hidden>
-          <label><span data-t="lbl_peer_app"></span>
-            <span class="linha-botao"><select id="peer_app"></select><button id="atualizar_apps" class="icone" data-t-title="ttl_refresh_apps">↻</button></span>
+      <ol class="passos">
+        <li>
+          <label class="campo"><span data-t="lbl_your_mic"></span>
+            <span class="linha-botao"><select id="mic"></select>
+              <button id="testar_mic" class="secundario" type="button" data-t="btn_test_mic"></button></span>
           </label>
-          <p id="dica_peer_app" class="dica"></p>
-          <div class="escolha"><span data-t="lbl_peer_mode"></span>
-            <label class="chave"><input type="radio" name="peer_modo" id="peer_voz"><span data-t="opt_peer_voice"></span></label>
-            <label class="chave"><input type="radio" name="peer_modo" id="peer_legenda"><span data-t="opt_peer_subtitles"></span></label>
+          <div class="medidor" id="medidor" hidden><i id="medidor_barra"></i></div>
+          <p id="dica_medidor" class="dica" data-t="hint_mic_test" hidden></p>
+          <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
+          <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
+        </li>
+        <li>
+          <p class="campo-titulo" data-t="lbl_call_app_mic"></p>
+          <p class="praxis-mic"><b>Praxis Mic</b></p>
+        </li>
+        <li>
+          <fieldset class="modo">
+            <legend data-t="lbl_who_translated"></legend>
+            <label class="opcao-modo"><input type="radio" name="modo" id="modo_eu">
+              <span><b data-t="opt_only_me"></b><small data-t="opt_only_me_hint"></small></span></label>
+            <label class="opcao-modo"><input type="radio" name="modo" id="modo_dois">
+              <span><b data-t="opt_both"></b><small data-t="opt_both_hint"></small></span></label>
+          </fieldset>
+          <input type="checkbox" id="bilateral" hidden>
+          <div id="bilateral_opcoes" hidden>
+            <label class="campo"><span data-t="lbl_peer_app"></span>
+              <span class="linha-botao"><select id="peer_app"></select><button id="atualizar_apps" class="icone" type="button" data-t-title="ttl_refresh_apps" aria-label="Atualizar a lista de apps">↻</button></span>
+            </label>
+            <p id="dica_peer_app" class="dica"></p>
+            <div class="escolha"><span data-t="lbl_peer_mode"></span>
+              <label class="chave"><input type="radio" name="peer_modo" id="peer_voz"><span data-t="opt_peer_voice"></span></label>
+              <label class="chave"><input type="radio" name="peer_modo" id="peer_legenda"><span data-t="opt_peer_subtitles"></span></label>
+            </div>
+            <label id="original_linha" class="chave"><input type="checkbox" id="original"><span data-t="lbl_original"></span></label>
+            <label id="original_volume_linha" class="volume" hidden><span data-t="lbl_original_volume"></span>
+              <input type="range" id="original_volume" min="5" max="60" step="5"><output id="original_volume_valor"></output></label>
           </div>
-          <label id="original_linha" class="chave"><input type="checkbox" id="original"><span data-t="lbl_original"></span></label>
-          <label id="original_volume_linha" class="volume" hidden><span data-t="lbl_original_volume"></span>
-            <input type="range" id="original_volume" min="5" max="60" step="5"><output id="original_volume_valor"></output></label>
-        </div>
-      </div>
+        </li>
+      </ol>
 
-      <details class="cartao">
-        <summary data-t="sec_advanced"></summary>
-        <label><span data-t="sec_whisper"></span>
+      <details class="mais">
+        <summary data-t="sec_more"></summary>
+        <label class="campo"><span data-t="lbl_output"></span><select id="output"></select></label>
+        <label class="chave"><input type="checkbox" id="monitor"><span data-t="mon_hint"></span></label>
+        <label class="campo"><span data-t="sec_whisper"></span>
           <select id="model">
             <option value="auto" data-t="opt_model_auto"></option>
             <option value="large-v3-turbo" data-t="opt_model_turbo"></option>
@@ -74,7 +88,7 @@
             <option value="small" data-t="opt_model_small"></option>
           </select>
         </label>
-        <label><span data-t="lbl_translator"></span>
+        <label class="campo"><span data-t="lbl_translator"></span>
           <select id="translator">
             <option value="auto" data-t="opt_tr_auto"></option>
             <option value="argos">Argos</option>
@@ -101,6 +115,24 @@
     <button id="iniciar" class="principal" data-t="btn_start"></button>
   </footer>
 
+  <!-- Tutorial da primeira vez (obrigatório, com "Pular tutorial"); de novo em ⓘ Sobre -->
+  <dialog id="tutorial" aria-labelledby="tut_titulo">
+    <div class="tut-topo">
+      <span id="tut_passo" class="dica"></span>
+      <button id="tut_pular" class="link" type="button" data-t="tut_skip"></button>
+    </div>
+    <div class="tut-corpo">
+      <h2 id="tut_titulo"></h2>
+      <p id="tut_texto"></p>
+      <div id="tut_conteudo"></div>
+    </div>
+    <div class="tut-pontos" id="tut_pontos" aria-hidden="true"></div>
+    <div class="botoes">
+      <button id="tut_voltar" class="secundario" type="button" data-t="tut_back"></button>
+      <button id="tut_seguir" class="pequeno" type="button" data-t="tut_next"></button>
+    </div>
+  </dialog>
+
   <dialog id="sobre">
     <div class="sobre-topo">
       <img src="logo-escuro.png" alt="">
@@ -118,7 +150,7 @@
       <a href="#" data-link="https://github.com/disouz4-dev/praxis/releases" data-t="link_releases"></a> ·
       <a href="#" id="sobre_relatar" data-t="btn_report"></a>
     </p>
-    <div class="botoes"><button id="sobre_fechar" class="secundario" data-t="btn_close"></button></div>
+    <div class="botoes"><button id="sobre_tutorial" class="secundario" type="button" data-t="btn_tutorial"></button><button id="sobre_fechar" class="secundario" data-t="btn_close"></button></div>
   </dialog>
 
   <dialog id="relatorio">
