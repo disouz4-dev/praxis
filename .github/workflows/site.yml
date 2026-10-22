@@ -8,7 +8,7 @@ name: Página do Praxis
 on:
   push:
     branches: [main, feat/multiplatform-qa]
-    paths: ["site/**", ".github/workflows/site.yml"]
+    paths: ["site/**", "install.sh", "install.ps1", ".github/workflows/site.yml"]
   workflow_run:
     workflows: ["Publicar versão"]
     types: [completed]
@@ -37,6 +37,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp -r site _site
+          cp install.sh install.ps1 _site/   # curl …/praxis/install.sh | bash
           mkdir -p _site/apt
           if gh release view apt -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release download apt -R "$GITHUB_REPOSITORY" -D _site/apt

@@ -56,7 +56,7 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "Praxis ${GITHUB_REF_NAME}" --notes-file ../.github/notas-da-versao.md || true
-          gh release upload "$GITHUB_REF_NAME" target/dist/praxis_*_amd64.deb --clobber
+          gh release upload "$GITHUB_REF_NAME" target/dist/praxis_*_amd64.deb ../install.sh ../install.ps1 --clobber
       - name: Repositório apt assinado (versão fixa "apt" da página de versões)
         if: startsWith(github.ref, 'refs/tags/v')
         env:

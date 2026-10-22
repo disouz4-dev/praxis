@@ -100,13 +100,13 @@ Com placa de vídeo NVIDIA, a instalação baixa as bibliotecas oficiais da plac
 ### Linux — pelo terminal
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.sh | bash
+curl -fsSL https://disouz4-dev.github.io/praxis/install.sh | bash
 ```
 
 ### Windows — pelo PowerShell
 
 ```powershell
-irm https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.ps1 | iex
+irm https://disouz4-dev.github.io/praxis/install.ps1 | iex
 ```
 
 Instala também o microfone virtual (VB-Audio Virtual Cable). Ou baixe o `Praxis_*_x64-setup.exe` da [página de versões](https://github.com/disouz4-dev/praxis/releases/latest).

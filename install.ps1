@@ -1,6 +1,6 @@
 # Instalação do Praxis pelo PowerShell, no Windows 10/11 (64 bits):
 #
-#   irm https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.ps1 | iex
+#   irm https://disouz4-dev.github.io/praxis/install.ps1 | iex
 #
 # Pergunta ao GitHub qual é a versão mais atual do Praxis, baixa o instalador dela e
 # instala sem perguntas (na pasta do usuário, com atalho no Menu Iniciar). Instala também

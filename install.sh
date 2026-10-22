@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Instalação do Praxis pelo terminal, no Linux (Debian, Ubuntu e derivados):
 #
-#   curl -fsSL https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.sh | bash
+#   curl -fsSL https://disouz4-dev.github.io/praxis/install.sh | bash
 #
 # Baixa o pacote .deb da última versão publicada e instala com o apt (pede a sua senha de
 # administrador). É o mesmo que baixar o .deb da página de versões e abrir com dois
