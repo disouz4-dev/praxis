@@ -231,12 +231,15 @@ function montarGravador(c, comExplicacao) {
     const res = g.querySelector(".grav-resultado");
     if (!gravando) {
       if (testandoMic) await testarMicrofone(false);
+      botao.disabled = true; // um segundo clique enquanto o microfone abre não grava duas vezes
       try { await invoke("gravar_voz", { nome: $("mic").value || null }); }
       catch (e) { res.textContent = String(e); return; }
+      finally { botao.disabled = false; }
       gravando = true; res.textContent = ""; rotulo();
       return;
     }
     gravando = false; rotulo();
+    document.querySelectorAll(".medidor.voz i").forEach((b) => (b.style.transform = "scaleX(0)"));
     let r;
     try { r = await invoke("parar_gravacao_voz"); } catch (e) { res.textContent = String(e); return; }
     const seg = (r.fala || 0).toLocaleString(cfg.ui_lang, { maximumFractionDigits: 0 });
@@ -552,10 +555,12 @@ async function main() {
   $("grav_fechar").onclick = async () => { await cancelarGravacao(); $("gravador").close(); };
   $("gravador").addEventListener("cancel", (ev) => { ev.preventDefault(); $("grav_fechar").click(); });
   await listen("gravacao_voz", (ev) => {
-    const { nivel, segundos } = ev.payload;
+    const { nivel, segundos, fim } = ev.payload;
     document.querySelectorAll(".medidor.voz i").forEach((b) => (b.style.transform = `scaleX(${nivel.toFixed(3)})`));
     const m = Math.floor(segundos / 60), sg = Math.floor(segundos % 60);
     document.querySelectorAll(".grav-tempo").forEach((e) => (e.textContent = `${m}:${String(sg).padStart(2, "0")}`));
+    // o motor parou de gravar (90 s ou o microfone sumiu): termina e guarda como se a pessoa clicasse em Parar
+    if (gravando && (fim || segundos >= 90)) document.querySelector(".gravar.ativo")?.click();
   });
   atualizarVoz();
   $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;

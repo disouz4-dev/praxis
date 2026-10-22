@@ -13,7 +13,9 @@
 <script>
 const ouvintes = {};
 const emitir = (payload, nome = "praxis") => (ouvintes[nome] || []).forEach((f) => f({ payload }));
-let testeMic = null, gravacao = null, vozGravada = !location.search.includes("tutorial");
+let testeMic = null, gravacao = null, vozGravada = !location.search.includes("tutorial") && !location.search.includes("semvoz");
+let vozSeg = 31, gravT0 = null;
+const gravSeg = () => (Date.now() - gravT0) / 1000 * (location.search.includes("rapido") ? 20 : 1);
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 let motorLigado = false;
 const conversa = [
@@ -31,7 +33,7 @@ window.__TAURI__ = {
       switch (cmd) {
         case "estado_inicial":
           return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
-                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: !location.search.includes("tutorial"), segundos: 31 }, apps: [{ id: "discord", name: "Discord" }],
+                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: vozGravada, segundos: vozSeg }, apps: [{ id: "discord", name: "Discord" }],
                    config: { src: "pt", tgt: "en", bilateral: false, headphones: true, monitor: false, tutorial_feito: !location.search.includes("tutorial") } };
         case "verificar_atualizacao": await esperar(600); return { atual: "0.3.5", nova: null, pode_atualizar: true };
         case "abrir_link": window.open(args?.url, "_blank"); return null;
@@ -42,17 +44,28 @@ window.__TAURI__ = {
           return null;
         }
         case "gravar_voz": {
-          clearInterval(gravacao); let t0 = Date.now(), fase = 0;
-          gravacao = setInterval(() => { fase += 0.4; emitir({ nivel: 0.2 + 0.5 * Math.abs(Math.sin(fase)), segundos: (Date.now() - t0) / 1000 }, "gravacao_voz"); }, 90);
+          // como no app: até 92 s; "?rapido" acelera o relógio (verificação da tela)
+          clearInterval(gravacao); let fase = 0; gravT0 = Date.now();
+          gravacao = setInterval(() => {
+            fase += 0.4; const s = gravSeg();
+            if (s > 92) { clearInterval(gravacao); emitir({ nivel: 0, segundos: s, fim: true }, "gravacao_voz"); return; }
+            emitir({ nivel: 0.2 + 0.5 * Math.abs(Math.sin(fase)), segundos: s }, "gravacao_voz");
+          }, 90);
           return null;
         }
-        case "parar_gravacao_voz": clearInterval(gravacao); vozGravada = true; return { ok: true, fala: 31, total: 34 };
-        case "estado_voz": return { existe: vozGravada, segundos: 31 };
+        case "parar_gravacao_voz": {
+          if (gravT0 === null) throw "nenhuma gravação em andamento";
+          clearInterval(gravacao); const total = Math.min(gravSeg(), 92), fala = Math.round(total * 0.85);
+          gravT0 = null; if (fala >= 10) { vozGravada = true; vozSeg = fala; }
+          return { ok: fala >= 10, fala, total };
+        }
+        case "estado_voz": return { existe: vozGravada, segundos: vozSeg };
         case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;
         case "apps_com_som": return [{ id: "discord", name: "Discord" }];
         case "iniciar":
+          if (!vozGravada) throw "grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")";
           motorLigado = true;
           (async () => {
             for (const [pct, msg] of [[10, "Preparando os modelos…"], [60, "Carregando o reconhecimento de fala…"], [100, "Traduzindo"]]) {

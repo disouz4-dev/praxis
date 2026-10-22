@@ -39,7 +39,8 @@ fn estado_da_voz() -> Value {
     match praxis_engine::audio::read_wav_16k_mono(&p) {
         Ok(x) => {
             let (fala, tom) = medir_voz(&x);
-            json!({"existe": true, "segundos": (fala * 10.0).round() / 10.0, "tom": tom, "caminho": p})
+            // só vale como voz gravada com 10 s de fala (a mesma regra de quando grava)
+            json!({"existe": fala >= 10.0, "segundos": (fala * 10.0).round() / 10.0, "tom": tom, "caminho": p})
         }
         Err(_) => json!({"existe": false}),
     }
@@ -239,6 +240,10 @@ fn painel_lateral(handle: tauri::AppHandle, aberto: bool) -> Result<(), String> 
 #[tauri::command]
 fn gravar_voz(handle: tauri::AppHandle, nome: Option<String>) -> Result<(), String> {
     parar_teste_microfone(handle.clone());
+    // um segundo clique não deixa a primeira gravação com o microfone aberto
+    if let Some((antiga, _)) = handle.state::<App>().gravacao.lock().unwrap().take() {
+        antiga.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
     let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let buf = std::sync::Arc::new(Mutex::new(Vec::<f32>::new()));
     let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
@@ -247,6 +252,7 @@ fn gravar_voz(handle: tauri::AppHandle, nome: Option<String>) -> Result<(), Stri
     std::thread::spawn(move || {
         let mut ultimo = std::time::Instant::now();
         let mut pico = 0f32;
+        let mut limite = false;
         while let Ok(bloco) = rx.recv() {
             let rms = (bloco.iter().map(|x| x * x).sum::<f32>() / bloco.len().max(1) as f32).sqrt();
             pico = pico.max(rms);
@@ -260,10 +266,18 @@ fn gravar_voz(handle: tauri::AppHandle, nome: Option<String>) -> Result<(), Stri
                 pico = 0.0;
                 ultimo = std::time::Instant::now();
             }
-            if total > 90.0 {
+            if total > 92.0 { // folga: a janela termina aos 90 s
+                limite = true;
                 stop.store(true, std::sync::atomic::Ordering::Relaxed);
             }
         }
+        // acabou sozinha (limite de tempo ou o microfone sumiu): a janela termina a gravação.
+        // Parada pelo botão ou por uma gravação nova não avisa (não pode parar a nova).
+        if !limite && stop.load(std::sync::atomic::Ordering::Relaxed) {
+            return;
+        }
+        let total = buf.lock().unwrap().len() as f32 / 16_000.0;
+        let _ = handle.emit("gravacao_voz", json!({"nivel": 0.0, "segundos": total, "fim": true}));
     });
     Ok(())
 }
@@ -303,7 +317,8 @@ fn parar_teste_microfone(handle: tauri::AppHandle) {
 fn iniciar(handle: tauri::AppHandle, mut config: SessionConfig) -> Result<(), String> {
     parar_teste_microfone(handle.clone());
     // a voz do usuário é obrigatória (amostra da voz clonada)
-    if !voz_path().exists() {
+    // (conferida pelo conteúdo: um arquivo estragado ou curto não serve)
+    if !estado_da_voz()["segundos"].as_f64().is_some_and(|s| s >= 10.0) {
         return Err("grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")".into());
     }
     config.minha_voz = Some(voz_path().to_string_lossy().to_string());
