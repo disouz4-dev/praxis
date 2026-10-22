@@ -186,6 +186,29 @@ fn testar_microfone(handle: tauri::AppHandle, nome: Option<String>) -> Result<()
     Ok(())
 }
 
+/// Painel lateral da tradução ao vivo (como na versão antiga): ao começar a traduzir a janela
+/// se alarga para a direita e mostra a conversa ao lado das configurações; ao fechar o painel
+/// volta à largura normal. Se passar da borda da tela, a janela é puxada para dentro.
+#[tauri::command]
+fn painel_lateral(handle: tauri::AppHandle, aberto: bool) -> Result<(), String> {
+    const NORMAL: f64 = 560.0;
+    const LARGA: f64 = 1100.0;
+    let w = handle.get_webview_window("main").ok_or("janela principal não encontrada")?;
+    let esc = w.scale_factor().unwrap_or(1.0);
+    let tam = w.inner_size().map_err(|e| e.to_string())?.to_logical::<f64>(esc);
+    let largura = if aberto { tam.width.max(LARGA) } else if tam.width > NORMAL + 200.0 { NORMAL } else { tam.width };
+    w.set_size(tauri::LogicalSize::new(largura, tam.height)).map_err(|e| e.to_string())?;
+    if let (Ok(Some(tela)), Ok(pos)) = (w.current_monitor(), w.outer_position()) {
+        let fim_tela = (tela.position().x as f64 + tela.size().width as f64) / esc;
+        let x = pos.x as f64 / esc;
+        if x + largura > fim_tela {
+            let novo_x = (fim_tela - largura - 8.0).max(tela.position().x as f64 / esc);
+            let _ = w.set_position(tauri::LogicalPosition::new(novo_x, pos.y as f64 / esc));
+        }
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn parar_teste_microfone(handle: tauri::AppHandle) {
     if let Some(stop) = handle.state::<App>().teste_mic.lock().unwrap().take() {
@@ -256,7 +279,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, testar_microfone, parar_teste_microfone, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

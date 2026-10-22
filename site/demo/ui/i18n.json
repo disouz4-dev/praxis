@@ -156,7 +156,10 @@
    "tut5_title": "Quer ouvir a outra pessoa traduzida também?",
    "tut5_body": "Com \"Nós dois\", o Praxis também traduz a voz que chega pela chamada, para você ouvir ou ler no seu idioma.",
    "tut6_title": "Tudo pronto",
-   "tut6_body": "Aperte \"Começar a traduzir\" e fale normalmente. Você pode rever este tutorial em ⓘ Sobre."
+   "tut6_body": "Aperte \"Começar a traduzir\" e fale normalmente. Você pode rever este tutorial em ⓘ Sobre.",
+   "lbl_monitor_out": "Ouvir a minha tradução em",
+   "lbl_live": "Tradução ao vivo",
+   "ttl_close_panel": "Fechar o painel"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -314,7 +317,10 @@
    "tut5_title": "Want to hear the other person translated too?",
    "tut5_body": "With \"Both of us\", Praxis also translates the voice coming through the call, so you can hear or read it in your language.",
    "tut6_title": "All set",
-   "tut6_body": "Press \"Start translating\" and speak normally. You can see this tutorial again in ⓘ About."
+   "tut6_body": "Press \"Start translating\" and speak normally. You can see this tutorial again in ⓘ About.",
+   "lbl_monitor_out": "Hear my translation on",
+   "lbl_live": "Live translation",
+   "ttl_close_panel": "Close the panel"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -472,7 +478,10 @@
    "tut5_title": "¿Quieres oír también a la otra persona traducida?",
    "tut5_body": "Con \"Los dos\", Praxis también traduce la voz que llega por la llamada, para que la oigas o leas en tu idioma.",
    "tut6_title": "Todo listo",
-   "tut6_body": "Pulsa \"Empezar a traducir\" y habla con normalidad. Puedes volver a ver este tutorial en ⓘ Acerca de."
+   "tut6_body": "Pulsa \"Empezar a traducir\" y habla con normalidad. Puedes volver a ver este tutorial en ⓘ Acerca de.",
+   "lbl_monitor_out": "Oír mi traducción en",
+   "lbl_live": "Traducción en vivo",
+   "ttl_close_panel": "Cerrar el panel"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -630,7 +639,10 @@
    "tut5_title": "Voulez-vous aussi entendre l'autre personne traduite ?",
    "tut5_body": "Avec « Nous deux », Praxis traduit aussi la voix qui arrive par l'appel, pour que vous l'entendiez ou la lisiez dans votre langue.",
    "tut6_title": "Tout est prêt",
-   "tut6_body": "Appuyez sur « Commencer à traduire » et parlez normalement. Vous pouvez revoir ce tutoriel dans ⓘ À propos."
+   "tut6_body": "Appuyez sur « Commencer à traduire » et parlez normalement. Vous pouvez revoir ce tutoriel dans ⓘ À propos.",
+   "lbl_monitor_out": "Écouter ma traduction sur",
+   "lbl_live": "Traduction en direct",
+   "ttl_close_panel": "Fermer le panneau"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -788,7 +800,10 @@
    "tut5_title": "Möchten Sie die andere Person auch übersetzt hören?",
    "tut5_body": "Mit „Wir beide“ übersetzt Praxis auch die Stimme aus dem Anruf, damit Sie sie in Ihrer Sprache hören oder lesen.",
    "tut6_title": "Alles bereit",
-   "tut6_body": "Drücken Sie „Übersetzung starten“ und sprechen Sie ganz normal. Dieses Tutorial finden Sie wieder unter ⓘ Über."
+   "tut6_body": "Drücken Sie „Übersetzung starten“ und sprechen Sie ganz normal. Dieses Tutorial finden Sie wieder unter ⓘ Über.",
+   "lbl_monitor_out": "Meine Übersetzung hören über",
+   "lbl_live": "Live-Übersetzung",
+   "ttl_close_panel": "Bereich schließen"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -946,7 +961,10 @@
    "tut5_title": "Vuoi sentire tradotta anche l'altra persona?",
    "tut5_body": "Con \"Tutti e due\", Praxis traduce anche la voce che arriva dalla chiamata, per farla sentire o leggere nella tua lingua.",
    "tut6_title": "Tutto pronto",
-   "tut6_body": "Premi \"Inizia a tradurre\" e parla normalmente. Puoi rivedere questo tutorial in ⓘ Informazioni."
+   "tut6_body": "Premi \"Inizia a tradurre\" e parla normalmente. Puoi rivedere questo tutorial in ⓘ Informazioni.",
+   "lbl_monitor_out": "Ascolta la mia traduzione su",
+   "lbl_live": "Traduzione dal vivo",
+   "ttl_close_panel": "Chiudi il pannello"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1104,7 +1122,10 @@
    "tut5_title": "Хотите слышать перевод собеседника?",
    "tut5_body": "С вариантом «Нас обоих» Praxis переводит и голос из звонка, чтобы вы слышали или читали его на своём языке.",
    "tut6_title": "Всё готово",
-   "tut6_body": "Нажмите «Начать перевод» и говорите как обычно. Обучение можно открыть снова в ⓘ О программе."
+   "tut6_body": "Нажмите «Начать перевод» и говорите как обычно. Обучение можно открыть снова в ⓘ О программе.",
+   "lbl_monitor_out": "Слушать мой перевод через",
+   "lbl_live": "Перевод в реальном времени",
+   "ttl_close_panel": "Закрыть панель"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1262,7 +1283,10 @@
    "tut5_title": "也想听到对方的翻译吗？",
    "tut5_body": "选择“我们两个”后，Praxis 也会翻译通话中传来的声音，让你用自己的语言听到或看到。",
    "tut6_title": "准备就绪",
-   "tut6_body": "点击“开始翻译”，正常说话即可。可以在 ⓘ 关于 中再次查看本教程。"
+   "tut6_body": "点击“开始翻译”，正常说话即可。可以在 ⓘ 关于 中再次查看本教程。",
+   "lbl_monitor_out": "在此设备收听我的翻译",
+   "lbl_live": "实时翻译",
+   "ttl_close_panel": "关闭面板"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1420,7 +1444,10 @@
    "tut5_title": "Wil je de ander ook vertaald horen?",
    "tut5_body": "Met \"Wij allebei\" vertaalt Praxis ook de stem uit het gesprek, zodat je die in jouw taal hoort of leest.",
    "tut6_title": "Alles klaar",
-   "tut6_body": "Druk op \"Vertalen starten\" en praat gewoon. Je kunt deze tutorial terugzien via ⓘ Over."
+   "tut6_body": "Druk op \"Vertalen starten\" en praat gewoon. Je kunt deze tutorial terugzien via ⓘ Over.",
+   "lbl_monitor_out": "Mijn vertaling horen via",
+   "lbl_live": "Live vertaling",
+   "ttl_close_panel": "Paneel sluiten"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1578,7 +1605,10 @@
    "tut5_title": "Chcesz też słyszeć tłumaczenie drugiej osoby?",
    "tut5_body": "Z opcją „Oboje” Praxis tłumaczy też głos przychodzący z rozmowy, abyś go słyszał lub czytał w swoim języku.",
    "tut6_title": "Wszystko gotowe",
-   "tut6_body": "Naciśnij „Zacznij tłumaczyć” i mów normalnie. Samouczek znajdziesz ponownie w ⓘ O programie."
+   "tut6_body": "Naciśnij „Zacznij tłumaczyć” i mów normalnie. Samouczek znajdziesz ponownie w ⓘ O programie.",
+   "lbl_monitor_out": "Słuchaj mojego tłumaczenia przez",
+   "lbl_live": "Tłumaczenie na żywo",
+   "ttl_close_panel": "Zamknij panel"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -1736,7 +1766,10 @@
    "tut5_title": "Хочете чути переклад співрозмовника?",
    "tut5_body": "З варіантом «Нас обох» Praxis перекладає й голос із дзвінка, щоб ви чули або читали його своєю мовою.",
    "tut6_title": "Усе готово",
-   "tut6_body": "Натисніть «Почати переклад» і говоріть як звичайно. Навчання можна відкрити знову в ⓘ Про програму."
+   "tut6_body": "Натисніть «Почати переклад» і говоріть як звичайно. Навчання можна відкрити знову в ⓘ Про програму.",
+   "lbl_monitor_out": "Слухати мій переклад через",
+   "lbl_live": "Переклад наживо",
+   "ttl_close_panel": "Закрити панель"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -1894,7 +1927,10 @@
    "tut5_title": "Karşıdaki kişiyi de çevrilmiş duymak ister misiniz?",
    "tut5_body": "\"İkimiz de\" seçildiğinde Praxis aramadan gelen sesi de çevirir; siz de kendi dilinizde duyar veya okursunuz.",
    "tut6_title": "Her şey hazır",
-   "tut6_body": "\"Çevirmeye başla\"ya basın ve normal konuşun. Bu öğreticiyi ⓘ Hakkında bölümünden yeniden görebilirsiniz."
+   "tut6_body": "\"Çevirmeye başla\"ya basın ve normal konuşun. Bu öğreticiyi ⓘ Hakkında bölümünden yeniden görebilirsiniz.",
+   "lbl_monitor_out": "Çevirimi şurada dinle",
+   "lbl_live": "Canlı çeviri",
+   "ttl_close_panel": "Paneli kapat"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2052,7 +2088,10 @@
    "tut5_title": "هل تريد سماع ترجمة الطرف الآخر أيضًا؟",
    "tut5_body": "مع خيار \"كلانا\" يترجم Praxis أيضًا الصوت القادم من المكالمة لتسمعه أو تقرأه بلغتك.",
    "tut6_title": "كل شيء جاهز",
-   "tut6_body": "اضغط \"ابدأ الترجمة\" وتحدث بشكل طبيعي. يمكنك رؤية هذا الدليل مجددًا من ⓘ حول."
+   "tut6_body": "اضغط \"ابدأ الترجمة\" وتحدث بشكل طبيعي. يمكنك رؤية هذا الدليل مجددًا من ⓘ حول.",
+   "lbl_monitor_out": "الاستماع إلى ترجمتي عبر",
+   "lbl_live": "ترجمة مباشرة",
+   "ttl_close_panel": "إغلاق اللوحة"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2210,7 +2249,10 @@
    "tut5_title": "क्या दूसरे व्यक्ति का अनुवाद भी सुनना चाहते हैं?",
    "tut5_body": "\"हम दोनों का\" चुनने पर Praxis कॉल से आने वाली आवाज़ का भी अनुवाद करता है, ताकि आप उसे अपनी भाषा में सुन या पढ़ सकें।",
    "tut6_title": "सब तैयार है",
-   "tut6_body": "\"अनुवाद शुरू करें\" दबाएँ और सामान्य रूप से बोलें। यह ट्यूटोरियल ⓘ परिचय में फिर देख सकते हैं।"
+   "tut6_body": "\"अनुवाद शुरू करें\" दबाएँ और सामान्य रूप से बोलें। यह ट्यूटोरियल ⓘ परिचय में फिर देख सकते हैं।",
+   "lbl_monitor_out": "मेरा अनुवाद यहाँ सुनें",
+   "lbl_live": "लाइव अनुवाद",
+   "ttl_close_panel": "पैनल बंद करें"
   }
  },
  "lang_names": {

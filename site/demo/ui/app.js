@@ -146,6 +146,22 @@ function textoDoRelato() {
   return (o_que ? "### O que eu estava fazendo\n" + o_que + "\n\n" : "") + $("relatorio_texto").textContent;
 }
 
+// Monitoria (o botão da versão antiga): ouvir a própria tradução numa saída do computador
+function aplicarMonitor() {
+  const on = $("monitor").checked;
+  vivo("monitor_btn", () => t(on ? "mon_on" : "mon_off"));
+  $("monitor_btn").setAttribute("aria-pressed", String(on));
+  $("monitor_btn").classList.toggle("ligado", on);
+  $("saida_linha").hidden = !on;
+}
+
+// Painel lateral da tradução ao vivo: a janela se alarga e a conversa aparece à direita
+async function abrirPainel(aberto) {
+  document.body.classList.toggle("monitorando", aberto);
+  $("painel").hidden = !aberto;
+  try { await invoke("painel_lateral", { aberto }); } catch { /* janela já do tamanho certo */ }
+}
+
 // "Quem é traduzido?": Só eu / Nós dois liga o modo bilateral (a caixa escondida #bilateral)
 function aplicarModo() {
   $("modo_dois").checked = $("bilateral").checked;
@@ -370,8 +386,8 @@ function eventoDoMotor(e) {
     case "stopped":
       rodando = false; $("iniciar").classList.remove("parar"); $("iniciar").disabled = false;
       aplicarTextos(); statusT("st_stopped");
-      // volta às configurações (a conversa e o erro, se houver, continuam visíveis embaixo)
-      $("config").hidden = false; $("barra").hidden = true;
+      // as configurações voltam a responder; o painel fica aberto com a conversa (✕ fecha)
+      $("config").inert = false; $("config").hidden = false; $("barra").hidden = true; document.body.classList.remove("rodando");
       break;
   }
 }
@@ -392,7 +408,7 @@ async function iniciarOuParar() {
   if (testandoMic) await testarMicrofone(false);
   await salvar();
   rodando = true;
-  $("config").hidden = true; $("painel").hidden = false; $("barra").hidden = false;
+  $("config").inert = true; $("barra").hidden = false; document.body.classList.add("rodando"); abrirPainel(true);
   $("conversa").replaceChildren(); ultimoBalao = null; $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
   $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
   try { await invoke("iniciar", { config: cfg }); }
@@ -450,6 +466,10 @@ async function main() {
   avisoEco();
   $("iniciar").onclick = iniciarOuParar;
   $("trocar").onclick = trocarIdiomas;
+  $("monitor_btn").onclick = () => { $("monitor").checked = !$("monitor").checked; $("monitor").dispatchEvent(new Event("change")); };
+  $("monitor").addEventListener("change", aplicarMonitor);
+  aplicarMonitor();
+  $("painel_fechar").onclick = () => { if (!rodando) abrirPainel(false); };
   $("modo_eu").onchange = () => escolherModo(false);
   $("modo_dois").onchange = () => escolherModo(true);
   $("bilateral").addEventListener("change", aplicarModo);

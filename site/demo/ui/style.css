@@ -225,3 +225,26 @@ dialog#tutorial .botoes { display: flex; gap: 8px; justify-content: flex-end; }
 dialog#tutorial .botoes .pequeno { padding: 9px 18px; font-size: 14px; }
 dialog#tutorial .botoes .secundario { padding: 8px 14px; }
 @media (prefers-reduced-motion: reduce) { dialog#tutorial[open] { animation: none; } .medidor i, .trocar { transition: none; } }
+
+/* monitoria: interruptor visível (como na versão antiga) */
+.interruptor { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 4px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--borda); background: var(--campo); color: var(--suave); font: inherit; font-size: 13px; cursor: pointer;
+  transition: background-color .15s ease-out, color .15s ease-out, border-color .15s ease-out; }
+.interruptor.ligado { color: #bbf7d0; border-color: rgba(34, 197, 94, .55); background: rgba(34, 197, 94, .14); }
+.interruptor:active { transform: scale(.97); }
+#saida_linha { margin-top: 6px; }
+#saida_linha[hidden] { display: none; }
+
+/* painel lateral da tradução ao vivo */
+.painel-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.painel-topo h2 { margin: 0; font-size: 15px; color: var(--texto); }
+body.monitorando main { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 18px; align-items: start; }
+body.monitorando #painel { position: sticky; top: 0; }
+body.monitorando .conversa { height: calc(100vh - 290px); }
+#config[inert] { opacity: .55; }
+body.rodando #painel_fechar { visibility: hidden; }
+@media (max-width: 900px) {
+  /* janela estreita (o sistema não deixou alargar): a conversa ocupa a tela, como antes */
+  body.monitorando main { display: block; }
+  body.monitorando.rodando #config { display: none; }
+}

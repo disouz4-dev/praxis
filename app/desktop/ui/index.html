@@ -45,6 +45,10 @@
           <div class="medidor" id="medidor" hidden><i id="medidor_barra"></i></div>
           <p id="dica_medidor" class="dica" data-t="hint_mic_test" hidden></p>
           <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
+          <!-- monitoria: ouvir a própria tradução (o botão da versão antiga) -->
+          <button id="monitor_btn" class="interruptor" type="button" aria-pressed="false"></button>
+          <input type="checkbox" id="monitor" hidden>
+          <label id="saida_linha" class="campo" hidden><span data-t="lbl_monitor_out"></span><select id="output"></select></label>
           <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
         </li>
         <li>
@@ -78,8 +82,6 @@
 
       <details class="mais">
         <summary data-t="sec_more"></summary>
-        <label class="campo"><span data-t="lbl_output"></span><select id="output"></select></label>
-        <label class="chave"><input type="checkbox" id="monitor"><span data-t="mon_hint"></span></label>
         <label class="campo"><span data-t="sec_whisper"></span>
           <select id="model">
             <option value="auto" data-t="opt_model_auto"></option>
@@ -101,6 +103,10 @@
     </section>
 
     <section id="painel" hidden>
+      <div class="painel-topo">
+        <h2 data-t="lbl_live"></h2>
+        <button id="painel_fechar" class="icone" type="button" data-t-title="ttl_close_panel" aria-label="Fechar o painel">✕</button>
+      </div>
       <div class="cartao">
         <div class="status"><span id="status_ponto"></span><span id="status_texto"></span></div>
         <div id="barra"><div id="barra_cheia"></div></div>
