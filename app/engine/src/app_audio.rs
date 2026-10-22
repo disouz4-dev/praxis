@@ -207,6 +207,35 @@ mod imp {
         v
     }
 
+    /// Muda o volume do app `exe` no mixer do Windows (0 a 1). Devolve quantas sessões mudou.
+    pub fn set_volume(exe: &str, v: f32) -> usize {
+        let mut n = 0;
+        unsafe {
+            let _ = CoInitializeEx(None, COINIT_MULTITHREADED);
+            let en: windows::core::Result<IMMDeviceEnumerator> = CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL);
+            let Ok(en) = en else { return 0 };
+            let Ok(col) = en.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE) else { return 0 };
+            for d in 0..col.GetCount().unwrap_or(0) {
+                let Ok(dev) = col.Item(d) else { continue };
+                let Ok(mgr) = dev.Activate::<IAudioSessionManager2>(CLSCTX_ALL, None) else { continue };
+                let Ok(se) = mgr.GetSessionEnumerator() else { continue };
+                for i in 0..se.GetCount().unwrap_or(0) {
+                    let Ok(c) = se.GetSession(i) else { continue };
+                    let Ok(c2) = c.cast::<IAudioSessionControl2>() else { continue };
+                    let pid = c2.GetProcessId().unwrap_or(0);
+                    if exe_name(pid).is_some_and(|e| e.eq_ignore_ascii_case(exe)) {
+                        if let Ok(vol) = c.cast::<ISimpleAudioVolume>() {
+                            if vol.SetMasterVolume(v.clamp(0.0, 1.0), std::ptr::null()).is_ok() {
+                                n += 1;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        n
+    }
+
     pub fn list() -> Vec<AudioApp> {
         sessions().into_iter().map(|(_, exe)| {
             let name = exe.strip_suffix(".exe").or_else(|| exe.strip_suffix(".EXE")).unwrap_or(&exe).to_string();
@@ -336,6 +365,12 @@ mod imp {
             let _ = CloseHandle(ev);
         }
     }
+}
+
+/// Windows: volume do app no mixer do sistema (0 a 1); devolve quantas sessões mudaram.
+#[cfg(windows)]
+pub fn set_app_volume(app_id: &str, v: f32) -> usize {
+    imp::set_volume(app_id, v)
 }
 
 /// Windows: grava o som do app `app_id` (ex.: "Discord.exe") em blocos de 32 ms, mono, 16 kHz.

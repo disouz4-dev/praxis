@@ -18,3 +18,14 @@ pub fn read_wav_16k_mono(path: &Path) -> Result<Vec<f32>> {
     };
     Ok(samples.chunks(ch).map(|c| c.iter().sum::<f32>() / ch as f32).collect())
 }
+
+/// Grava mono, 16 bits.
+pub fn write_wav16(path: &Path, samples: &[f32], sample_rate: u32) -> Result<()> {
+    let spec = hound::WavSpec { channels: 1, sample_rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
+    let mut w = hound::WavWriter::create(path, spec)?;
+    for s in samples {
+        w.write_sample((s.clamp(-1.0, 1.0) * 32767.0) as i16)?;
+    }
+    w.finalize()?;
+    Ok(())
+}

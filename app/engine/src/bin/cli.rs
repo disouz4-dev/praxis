@@ -280,6 +280,27 @@ fn main() -> Result<()> {
         Some("apps") => {
             println!("{}", serde_json::to_string_pretty(&praxis_engine::app_audio::list())?);
         }
+        // teste no Windows: grava o som de um app num arquivo / muda o volume de um app
+        #[cfg(windows)]
+        Some("gravar-app") if pos.len() == 4 => {
+            let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
+            let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+            let h = praxis_engine::app_audio::spawn_capture(pos[1].to_string(), tx, stop.clone())?;
+            let fim = Instant::now() + std::time::Duration::from_secs_f32(pos[2].parse()?);
+            let mut todo = vec![];
+            while Instant::now() < fim {
+                if let Ok(c) = rx.recv_timeout(std::time::Duration::from_millis(100)) { todo.extend(c); }
+            }
+            stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            let _ = h.join();
+            let rms = (todo.iter().map(|x| x * x).sum::<f32>() / todo.len().max(1) as f32).sqrt();
+            audio::write_wav16(pos[3].as_ref(), &todo, vad::SR as u32)?;
+            println!("{{\"segundos\": {:.1}, \"nivel\": {rms:.4}}}", todo.len() as f32 / vad::SR as f32);
+        }
+        #[cfg(windows)]
+        Some("volume-app") if pos.len() == 3 => {
+            println!("{} sessões", praxis_engine::app_audio::set_app_volume(pos[1], pos[2].parse()?));
+        }
         Some("dispositivos") => {
             println!("{}", serde_json::to_string_pretty(&serde_json::json!({
                 "entradas": devices::list_inputs(), "saidas": devices::list_outputs()}))?);
