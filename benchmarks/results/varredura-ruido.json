@@ -1,0 +1,35 @@
+{
+  "kind": "stream",
+  "model": "small",
+  "backend": "cpu",
+  "machine": {
+    "os": "macOS-26.6.2-x86_64-i386-64bit",
+    "cpu": "i386",
+    "cores": 16,
+    "python": "3.12.15",
+    "cuda": false,
+    "faster_whisper": "1.2.1"
+  },
+  "results": [
+    {
+      "pair": "pt->en",
+      "kind": "sem_fala",
+      "speech_s": 20.0,
+      "segments": 0,
+      "invented_words": 0,
+      "invented_text": "",
+      "translation": "",
+      "timeline": []
+    },
+    {
+      "pair": "en->pt",
+      "kind": "sem_fala",
+      "speech_s": 20.0,
+      "segments": 0,
+      "invented_words": 0,
+      "invented_text": "",
+      "translation": "",
+      "timeline": []
+    }
+  ]
+}

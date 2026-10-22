@@ -1,0 +1,18 @@
+# Teste rápido da captura do som de um app no Windows (o mesmo código do motor), sem compilar
+# o motor inteiro: o fluxo "Teste da captura (Windows)" compila em poucos minutos.
+[package]
+name = "teste-captura"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-core = "0.62"
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Media_Audio", "Win32_Security", "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp"] }
+
+[workspace]

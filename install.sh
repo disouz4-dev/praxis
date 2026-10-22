@@ -1,100 +1,37 @@
 #!/usr/bin/env bash
+# Instalação do Praxis pelo terminal, no Linux (Debian, Ubuntu e derivados):
+#
+#   curl -fsSL https://disouz4-dev.github.io/praxis/install.sh | bash
+#
+# Baixa o pacote .deb da última versão publicada e instala com o apt (pede a sua senha de
+# administrador). É o mesmo que baixar o .deb da página de versões e abrir com dois
+# cliques. Com placa de vídeo NVIDIA, a instalação baixa as bibliotecas da placa.
+#
+# A versão não fica escrita aqui: o instalador pergunta ao GitHub qual é a mais atual.
+# Opção (variável de ambiente): PRAXIS_DEB=arquivo.deb instala um .deb já baixado.
+# Windows: install.ps1 (PowerShell) · macOS: por enquanto, scripts/instalar-python.sh
 set -euo pipefail
 
-INSTALL_DIR="$HOME/.local/share/praxis"
-BIN_DIR="$HOME/.local/bin"
-VOICES_DIR="$INSTALL_DIR/voices"
-VENV="$INSTALL_DIR/venv"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-echo ""
-echo "  ✦ Praxis — instalando em $INSTALL_DIR"
-echo ""
-
-mkdir -p "$INSTALL_DIR" "$BIN_DIR" "$VOICES_DIR"
-
-# ── Dependências do sistema ───────────────────────────────────────────────────
-echo "==> Verificando dependências do sistema..."
-MISSING_PKGS=()
-command -v pactl   &>/dev/null || MISSING_PKGS+=(pulseaudio-utils)
-command -v parec   &>/dev/null || MISSING_PKGS+=(pulseaudio-utils)
-command -v python3 &>/dev/null || MISSING_PKGS+=(python3 python3-venv)
-python3 -c "import tkinter" 2>/dev/null || MISSING_PKGS+=(python3-tk)
-
-if [[ ${#MISSING_PKGS[@]} -gt 0 ]]; then
-    echo "  Instalando: ${MISSING_PKGS[*]}"
-    sudo apt-get install -y "${MISSING_PKGS[@]}"
+REPO="disouz4-dev/praxis"
+if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
+    echo "Este instalador é para Linux x86-64. No macOS, use por enquanto: scripts/instalar-python.sh"
+    exit 1
 fi
+command -v apt >/dev/null || { echo "Este instalador usa o apt (Debian, Ubuntu e derivados)."; exit 1; }
 
-# ── Ambiente virtual Python ───────────────────────────────────────────────────
-echo "==> Criando venv Python..."
-python3 -m venv "$VENV"
-# shellcheck source=/dev/null
-source "$VENV/bin/activate"
-pip install --upgrade pip -q
-
-# ── PyTorch (CUDA se disponível, senão CPU) ───────────────────────────────────
-if command -v nvidia-smi &>/dev/null; then
-    echo "==> GPU NVIDIA detectada — instalando PyTorch com CUDA 12.1..."
-    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121 -q
-else
-    echo "==> GPU não detectada — instalando PyTorch CPU..."
-    pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu -q
+DEB="${PRAXIS_DEB:-}"
+if [[ -z "$DEB" ]]; then
+    TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
+    # pergunta ao GitHub qual é a versão mais atual e o endereço do .deb dela
+    INFO="$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest")"
+    VER="$(grep -m1 '"tag_name"' <<<"$INFO" | cut -d'"' -f4)"
+    URL="$(grep -o '"browser_download_url": *"[^"]*_amd64\.deb"' <<<"$INFO" | grep -v '/praxis_amd64.deb' | head -1 | cut -d'"' -f4)"
+    [[ -n "$VER" && -n "$URL" ]] || { echo "Não encontrei a versão mais atual no GitHub (sem internet?)."; exit 1; }
+    echo "  Baixando o Praxis $VER (a versão mais atual)…"
+    curl -fL --progress-bar -o "$TMP/praxis_amd64.deb" "$URL"
+    DEB="$TMP/praxis_amd64.deb"
 fi
-
-# ── Dependências Python ───────────────────────────────────────────────────────
-echo "==> Instalando dependências Python..."
-pip install \
-    faster-whisper \
-    argostranslate \
-    piper-tts \
-    sounddevice \
-    numpy \
-    rich \
-    customtkinter \
-    -q
-
-# ── Copia o app ───────────────────────────────────────────────────────────────
-echo "==> Copiando arquivos..."
-cp "$SCRIPT_DIR/praxis.py"        "$INSTALL_DIR/"
-cp "$SCRIPT_DIR/praxis_config.py" "$INSTALL_DIR/"
-
-# ── Voz Piper padrão: en_US-lessac-medium ────────────────────────────────────
-VOICE_BASE="https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/lessac/medium"
-VOICE_FILE="$VOICES_DIR/en_US-lessac-medium.onnx"
-
-if [[ ! -f "$VOICE_FILE" ]]; then
-    echo "==> Baixando voz Piper padrão (en_US-lessac-medium)..."
-    curl -L --progress-bar "$VOICE_BASE/en_US-lessac-medium.onnx"      -o "$VOICE_FILE"
-    curl -L --progress-bar "$VOICE_BASE/en_US-lessac-medium.onnx.json" -o "${VOICE_FILE}.json"
-else
-    echo "==> Voz padrão já instalada."
-fi
-
-# ── Launcher ──────────────────────────────────────────────────────────────────
-cat > "$BIN_DIR/praxis" << EOF
-#!/usr/bin/env bash
-source "$VENV/bin/activate"
-exec python3 "$INSTALL_DIR/praxis_config.py" "\$@"
-EOF
-chmod +x "$BIN_DIR/praxis"
-
-# ── PATH check ────────────────────────────────────────────────────────────────
-if [[ ":$PATH:" != *":$BIN_DIR:"* ]]; then
-    echo ""
-    echo "  AVISO: Adicione ao ~/.bashrc:"
-    echo "    export PATH=\"\$HOME/.local/bin:\$PATH\""
-fi
-
-# ── Resumo ────────────────────────────────────────────────────────────────────
+echo "  Instalando (o apt vai pedir a sua senha)…"
+sudo apt install -y "$(realpath "$DEB")"
 echo ""
-echo "  ✦ Praxis instalado!"
-echo ""
-echo "  Abrir janela de configuração:"
-echo "    praxis"
-echo ""
-echo "  Vozes disponíveis em: $VOICES_DIR/"
-echo "  Baixe mais em: https://huggingface.co/rhasspy/piper-voices"
-echo ""
-echo "  Depois de iniciar: selecione 'Praxis_Microfone' no Discord/Meet/OBS."
-echo ""
+echo "  ✓ Praxis instalado. Abra pelo menu de aplicativos ou com o comando: praxis"

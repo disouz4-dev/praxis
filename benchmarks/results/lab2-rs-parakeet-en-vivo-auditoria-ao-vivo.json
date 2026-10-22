@@ -1,0 +1,30 @@
+[
+ {
+  "model": "rust",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.048,
+  "numero": 0.0023,
+  "escrita": 0.007,
+  "nome": 0.0129,
+  "erro_real": 0.0258,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However Due to the slow communication channels, styles in the West could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic alkaline the chemical is."
+   },
+   {
+    "humano": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+    "praxis": "The Northern Mariana's Emergency Management Office said that there were no damages reported in the nation."
+   },
+   {
+    "humano": "The aspect ratio of this format (dividing by twelve to obtain the simplest whole-number ratio) is therefore said to be 3:2.",
+    "praxis": "The aspect ratio of this format, dividing by twelve to obtain the simplest whole number ratio, is therefore said to be free to two."
+   }
+  ]
+ }
+]

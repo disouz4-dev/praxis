@@ -1,0 +1,162 @@
+[
+ {
+  "voz": "piper",
+  "lang": "fr",
+  "erro": 0.0379,
+  "rapidez": 0.047,
+  "exemplos": [
+   {
+    "texto": "L’accident a eu lieu en terrain montagneux, et il semblerait que cela ait été causé par un incendie malveillant.",
+    "ouvido": "L'accident a eu lieu en terrain montagneux et il semblerait que cela ait été causé par un incendie malveillant."
+   },
+   {
+    "texto": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "ouvido": "Nous sommes d'accord avec la déclaration de l'USOC, Comité olympique des États-Unis selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation qu'à la révocation d'accréditation."
+   },
+   {
+    "texto": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "ouvido": "Il a ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leur capacité."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "fr",
+  "erro": 0.0569,
+  "rapidez": 0.171,
+  "exemplos": [
+   {
+    "texto": "L’accident a eu lieu en terrain montagneux, et il semblerait que cela ait été causé par un incendie malveillant.",
+    "ouvido": "L'accident a eu lieu en terrain montagneux et il semblerait que cela ait été causé par un incendie malveillant."
+   },
+   {
+    "texto": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "ouvido": "Nous sommes d'accord avec la déclaration de l'UZOZOK, Comité olympique des États-Unis, selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation qu'à la révocation d'accréditation."
+   },
+   {
+    "texto": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "ouvido": "Il a ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement, leurs responsabilités et leurs capacités."
+   }
+  ]
+ },
+ {
+  "voz": "kokoro",
+  "lang": "fr",
+  "erro": 0.0345,
+  "rapidez": 0.84,
+  "exemplos": [
+   {
+    "texto": "L’accident a eu lieu en terrain montagneux, et il semblerait que cela ait été causé par un incendie malveillant.",
+    "ouvido": "L'accident a eu lieu en terrain montagneux et il semblerait que cela ait été causé par un incendie malveillant."
+   },
+   {
+    "texto": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "ouvido": "Nous sommes d'accord avec la déclaration de l'USOP Comité Olympique des États-Unis selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation qu'à la révocation d'accréditation."
+   },
+   {
+    "texto": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "ouvido": "Il a ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement, leurs responsabilités et leurs capacités."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "de",
+  "erro": 0.0378,
+  "rapidez": 0.305,
+  "exemplos": [
+   {
+    "texto": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+    "ouvido": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Cologne fahren."
+   },
+   {
+    "texto": "Er griff auch alles an, was ins Wasser kam; selbst ein großer Dinosaurier wie der T. Rex war ihm nicht gewachsen.",
+    "ouvido": "Er griff auch alles an, was ins Wasser kam, selbst ein großer Dinosaurier wie der Tee. Rex war ihm nicht gewachsen."
+   },
+   {
+    "texto": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "ouvido": "Wenn Sie den Film Das Vermächtnis der Tempelritter gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "de",
+  "erro": 0.0496,
+  "rapidez": 0.171,
+  "exemplos": [
+   {
+    "texto": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+    "ouvido": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kaoloon fahren."
+   },
+   {
+    "texto": "Er griff auch alles an, was ins Wasser kam; selbst ein großer Dinosaurier wie der T. Rex war ihm nicht gewachsen.",
+    "ouvido": "Er griff auch alles an, was ins Wasser kam, selbst ein großer Dinosaurier wie der T-Rex war ihm nicht gewachsen."
+   },
+   {
+    "texto": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "ouvido": "Wenn Sie den Film Idas, Vermächtnis der Tempelritter, gesehen haben, denken Sie vielleicht, dass das auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "it",
+  "erro": 0.0556,
+  "rapidez": 0.048,
+  "exemplos": [
+   {
+    "texto": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale.",
+    "ouvido": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale."
+   },
+   {
+    "texto": "Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017.",
+    "ouvido": "Sotto il ponte lo spazio in verticale libero è di 15 metti. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017."
+   },
+   {
+    "texto": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "ouvido": "Se avete visto il film Il mistero dei Templari, potreste pensare che sul retro della dichiarazione di indipendenza sia disegnata una mappa del tesoro."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "it",
+  "erro": 0.0179,
+  "rapidez": 0.172,
+  "exemplos": [
+   {
+    "texto": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale.",
+    "ouvido": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti, ben oltre la giornata scolastica normale."
+   },
+   {
+    "texto": "Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017.",
+    "ouvido": "Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017."
+   },
+   {
+    "texto": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "ouvido": "Se avete visto il film Il mistero dei Templari, potreste pensare che sul retro della dichiarazione di indipendenza sia disegnata una mappa del tesoro."
+   }
+  ]
+ },
+ {
+  "voz": "kokoro",
+  "lang": "it",
+  "erro": 0.0099,
+  "rapidez": 0.835,
+  "exemplos": [
+   {
+    "texto": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale.",
+    "ouvido": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale."
+   },
+   {
+    "texto": "Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017.",
+    "ouvido": "Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011 ma l'apertura al traffico è avvenuta solo nel marzo 2017."
+   },
+   {
+    "texto": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "ouvido": "Se avete visto il film Il mistero dei Templari potreste pensare che sul retro della dichiarazione d'indipendenza sia disegnata una mappa del tesoro."
+   }
+  ]
+ }
+]

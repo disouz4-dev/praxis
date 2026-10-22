@@ -1,0 +1,114 @@
+[
+ {
+  "model": "large-v3-turbo",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.0927,
+  "numero": 0.0153,
+  "escrita": 0.0057,
+  "nome": 0.0067,
+  "erro_real": 0.065,
+  "exemplos": [
+   {
+    "humano": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, \"embora eu não estivesse presente nem diretamente envolvido neste trágico incidente, meus pensamentos e orações estão com a família da vítima\".",
+    "praxis": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, embora eu não tivesse presente nem diretamente envolvido neste trágico incidente, Meus pensamentos e orações estão com a família da vítima."
+   },
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "Construída pelos egípcios no século 300 de Cristo, a Grande Pirâmide é uma das muitas grandes estruturas da pirâmide construídas para honrar para os mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Xemcar de Piquela perdeu controle do carro e acabou a convida uma aposta largada."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Boat, E aí Isso que ele viu."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.1042,
+  "numero": 0.0023,
+  "escrita": 0.0059,
+  "nome": 0.0141,
+  "erro_real": 0.082,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However... through the slow communication channel. Styles in the West can lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+    "praxis": "All nouns alongside the world say for you always begin with a capital letter, even in the middle of a sentence."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   },
+   {
+    "humano": "The aspect ratio of this format (dividing by twelve to obtain the simplest whole-number ratio) is therefore said to be 3:2.",
+    "praxis": "The aspect ratio of this format, dividing by 12 to obtain the simplest whole number ratio, is therefore said to be 3 to 2."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0714,
+  "numero": 0.003,
+  "escrita": 0.005,
+  "nome": 0.005,
+  "erro_real": 0.0585,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje."
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día las personas escriben mensajes en las pantallas de sus computadoras, no tienen la necesidad de siquiera preocuparse en tu capunte."
+   },
+   {
+    "humano": "Los luchadores compañeros de Luna también le rindieron homenaje.",
+    "praxis": "Los luchadores compañeros de luna también les rindieron homenaje."
+   },
+   {
+    "humano": "Duvall, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relató la historia.",
+    "praxis": "Duval, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relató la historia."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.2249,
+  "numero": 0.0011,
+  "escrita": 0.0056,
+  "nome": 0.0475,
+  "erro_real": 0.1706,
+  "exemplos": [
+   {
+    "humano": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und zum gegenüberliegenden Ufer von Kowloon fahren.",
+    "praxis": "Für die besten Aussichten auf Hongkong sollten Sie die Insel verlassen und tun die gegenüberliegenden Ufer. und Kodum faden."
+   },
+   {
+    "humano": "Er griff auch alles an, was ins Wasser kam; selbst ein großer Dinosaurier wie der T. Rex war ihm nicht gewachsen.",
+    "praxis": "Er griff auch alles an, was ins Wasser kam. Selbst ein großer Dinosaurier wie der T-Rex war ein Lichtgewachsen."
+   },
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film »Das Gernetnis der Tentelritte« gesehen haben, denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte bezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es leben noch viele Männer und Frauen, die ihre Zeiten überlebt haben und viele Weiche mit Angehörigen, die dort ermordet wurden oder sich zu Tote arbeiteten, blieben und mit Füden gleicher Leid."
+   }
+  ]
+ }
+]

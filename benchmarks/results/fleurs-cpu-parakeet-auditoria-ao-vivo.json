@@ -1,0 +1,282 @@
+[
+ {
+  "model": "parakeet-v3",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.0727,
+  "numero": 0.0105,
+  "escrita": 0.0057,
+  "nome": 0.0076,
+  "erro_real": 0.0488,
+  "exemplos": [
+   {
+    "humano": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, \"embora eu não estivesse presente nem diretamente envolvido neste trágico incidente, meus pensamentos e orações estão com a família da vítima\".",
+    "praxis": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Biber disse que, embora eu não estivesse presente, Nem diretamente envolvido neste trágico incidente, meus pensamentos e orações. com a família da vítima."
+   },
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "Construída pelos egípcios no século III a.C., a grande pirâmide é uma das muito Muitas grandes estruturas da pirâmide construídas para honrar faraós mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Tinha Carlos Fezquela, perdeu o controle do carro e acabou a corrida logo após a largada."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escrito. escritores como o Got Fish. Esquela de um."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.1323,
+  "numero": 0.0164,
+  "escrita": 0.0047,
+  "nome": 0.0105,
+  "erro_real": 0.1007,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However, Due to the slow communication channels, styles in the West could lag behind. By twenty five to thirty years."
+   },
+   {
+    "humano": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+    "praxis": "All nouns alongside the world say for you always begin with a capital letter"
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic alkaline the chemical is."
+   },
+   {
+    "humano": "Many people don't think about them as dinosaurs because they have feathers and can fly.",
+    "praxis": "Many people don't think about them as dinosaurs because they have others and"
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0635,
+  "numero": 0.0099,
+  "escrita": 0.003,
+  "nome": 0.005,
+  "erro_real": 0.0456,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo. extremo en el área que visitan, dado que ello puede afectar sus planes de viaje."
+   },
+   {
+    "humano": "El uso adecuado de los blogs «puede empoderar a los alumnos para que sean más analíticos y críticos, a través de la respuesta activa a los contenidos de internet, pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus perspectivas sobre temas específicos» (Oravec, 2002).",
+    "praxis": "El uso adecuado de los blogs puede empoderar a los alumnos para que sean más analíticos y críticos A través de la respuesta activa a los contenidos de internet pueden definir sus posturas. En el contexto de los escritos de otros, además de establecer sus perspectivas. sobre temas específicos. Hora Beck 2002."
+   },
+   {
+    "humano": "Fue tanta la cantidad de gente que se concentró, que no todos pudieron acceder al funeral en la Plaza de San Pedro.",
+    "praxis": "Fue tanta la cantidad de gente que se concentró que no todos pudieron acceder al funeral."
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día las personas escriben mensajes en las pantallas de sus computadoras, no tienen la necesidad de de siquiera aproximarse en sacar puntas."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.1028,
+  "numero": 0.0102,
+  "escrita": 0.0045,
+  "nome": 0.0249,
+  "erro_real": 0.0633,
+  "exemplos": [
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film Das Vermächtnis der Tempelritter gesehen haben. Denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden. wurden oder sich zu Tode arbeiteten, Juden und Nicht-Juden gleichermaßen."
+   },
+   {
+    "humano": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+    "praxis": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. So haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung. Aber das ändert sich normalerweise, wenn es ein Publikum gibt."
+   },
+   {
+    "humano": "Nachdem der Damm 1963 erbaut worden war, kamen die jahreszeitlichen Überflutungen, die Sedimente im Fluss verteilen, zum Stillstand.",
+    "praxis": "Nachdem der Damm 1963 erbaut worden war. Commen the Jahreszeitlich in Überflutungen. Die Sediment im Fluss verteilen zum Stillstand."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "it",
+  "unidade": "palavras",
+  "erro_total": 0.0537,
+  "numero": 0.0052,
+  "escrita": 0.0031,
+  "nome": 0.0041,
+  "erro_real": 0.0413,
+  "exemplos": [
+   {
+    "humano": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "praxis": "Se avete visto il film Il mistero dei templari, potreste pensare che sul retro della dichiarazione Di indipendenza si è disegnata una mappa del tesoro."
+   },
+   {
+    "humano": "In maniera analoga, agli uomini è richiesto di indossare pantaloni lunghi fin sotto le ginocchia.",
+    "praxis": "In maniera analoga, agli uomini ha richiesto di indossare pantaloni lunghi fin sotto. Le ginocchia."
+   },
+   {
+    "humano": "L'iniziativa contro le oscenità è stata finanziata dal Congresso a partire dall'anno fiscale 2005, con la specifica richiesta all'FBI di assegnare 10 agenti alla pornografia per adulti.",
+    "praxis": "L'iniziativa contro le usinità è stata finanziata dal Congresso. a partire dall'anno fiscale 205. Con la specifica richiesta all'FBI di assegnare 10 agenti alla pornografia per adulti, Okay."
+   },
+   {
+    "humano": "Anche nelle elezioni parlamentari la maggioranza resta in mano al partito di governo, l'Organizzazione del Popolo dell'Africa del Sud-Ovest (SWAPO).",
+    "praxis": "Anche nelle elezioni parlamentari la maggioranza resta in mano al partito di governo. L'organizzazione del popolo dell'Africa del Sud-Ovest, su APO."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "fr",
+  "unidade": "palavras",
+  "erro_total": 0.1161,
+  "numero": 0.009,
+  "escrita": 0.0045,
+  "nome": 0.0081,
+  "erro_real": 0.0945,
+  "exemplos": [
+   {
+    "humano": "L’accident a eu lieu en terrain montagneux, et il semblerait que cela ait été causé par un incendie malveillant.",
+    "praxis": "L'accident a eu lieu en terrain montagneux. Il semblerait que cela ait été causé par exemple. par un incendie malveillant."
+   },
+   {
+    "humano": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "praxis": "Nous sommes d'accord avec la déclaration de Lusk, comité olympique des États Unis, selon laquelle les interventions. de nos athlètes et de nos clubs ainsi que de leur sport pour être au mieux servi. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs. au sein de notre organisation, quelle révocation d'accréditation?"
+   },
+   {
+    "humano": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "praxis": "Il a ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement. Leurs responsabilités et leur capacité."
+   },
+   {
+    "humano": "Le rugissement du tigre ne ressemble pas au rugissement ample du lion, mais plutôt à une phrase dont les mots seraient des cris et des grondements.",
+    "praxis": "Leugissement du ting ne ressemble pas au jissement en plus du lion, mais plutôt à une phrase. les mots seraient des cris et des grondements."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "nl",
+  "unidade": "palavras",
+  "erro_total": 0.1264,
+  "numero": 0.0076,
+  "escrita": 0.0163,
+  "nome": 0.0229,
+  "erro_real": 0.0795,
+  "exemplos": [
+   {
+    "humano": "Varkens dragen de ziekte bij zich en dragen het via muggen over op mensen.",
+    "praxis": "Vakers dragen de ziekte bij zich en dragen het via muggen overal op mensen."
+   },
+   {
+    "humano": "Vanaf boekjaar 2005 financierde het Congres het initiatief tegen obsceniteit en verklaarde dat de FBI tien agenten moet inzetten op volwassenenpornografie.",
+    "praxis": "Vanaf boekjaar 2005 financierde het congres het initiatief tegen obsceniteit en verklarde dat de FBI... 10 agenten moet inzetten op volwassenen pornografie."
+   },
+   {
+    "humano": "Des te minder stress, des te positiever de aanwezige levenskracht. Ieder mens is in staat tevredenheid en totale rust te bereiken.",
+    "praxis": "Des te miner stress, des te positiever de aanwezige levenskracht. Ieder mens is in staat tevredenheid en totale rust te bereiken."
+   },
+   {
+    "humano": "Er wordt met name gesteld dat niemand een leugen kan herkennen door op enkel op micro-expressies te letten.",
+    "praxis": "Er wordt met name gesteld dat niemand een leugen kan herkennen door enkel op micro-expressies te letten."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "pl",
+  "unidade": "palavras",
+  "erro_total": 0.1837,
+  "numero": 0.0175,
+  "escrita": 0.0248,
+  "nome": 0.0087,
+  "erro_real": 0.1327,
+  "exemplos": [
+   {
+    "humano": "Podróżni zwiedzający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach jak alkohol i tytoń.",
+    "praxis": "Podróżnic wiedzający państwa obłożone szczególnie wysokkimi podatkami mogą czasem zaoszczęć sporo pieniędzy, szczególnie na takich towarach jak alkohol i tytonin."
+   },
+   {
+    "humano": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i słynące jako luksusowe nadmorskie miejscowości wypoczynkowe.",
+    "praxis": "Większość mniejszych wysp to naprawdę niezależne lub zmierzone z Francją i słynące jako luksusowe nadbalskimi miejscami. Począwe."
+   },
+   {
+    "humano": "Dzieci umieszcza się w pieczy zastępczej z rozmaitych przyczyn, jak zaniedbanie, wykorzystywanie, a nawet wymuszenia.",
+    "praxis": "Dzieci umieszcza się w pieczy zastępczej z rozmaitych przyczyn, jak zaniedban, wykorzystywanie, a nawet wymuszenie."
+   },
+   {
+    "humano": "Jak twierdzi japońska agencja nuklearna, w elektrowni wykryto radioaktywny cez oraz jod.",
+    "praxis": "Jak twierdzi japońska agencja nuklearna w elektrowni wykryto radioaktywny CS oraz jod?"
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "ru",
+  "unidade": "palavras",
+  "erro_total": 0.1299,
+  "numero": 0.0153,
+  "escrita": 0.0204,
+  "nome": 0.0191,
+  "erro_real": 0.0752,
+  "exemplos": [
+   {
+    "humano": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией.",
+    "praxis": "В древнем Китае использовали уникальный способ обозначения периодов времени. Каждый этап Китая или каждая семья. Находившиеся у власти, были особой династией."
+   },
+   {
+    "humano": "Мадагаскар намного больше других и  является самобытным континентом в том, что касается дикой природы.",
+    "praxis": "Мадагаскар намного больше других и является самобытным континентом. То, что касается дикой природы."
+   },
+   {
+    "humano": "В различных местах Рима были установлены большие телевизионные экраны, с помощью которых люди могли наблюдать за церемонией.",
+    "praxis": "В различных местах Рима были установлены большие телевизионные экраны, с помощью которых люди могли наблюдать за цим. Ceremony."
+   },
+   {
+    "humano": "Причиной дебатов стали разногласия относительно затрат на оказание материальной поддержки и восстановление зданий после урагана Катрина, который некоторые фискальные консерваторы в шутку назвали \"новоорлеанской сделкой Буша\".",
+    "praxis": "Причиной дебатов стали разногласия относительно затрат на оказание материальной... поддержки и восстановление зданий после урагана Катрина, которые некоторые... Фискальные консерваторы в шуку назвали новоорлианской сделкой буша."
+   }
+  ]
+ },
+ {
+  "model": "parakeet-v3",
+  "lang": "uk",
+  "unidade": "palavras",
+  "erro_total": 0.1786,
+  "numero": 0.0069,
+  "escrita": 0.011,
+  "nome": 0.0096,
+  "erro_real": 0.1511,
+  "exemplos": [
+   {
+    "humano": "Рослини продукують кисень, яким дихає людина, і поглинають вуглекислий газ, який людина виводить з організму (тобто видихає).",
+    "praxis": "Рослини продукують кисень, яким дихає людина, і поглинають вуглекислий газ. яке людина виводить з організму, тобто видихає."
+   },
+   {
+    "humano": "Такі елементи, як кальцій і калій, вважаються металами. Звичайно, також є такі метали, як срібло та золото.",
+    "praxis": "Такі елементи, як кальці і калій, вважаються металами Звичайно, також є такі метали, як срібом та золотом."
+   },
+   {
+    "humano": "Науковці змогли зробити висновок, що темна матерія впливає на іншу темну матерію таким самим чином, як і звичайна.",
+    "praxis": "Науковці змогли зробити висновку що темна матерія впливає на іншу темну матерію Таким самим чином, як ізвичайно."
+   },
+   {
+    "humano": "Масове володіння автомобілями також призводить до збільшення числа ДТП на дорогах, що призводить до винаходу нових методів в галузі охорони здоров'я для лікування тілесних ушкоджень.",
+    "praxis": "Це володіння автомобілями також призводить до збільшення числа ДТП на дорогах. що призводить до винаходу нових методів галузі охорони здоров'я та лікування тілесних ушкодження. Codging."
+   }
+  ]
+ }
+]

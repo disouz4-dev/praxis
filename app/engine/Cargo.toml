@@ -1,0 +1,68 @@
+[package]
+name = "praxis-engine"
+description = "Motor do Praxis: detector de fala, reconhecimento, tradução e voz, offline"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "praxis-cli"
+path = "src/bin/cli.rs"
+
+[dependencies]
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hound = "3.5"
+ureq = "3"
+zip = { version = "9", default-features = false, features = ["deflate"] }
+tar = "0.4"
+bzip2 = "0.6"
+sha2 = "0.11"
+dirs = "7"
+cpal = "0.18"
+realfft = "3"
+sentencepiece = "0.13"
+# detector de fala Silero v6 (o mesmo do Python), rodando no onnxruntime que o sherpa-onnx
+# já põe ao lado do executável — carregado na hora de rodar, sem uma segunda cópia
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["load-dynamic", "std", "api-24"] }
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece"] }
+# biblioteca separada (ao lado do executável): embutida, ela trazia uma segunda cópia
+# da protobuf, que conflita com a do sentencepiece na ligação do Linux
+sherpa-onnx = { version = "1.13", default-features = false, features = ["shared"] }
+
+# Motor de contas do CTranslate2 por tipo de processador (medido: com o "ruy" num Intel
+# o Whisper em 8 bits levou 42 s numa frase que o faster-whisper faz em 0,6 s)
+# Linux x86-64: a biblioteca do pacote oficial (MKL + placa de vídeo NVIDIA), a mesma do
+# Python. Prepare com scripts/ct2-do-pacote-oficial.sh e compile com scripts/cargo-linux.sh
+# Linux: áudio pelo PulseAudio/PipeWire (os mesmos nomes de dispositivo do sistema e o
+# microfone virtual Praxis_Microfone); sem isso a lista vinha "crua" do ALSA
+[target.'cfg(target_os = "linux")'.dependencies]
+cpal = { version = "0.18", features = ["pulseaudio"] }
+
+[target.'cfg(all(target_arch = "x86_64", target_os = "linux"))'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
+
+# Windows x86-64: a ctranslate2.dll do pacote oficial (MKL + NVIDIA), a mesma do Python.
+# Prepare com scripts/ct2-do-pacote-oficial.ps1 (gera o índice .lib a partir da DLL)
+[target.'cfg(target_os = "windows")'.dependencies]
+# gravar o som do app de chamada (bilateral) e listar os apps que tocam som
+windows-core = "0.62"   # a macro `implement` usa o nome windows_core
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_Media_Audio", "Win32_Security", "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_System_Threading", "Win32_System_Diagnostics_ToolHelp"] }
+
+[target.'cfg(all(target_arch = "x86_64", target_os = "windows"))'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
+
+# macOS (Intel e Apple Silicon): a biblioteca do pacote oficial do CTranslate2, a mesma
+# do Python (no Intel com a MKL, que não existe compilável para macOS) — mesma velocidade.
+# Prepare com scripts/ct2-do-pacote-oficial.sh e compile com scripts/build-macos.sh
+[target.'cfg(target_os = "macos")'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
+
+# Linux ARM (sem pacote oficial do CTranslate2): compila com ruy (otimizado para ARM)
+[target.'cfg(all(target_arch = "aarch64", target_os = "linux"))'.dependencies]
+ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "ruy"] }

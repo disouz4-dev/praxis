@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "targets": [
+      "nsis"
+    ],
+    "resources": {
+      "../target/release/praxis-cli.exe": "praxis-cli.exe",
+      "../target/release/ctranslate2.dll": "ctranslate2.dll",
+      "../target/release/cudnn64_9.dll": "cudnn64_9.dll",
+      "../target/release/libiomp5md.dll": "libiomp5md.dll",
+      "../target/release/onnxruntime.dll": "onnxruntime.dll",
+      "../target/release/onnxruntime_providers_shared.dll": "onnxruntime_providers_shared.dll",
+      "../target/release/sherpa-onnx-c-api.dll": "sherpa-onnx-c-api.dll",
+      "../target/release/sherpa-onnx-cxx-api.dll": "sherpa-onnx-cxx-api.dll",
+      "../target/release/msvcp140.dll": "msvcp140.dll",
+      "../target/release/msvcp140_1.dll": "msvcp140_1.dll",
+      "../target/release/msvcp140_2.dll": "msvcp140_2.dll",
+      "../target/release/vcruntime140.dll": "vcruntime140.dll",
+      "../target/release/vcruntime140_1.dll": "vcruntime140_1.dll",
+      "../target/release/concrt140.dll": "concrt140.dll"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": [
+          "PortugueseBR",
+          "English"
+        ]
+      }
+    }
+  }
+}

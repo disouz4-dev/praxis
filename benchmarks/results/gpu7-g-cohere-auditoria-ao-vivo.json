@@ -1,0 +1,254 @@
+[
+ {
+  "model": "cohere-transcribe",
+  "lang": "fr",
+  "unidade": "palavras",
+  "erro_total": 0.0468,
+  "numero": 0.009,
+  "escrita": 0.0036,
+  "nome": 0.0054,
+  "erro_real": 0.0288,
+  "exemplos": [
+   {
+    "humano": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "praxis": "Nous sommes d'accord avec la déclaration de l'USOC Comité olympique des États-Unis selon laquelle les intérêts de nos athlètes et de nos clubs ainsi que de leurs sports pourraient être mieux servis cela peut être fait en allant de l'avant et en procédant plutôt À des changements significatifs au sein de notre organisation, qu’est la révocation d’accréditation."
+   },
+   {
+    "humano": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "praxis": "Il a ajouté qu’on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, de responsabilité et de capacité."
+   },
+   {
+    "humano": "Le même mois, un autre avion de ligne a fait une sortie de piste à Mashhad et a heurté un mur, tuant ainsi dix-sept personnes.",
+    "praxis": "Le même mois, un autre avion de ligne a fait une sortie de piste à Machado et heurté un mur, tuant ainsi dix-sept personnes."
+   },
+   {
+    "humano": "Malheureusement, il est difficile d'étudier le flux de circulation car le comportement des conducteurs ne peut être prédit avec cent pour cent de certitude.",
+    "praxis": "Malheureusement, il est difficile d'étudier le flux de circulation, car le comportement des conducteurs ne peut être prédit avec 100% de certitude."
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "ar",
+  "unidade": "palavras",
+  "erro_total": 0.0949,
+  "numero": 0.0151,
+  "escrita": 0.0151,
+  "nome": 0.0,
+  "erro_real": 0.0646,
+  "exemplos": [
+   {
+    "humano": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
+    "praxis": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مسماة لموسم الأعاصير الأطلسية العاصفة شبه الاستوا"
+   },
+   {
+    "humano": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+    "praxis": "تُغادر الحافلات المحطّة الداخلية بين المناطق عبر النهر في خلال اليوم، على الرغم من أن معظمها وخاصة المتجه منها إلى الشرق وجاكارا بومثانغ، تغادر بين 32-37\"."
+   },
+   {
+    "humano": "أدى ضاربا الكرة المتمركزين في الوسط، ساشين تيندولكار وراهول درافيد، جيدًا وأقاما شراكة أكسبت للفريق مائة نقطة.",
+    "praxis": "أدى ضارب الكرة المتمركزين في الوسط ساشين تيندولكار وراهول درافد جيداً وأقام شراكة أكسبت للفريق 100 نقطة."
+   },
+   {
+    "humano": "ومنذ عام 1988، توجّب أن تكون صناديق الاقتراع شفافة بحيث يمكن للناخبين والمراقبين أن يتأكدوا من عدم وجود مغلفات في بداية التصويت، وأنه لا يتم إضافة مغلفات إلا مغلفات الناخبين المسجلين والمصرّح لهم حسب الأصول والمفوضين.",
+    "praxis": "منذ عام 1988 توجب ان تكون صناديق الاقتراع شفافه بحيث يمكن للناخبين والمراقبين ان يتاكدوا من عدم وجود مغلفات في بدايه التصويت وانه لا يتم اضافه لاضافت مغلفات إلا مغلفات الناخبين المسجلين والمصرح لهم حسب الاصول والمفوضين"
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "nl",
+  "unidade": "palavras",
+  "erro_total": 0.0795,
+  "numero": 0.0044,
+  "escrita": 0.0087,
+  "nome": 0.024,
+  "erro_real": 0.0425,
+  "exemplos": [
+   {
+    "humano": "Er wordt met name gesteld dat niemand een leugen kan herkennen door op enkel op micro-expressies te letten.",
+    "praxis": "Er wordt met name gesteld dat niemand een leugen kan herkennen door enkel op micro-expressies te letten."
+   },
+   {
+    "humano": "De officiële munt van de Falklandeilanden is het Falklandeilands pond (FKP). De waarde ligt ongeveer op één Brits pond (GBP).",
+    "praxis": "De officiële munt van de Falkland-eilanden Is het Falkland Islands pond (FKP) de waarde lijkt ongeveer op één Brits pond (GP)."
+   },
+   {
+    "humano": "Oliver Sacks beschreef in zijn essay The President's Speech hoe het kan dat mensen die spraak niet kunnen begrijpen vanwege hersenbeschadiging, de oprechtheid ervan toch nauwkeurig kunnen inschatten.",
+    "praxis": "Oliver Seks beschreef in zijn essay The Presidents' Speech hoe het kan dat mensen die sprake niet kunnen begrijpen vanwege hersenbeschadiging de oprechtheid ervan toch nauwkeurig kunnen inschatten."
+   },
+   {
+    "humano": "Het kan ook handig zijn om een Wild Card te kopen. Deze bieden of toegang tot bepaalde delen van parken in Zuid-Afrika of tot alle nationale parken in Zuid-Afrika.",
+    "praxis": "Het kan ook handig zijn om een wildcard te kopen. Deze bieden, of toegang tot bepaalde delen van parken in Zuid-Afrika, of tot alle in nationale parken in Zuid-Af"
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.0516,
+  "numero": 0.0153,
+  "escrita": 0.0038,
+  "nome": 0.0096,
+  "erro_real": 0.0229,
+  "exemplos": [
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "Construída pelos egípcios no século III a.C., a Grande Pirâmide é uma das muitas grandes estruturas da pirâmide construídas para honrar faraós mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Jean-Carlo Fesichella perdeu o controle do carro e acabou a corrida logo após a largada."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O Romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Gauth. Fist Skeleton"
+   },
+   {
+    "humano": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado, como usar um novo computador ou começar um novo projeto.",
+    "praxis": "O scaffolding não é um método de aprendizado, mas sim uma ajuda para alunos que estão passando por uma nova experiência de aprendizado, como usar um computador ou começar um novo projeto."
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.0504,
+  "numero": 0.007,
+  "escrita": 0.0035,
+  "nome": 0.0117,
+  "erro_real": 0.0281,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However. Due to the slower communication channels, styles in the West could lag behind by twenty-five to thirty years."
+   },
+   {
+    "humano": "To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+    "praxis": "to the north and within easy reach is the romantic and fascinating town of cintra and which was made famous to foreigners after a glowing account of its splendour is recorded by lord byron"
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, or alkaline the chemical is."
+   },
+   {
+    "humano": "The Northern Marianas emergency management office said that there were no damages reported in the nation.",
+    "praxis": "The Northern Mariana's Emergency Management Office said that there were no damages reported in the nation."
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0427,
+  "numero": 0.005,
+  "escrita": 0.003,
+  "nome": 0.005,
+  "erro_real": 0.0298,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello pueda afectar sus planes de viaje."
+   },
+   {
+    "humano": "El uso adecuado de los blogs «puede empoderar a los alumnos para que sean más analíticos y críticos, a través de la respuesta activa a los contenidos de internet, pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus perspectivas sobre temas específicos» (Oravec, 2002).",
+    "praxis": "El uso adecuado de los blogs puede empoderar a los alumnos para que sean más analíticos y críticos a través de la respuesta activa a los contenidos de Internet, pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus propias posturas en el pasado. Perspectivas sobre temas específicos. Horavec 2002."
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de siquiera aproximarse un sacapuntas."
+   },
+   {
+    "humano": "Duvall, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relató la historia.",
+    "praxis": "Dudley, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue quien le relató la historia."
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.052,
+  "numero": 0.0068,
+  "escrita": 0.0,
+  "nome": 0.0136,
+  "erro_real": 0.0316,
+  "exemplos": [
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film Das Vermächtnis der Tempelritter gesehen haben, denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   },
+   {
+    "humano": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+    "praxis": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blog-Erfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt."
+   },
+   {
+    "humano": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet.x",
+    "praxis": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet."
+   },
+   {
+    "humano": "NextGen ist ein System, von dem die FAA behauptet, dass es Flugzeugen erlauben würde, kürzere Strecken zu fliegen und jedes Jahr Millionen Gallonen an Treibstoff zu sparen und die Kohlenstoffemissionen zu reduzieren.",
+    "praxis": "ist ein system von dem die f a a behauptet daß es flugzeugen erlauben würde kürzere strecken zu fliegen und jedes jahr millionen gallonen an treibstoff zu sparen und die kohlenstoffemissionen zu reduzieren"
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "it",
+  "unidade": "palavras",
+  "erro_total": 0.0402,
+  "numero": 0.0103,
+  "escrita": 0.001,
+  "nome": 0.0041,
+  "erro_real": 0.0248,
+  "exemplos": [
+   {
+    "humano": "Secondo il sovrintendente della polizia Chandra Shekhar Solanki, gli imputati sono apparsi in tribunale con il volto coperto.",
+    "praxis": "Non sarebbe così male che si trattasse di un problema serio Secondo il sovrintendente della polizia Chandra Sekhar-Solankhi gli imputati sono apparsi in tribunale con il volto coperto."
+   },
+   {
+    "humano": "Stando a quanto riferito aveva circa 20 anni. Bieber ha dichiarato \"Anche se non ero presente né direttamente coinvolto in questo terribile incidente, i miei pensieri e le mie preghiere vanno ai familiari della vittima\".",
+    "praxis": "stando a quanto riferito aveva circa vent'anni vibera ha dichiarato anche se non ero presente né direttamente coinvolto in questo terribile incidente i miei pensieri e le mie preghiere vanno ai familiari della vittima"
+   },
+   {
+    "humano": "Anche gli intervalli tra le singole dinastie furono caratterizzati da periodi di instabilità e divisione tra le province. Il più noto fu il cosiddetto periodo dei Tre Regni, tra la dinastia Han e la dinastia Jin, che durò per 60 anni.",
+    "praxis": "Anche gli intervalli tra le singole dinastie furono caratterizzati da periodi d'instabilità e divisione tra le province. Il più noto fu il cosiddetto periodo dei tre regni: tra la dinastia han e la dinastia jin. Che durò per sessanta anni."
+   },
+   {
+    "humano": "È collegata, anche se solitamente non li comprende, allo sci touring o allo skimo, che vengono praticati su terreni scoscesi e richiedono sci e scarponi molto più rigidi.",
+    "praxis": "È collegata. Anche se solitamente non li comprende. Allo sci-turing o allo schimo, che vengono praticati su terreni scoscesi, e richiedono sci e scarponi molto più rigidi."
+   }
+  ]
+ },
+ {
+  "model": "cohere-transcribe",
+  "lang": "ja",
+  "unidade": "letras",
+  "erro_total": 0.0786,
+  "numero": 0.0046,
+  "escrita": 0.0,
+  "nome": 0.0,
+  "erro_real": 0.074,
+  "exemplos": [
+   {
+    "humano": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。",
+    "praxis": "インターネットで対的環境構想について検索すると、おそらく現地企業の住所が出てくるでしょう。"
+   },
+   {
+    "humano": "また、北側に行くなら世界的に有名なマリア像の聖地であるファティマの聖母の聖域（神社）を訪れましょう。",
+    "praxis": "また北側に行くなら世界的に有名なマリア像の地であるファティマの母の域神社を訪れましょう。"
+   },
+   {
+    "humano": "バルセロナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタルーニャ語を理解し、ほぼ全員がスペイン語を知っています。",
+    "praxis": "バルセアナの公用語はカタルーネ語とスペイン語です。よく半数がカタルーネ語を好み大多数がカタルーネ語を理解しほぼ全員がスペイン語を知っています"
+   },
+   {
+    "humano": "その長い顎には70本以上の鋭い歯が並び、口蓋には別の歯列があり、つまりここを通ったら逃げ道はないということになります。",
+    "praxis": "その長いあごには70本以上のいが並び外には別の私立がありつまりここを通ったら逃げ道はないということになります。"
+   }
+  ]
+ }
+]

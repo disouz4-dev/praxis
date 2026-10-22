@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <img id="logo" src="logo.png" alt="Praxis">
+    <p id="tagline" data-t="tagline"></p>
+    <div class="topo">
+      <button id="sobre_abrir" class="icone" data-t-title="btn_about" aria-label="Sobre">ⓘ</button>
+      <button id="relatar" class="icone" data-t-title="btn_report" aria-label="Relatar problema">⚑</button>
+      <select id="ui_lang" data-t-title="ttl_ui_lang"></select>
+    </div>
+  </header>
+
+  <div id="atualizacao" class="atualizacao" hidden>
+    <span id="atualizacao_texto"></span>
+    <button id="atualizar" class="pequeno" data-t="btn_update"></button>
+  </div>
+
+  <main>
+    <div id="erro_topo" class="erro-topo" role="alert" hidden>
+      <span id="erro_texto"></span>
+      <button id="erro_relatar" class="pequeno" data-t="btn_send_report"></button>
+    </div>
+    <section id="config">
+      <div class="cartao">
+        <h2 data-t="sec_langs"></h2>
+        <div class="linha2">
+          <label><span data-t="lbl_src_lang"></span><select id="src"></select></label>
+          <label><span data-t="lbl_tgt_lang"></span><select id="tgt"></select></label>
+        </div>
+        <p id="aviso_idioma" class="aviso" hidden></p>
+      </div>
+
+      <div class="cartao">
+        <h2 data-t="sec_audio"></h2>
+        <label><span data-t="lbl_input"></span><select id="mic"></select></label>
+        <label><span data-t="lbl_output"></span><select id="output"></select></label>
+        <label class="chave"><input type="checkbox" id="monitor"><span data-t="mon_hint"></span></label>
+        <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
+        <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
+      </div>
+
+      <div class="cartao">
+        <h2 data-t="sec_bilateral"></h2>
+        <label class="chave"><input type="checkbox" id="bilateral"><span data-t="lbl_bilateral"></span></label>
+        <div id="bilateral_opcoes" hidden>
+          <label><span data-t="lbl_peer_app"></span>
+            <span class="linha-botao"><select id="peer_app"></select><button id="atualizar_apps" class="icone" data-t-title="ttl_refresh_apps">↻</button></span>
+          </label>
+          <p id="dica_peer_app" class="dica"></p>
+          <div class="escolha"><span data-t="lbl_peer_mode"></span>
+            <label class="chave"><input type="radio" name="peer_modo" id="peer_voz"><span data-t="opt_peer_voice"></span></label>
+            <label class="chave"><input type="radio" name="peer_modo" id="peer_legenda"><span data-t="opt_peer_subtitles"></span></label>
+          </div>
+          <label id="original_linha" class="chave"><input type="checkbox" id="original"><span data-t="lbl_original"></span></label>
+          <label id="original_volume_linha" class="volume" hidden><span data-t="lbl_original_volume"></span>
+            <input type="range" id="original_volume" min="5" max="60" step="5"><output id="original_volume_valor"></output></label>
+        </div>
+      </div>
+
+      <details class="cartao">
+        <summary data-t="sec_advanced"></summary>
+        <label><span data-t="sec_whisper"></span>
+          <select id="model">
+            <option value="auto" data-t="opt_model_auto"></option>
+            <option value="large-v3-turbo" data-t="opt_model_turbo"></option>
+            <option value="large-v3" data-t="opt_model_large"></option>
+            <option value="small" data-t="opt_model_small"></option>
+          </select>
+        </label>
+        <label><span data-t="lbl_translator"></span>
+          <select id="translator">
+            <option value="auto" data-t="opt_tr_auto"></option>
+            <option value="argos">Argos</option>
+            <option value="nllb" data-t="opt_tr_nllb"></option>
+          </select>
+        </label>
+        <p id="hardware" class="dica"></p>
+        <p id="diagnostico" class="dica"></p>
+      </details>
+    </section>
+
+    <section id="painel" hidden>
+      <div class="cartao">
+        <div class="status"><span id="status_ponto"></span><span id="status_texto"></span></div>
+        <div id="barra"><div id="barra_cheia"></div></div>
+        <p id="baixando" class="dica"></p>
+        <p id="microfone_virtual" class="destaque" hidden></p>
+      </div>
+      <div class="cartao conversa" id="conversa"></div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="iniciar" class="principal" data-t="btn_start"></button>
+  </footer>
+
+  <dialog id="sobre">
+    <div class="sobre-topo">
+      <img src="logo-escuro.png" alt="">
+      <div><h2>Praxis</h2><p id="sobre_versao" class="dica"></p></div>
+    </div>
+    <p class="dica" data-t="about_license"></p>
+    <div class="sobre-atualizacao">
+      <button id="sobre_verificar" class="pequeno" data-t="btn_check_update"></button>
+      <button id="sobre_atualizar" class="pequeno" data-t="btn_update" hidden></button>
+      <p id="sobre_status" class="dica"></p>
+    </div>
+    <p class="sobre-links">
+      <a href="#" data-link="https://disouz4-dev.github.io/praxis/" data-t="link_site"></a> ·
+      <a href="#" data-link="https://github.com/disouz4-dev/praxis" data-t="link_github"></a> ·
+      <a href="#" data-link="https://github.com/disouz4-dev/praxis/releases" data-t="link_releases"></a> ·
+      <a href="#" id="sobre_relatar" data-t="btn_report"></a>
+    </p>
+    <div class="botoes"><button id="sobre_fechar" class="secundario" data-t="btn_close"></button></div>
+  </dialog>
+
+  <dialog id="relatorio">
+    <h2 data-t="report_title"></h2>
+    <p class="dica" data-t="report_intro"></p>
+    <label><span data-t="report_what"></span><textarea id="relatorio_descricao" rows="3"></textarea></label>
+    <pre id="relatorio_texto"></pre>
+    <div class="botoes">
+      <button id="relatorio_fechar" class="secundario" data-t="btn_close"></button>
+      <button id="relatorio_copiar" class="secundario" data-t="btn_copy"></button>
+      <button id="relatorio_abrir" class="pequeno" data-t="btn_open_github"></button>
+    </div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

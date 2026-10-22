@@ -1,0 +1,58 @@
+[
+ {
+  "model": "large-v3-turbo",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.0373,
+  "numero": 0.0,
+  "escrita": 0.0011,
+  "nome": 0.0158,
+  "erro_real": 0.0203,
+  "exemplos": [
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film Das Vermächtnis der Tempelritter gesehen haben, Denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben und viele weitere Mitangehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen."
+   },
+   {
+    "humano": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+    "praxis": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blog-Erfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt."
+   },
+   {
+    "humano": "Insbesondere wird behauptet, dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet.x",
+    "praxis": "insbesondere wird behauptet dass man erkennen kann, ob jemand lügt, indem man minimale Veränderungen des Gesichtsausdrucks richtig deutet."
+   }
+  ]
+ },
+ {
+  "model": "large-v3-turbo",
+  "lang": "it",
+  "unidade": "palavras",
+  "erro_total": 0.0227,
+  "numero": 0.0031,
+  "escrita": 0.0,
+  "nome": 0.0031,
+  "erro_real": 0.0165,
+  "exemplos": [
+   {
+    "humano": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "praxis": "Se avete visto il film Il mistero dei Templari, potreste pensare che sul retro della dichiarazione di indipendenza sia disegnata una mappa del tesoro."
+   },
+   {
+    "humano": "L'iniziativa contro le oscenità è stata finanziata dal Congresso a partire dall'anno fiscale 2005, con la specifica richiesta all'FBI di assegnare 10 agenti alla pornografia per adulti.",
+    "praxis": "L'iniziativa contro le uscinità è stata finanziata dal congresso a partire dall'anno fiscale 2005. con la specifica richiesta all'FBI di assegnare 10 agenti alla pornografia per adulti."
+   },
+   {
+    "humano": "È collegata, anche se solitamente non li comprende, allo sci touring o allo skimo, che vengono praticati su terreni scoscesi e richiedono sci e scarponi molto più rigidi.",
+    "praxis": "È collegata. anche se solitamente non li comprende allo sci touring o allo schimo che vengono praticati su terreni scoscesi e richiedono sci scarponi molto più rigidi"
+   },
+   {
+    "humano": "Gli scienziati hanno potuto desumere che gli effetti della materia oscura su altra materia oscura sono gli stessi effetti che ha la materia \"normale\".",
+    "praxis": "Gli scienziati? hanno potuto desumere che gli effetti della materia oscura su altra materia oscura. Sono gli stessi effetti che alla materia normale."
+   }
+  ]
+ }
+]

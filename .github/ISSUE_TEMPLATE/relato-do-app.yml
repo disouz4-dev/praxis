@@ -1,0 +1,16 @@
+name: Problema no Praxis
+description: Algo deu errado no aplicativo (o botão ⚑ "Relatar problema" do Praxis já preenche isto)
+labels: ["relatório do app"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado! O relatório do Praxis não leva áudio nem o texto das conversas.
+        Confira o texto abaixo antes de enviar.
+  - type: textarea
+    id: relato
+    attributes:
+      label: O que aconteceu
+      description: O que você estava fazendo, o que esperava e o que aconteceu. Cole aqui o relatório do Praxis, se tiver.
+    validations:
+      required: true

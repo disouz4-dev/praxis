@@ -1,0 +1,422 @@
+[
+ {
+  "voz": "piper",
+  "lang": "ru",
+  "erro": 0.1117,
+  "rapidez": 0.047,
+  "exemplos": [
+   {
+    "texto": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией.",
+    "ouvido": "В Древнем Китае использовали уникальный способ обозначения периодов времени. Каждый этап Китая или каждая семья, находившаяся у власти, были особой династией."
+   },
+   {
+    "texto": "Мадагаскар намного больше других и  является самобытным континентом в том, что касается дикой природы.",
+    "ouvido": "Мадагаскар намного больше других и является самобытным континентом в том, что касается дикой природы."
+   },
+   {
+    "texto": "Во всех научных вопросах, включая психологию, были приняты взгляды Аристотеля.",
+    "ouvido": "Во всех научных вопросах, включая психологию, были приняты взгляды Аристотеля."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "ru",
+  "erro": 0.0615,
+  "rapidez": 0.165,
+  "exemplos": [
+   {
+    "texto": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией.",
+    "ouvido": "В Древнем Китае использовали уникальный способ обозначения периодов времени. Каждый этап Китая или каждая семья, находившаяся у власти, были особой династией."
+   },
+   {
+    "texto": "Мадагаскар намного больше других и  является самобытным континентом в том, что касается дикой природы.",
+    "ouvido": "Мадагаскар намного больше других и является самобытным континентом в том, что касается дикой природы."
+   },
+   {
+    "texto": "Во всех научных вопросах, включая психологию, были приняты взгляды Аристотеля.",
+    "ouvido": "Во всех научных вопросах, включая психологию, были приняты взгляды Аристотеля."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "nl",
+  "erro": 0.0759,
+  "rapidez": 0.052,
+  "exemplos": [
+   {
+    "texto": "Volgens Angel (2006) kunnen organisaties beter presteren met een aanpak op basis van het continuümmodel.",
+    "ouvido": "Volgens Andal 2006 kunnen organisaties beter presteren met een aanpak op basis van het continu model."
+   },
+   {
+    "texto": "Varkens dragen de ziekte bij zich en dragen het via muggen over op mensen.",
+    "ouvido": "Varkens dragen de zieken bij zich en dragen het vier me gaan over op mensen."
+   },
+   {
+    "texto": "Bij een verkeersstroom wordt gekeken naar de bewegingen van individuele bestuurders en voertuigen tussen twee punten en de interacties die plaatsvinden tussen de individuen.",
+    "ouvido": "Bij een verkeersstroom wordt gekeken naar de bewegingen van individuele bestuurders en voertuigen tussen twee punten en de interacties die plaatsvinden tussen de individuen."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "nl",
+  "erro": 0.0647,
+  "rapidez": 0.166,
+  "exemplos": [
+   {
+    "texto": "Volgens Angel (2006) kunnen organisaties beter presteren met een aanpak op basis van het continuümmodel.",
+    "ouvido": "Volgens Angel, 2006 kunnen organisaties beter presteren met een aanpak op basis van het continue model."
+   },
+   {
+    "texto": "Varkens dragen de ziekte bij zich en dragen het via muggen over op mensen.",
+    "ouvido": "Varkens dragen de ziekte bij zich en dragen het via muggen over op mensen."
+   },
+   {
+    "texto": "Bij een verkeersstroom wordt gekeken naar de bewegingen van individuele bestuurders en voertuigen tussen twee punten en de interacties die plaatsvinden tussen de individuen.",
+    "ouvido": "Bij een verkeersstroom wordt gekeken naar de bewegingen van individuele bestuurders en voertuigen tussen twee punten en de interacties die plaatsvinden tussen de individuen."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "pl",
+  "erro": 0.0677,
+  "rapidez": 0.046,
+  "exemplos": [
+   {
+    "texto": "Podróżni zwiedzający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach jak alkohol i tytoń.",
+    "ouvido": "Podróżni zwiedzający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach jak alkohol i tyton."
+   },
+   {
+    "texto": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i słynące jako luksusowe nadmorskie miejscowości wypoczynkowe.",
+    "ouvido": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i schłynące jako luksusowe nadmorskie miejscowości wypoczynkowe."
+   },
+   {
+    "texto": "Zgodnie z oświadczeniem biura gubernatora wśród rannych było dziewiętnastu policjantów.",
+    "ouvido": "Zgodnie z oświadczeniem biura gubernatora wśród rannych było 19 policjantów."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "pl",
+  "erro": 0.0615,
+  "rapidez": 0.166,
+  "exemplos": [
+   {
+    "texto": "Podróżni zwiedzający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach jak alkohol i tytoń.",
+    "ouvido": "Podróżni zwiedzający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach i alkohol i tytoń."
+   },
+   {
+    "texto": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i słynące jako luksusowe nadmorskie miejscowości wypoczynkowe.",
+    "ouvido": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i słynące jako luksusowe, nadmorskie miejscowości wypoczynkowe."
+   },
+   {
+    "texto": "Zgodnie z oświadczeniem biura gubernatora wśród rannych było dziewiętnastu policjantów.",
+    "ouvido": "Zgodnie z oświadczeniem biura gubernatora wśród rannych było 19 policjantów."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "uk",
+  "erro": 0.1521,
+  "rapidez": 0.028,
+  "exemplos": [
+   {
+    "texto": "Жінки: усім подорожнім жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану.",
+    "ouvido": "І жінки усім подорожнім жінкам радять казати, що вони заміжні незалежно від справжнього сімейного стану."
+   },
+   {
+    "texto": "Такі батьки можуть вирішити створити для своєї дитини план всиновлення.",
+    "ouvido": "Такі батьки можуть вирішити створити для своєї дитини план встановлення."
+   },
+   {
+    "texto": "Місячна кора становить приблизно 70 км у товщину на ближній стороні та 100 км у товщину на дальній стороні.",
+    "ouvido": "Місячна кора становить приблизно 70 хвиль у товщину на ближній стороні та 100 хвиль у товщину на дальній стороні."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "uk",
+  "erro": 0.0479,
+  "rapidez": 0.167,
+  "exemplos": [
+   {
+    "texto": "Жінки: усім подорожнім жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану.",
+    "ouvido": "Жінки. Усім подорожнім жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану."
+   },
+   {
+    "texto": "Такі батьки можуть вирішити створити для своєї дитини план всиновлення.",
+    "ouvido": "Такі батьки можуть вирішити створити для своєї дитини план всиновлення."
+   },
+   {
+    "texto": "Місячна кора становить приблизно 70 км у товщину на ближній стороні та 100 км у товщину на дальній стороні.",
+    "ouvido": "Місячна кора становить приблизно 70 км мекс у товщину на ближній стороні та 100 км меца у товщину на дальній стороні."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "tr",
+  "erro": 0.0904,
+  "rapidez": 0.046,
+  "exemplos": [
+   {
+    "texto": "Aynı ay, başka bir yolcu uçağı Meşhed'deki bir pisti aşarak bir duvara çarptı ve on yedi kişinin ölümüne neden oldu.",
+    "ouvido": "Aynı ay başka bir yolcu uçağı meşhedeki bir pisti aşarak bir duvara çarptı ve 17 kişinin ölümüne neden oldu."
+   },
+   {
+    "texto": "Romantizm; Goethe, Fichte ve Schlegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu.",
+    "ouvido": "Romantizm, Goethe, Fitchte vs. C.L.G.L. gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu."
+   },
+   {
+    "texto": "Japonya'nın nükleer ajansına göre, tesiste radyoaktif sezyum ve iyodin tespit edildi.",
+    "ouvido": "Japonya'nın nükleer ajansına göre tesisle radyoaktif sezyum ve iodin tespit edildi."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "tr",
+  "erro": 0.062,
+  "rapidez": 0.167,
+  "exemplos": [
+   {
+    "texto": "Aynı ay, başka bir yolcu uçağı Meşhed'deki bir pisti aşarak bir duvara çarptı ve on yedi kişinin ölümüne neden oldu.",
+    "ouvido": "Aynı ay başka bir yolcu uçağı meşeddeki bir pisti aşarak bir duvara çarptı ve 17 kişinin ölümüne neden oldu."
+   },
+   {
+    "texto": "Romantizm; Goethe, Fichte ve Schlegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu.",
+    "ouvido": "Romantizm, Goethe, Fichte ve Schlegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu."
+   },
+   {
+    "texto": "Japonya'nın nükleer ajansına göre, tesiste radyoaktif sezyum ve iyodin tespit edildi.",
+    "ouvido": "Japonya'nın nükleer ajansına göre, tesiste radyoaktif sezyum ve iodin tespit edildi."
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "ar",
+  "erro": 0.3893,
+  "rapidez": 0.046,
+  "exemplos": [
+   {
+    "texto": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
+    "ouvido": "شكت في المحيط الأطلسي ليوم عاشر عاصفة مسمات المسم العاصير الأطلسية العاصفة شبه الاستوائية جيري"
+   },
+   {
+    "texto": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+    "ouvido": "غادر الحافلات المحطة الدافلية بين الماطق عبر النهر في هلال اليوم على الرغم من معظمها وخاصة الانتجت منها إلى الشرق جاكار سلاش بوم ثانشت غادر بين ستة ثلاثون وسبعة ثلاثون"
+   },
+   {
+    "texto": "يتمُّ دعْم التعلُّم التفاعليّ في البرنامج داخليًا ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءاتِ التي قد يكون من الصعب على الطالب التعامل معها بمفرده.",
+    "ouvido": "مدعم التعلم أتفعلي في البرمامج داخلياً وهت إلى طرح الأسئلة والتحفيز وشرح الجراءات التي قد يكون من الصعب على الطالب التعامل معها بن فطر"
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "ar",
+  "erro": 0.0779,
+  "rapidez": 0.163,
+  "exemplos": [
+   {
+    "texto": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
+    "ouvido": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مسمى لموسم الأعاصير الأطلسية العاصفة الشبه الاستوائية جيري."
+   },
+   {
+    "texto": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+    "ouvido": "تغادر الحافلات المحطة الداخلية بين المناطق عبر النهر في خلال اليوم على الرغم من أن معظمها وخاصة المتجهات منها إلى الشرق وشاكار وجاكار بيوم ثانج تغادر بيرئين سكتين وثلاثين وأو أم سابين أذرارينين"
+   },
+   {
+    "texto": "يتمُّ دعْم التعلُّم التفاعليّ في البرنامج داخليًا ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءاتِ التي قد يكون من الصعب على الطالب التعامل معها بمفرده.",
+    "ouvido": "يتم دعم التعلم التفاعلية في البرنامج داخلي ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءات التي قد يكون من الصعب على الطالب التعامل معها بمفرده"
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "ko",
+  "erro": 0.1616,
+  "rapidez": 0.167,
+  "exemplos": [
+   {
+    "texto": "다리 밑 수직 간격은 15미터이며, 공사는 2011년 8월에 마무리되었으며, 해당 다리의 통행금지는 2017년 3월까지이다.",
+    "ouvido": "다리 및 수직 간격은 15m이며 공사는 2011년 8월에 마무리되었으며 해당 다리의 통행금지는 2017년 3월까지이다."
+   },
+   {
+    "texto": "델 포트로가 2세트에서 먼저 어드밴티지를 얻었지만 6 대 6이 된 후 다시 타이 브레이크가 필요했다.",
+    "ouvido": "델포트로가 이 세트에서 먼저 어드벤티지를 얻었지만 6대6이 된 후 다시 타이 브레이크가 필요했다."
+   },
+   {
+    "texto": "염소 사육은 대략 일만 년 전에 이란의 자그로스산맥에서 시작한 것으로 보입니다.",
+    "ouvido": "염소사육은 대략 1만 년 전에 이란의 자그로스 산맥에서 시작한 것으로 보입니다."
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "ja",
+  "erro": 0.0358,
+  "rapidez": 0.164,
+  "exemplos": [
+   {
+    "texto": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。",
+    "ouvido": "インターネットで敵対的環境コースについて検索すると、おそらく現地企業の住所が出てくるでしょう。"
+   },
+   {
+    "texto": "また、北側に行くなら世界的に有名なマリア像の聖地であるファティマの聖母の聖域（神社）を訪れましょう。",
+    "ouvido": "また、北側に行くなら、世界的に有名なマリア像の聖地であるファティマの聖母の聖域、神社を訪れましょう。"
+   },
+   {
+    "texto": "バルセロナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタルーニャ語を理解し、ほぼ全員がスペイン語を知っています。",
+    "ouvido": "バルセロナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタルーニャ語を理解し、ほぼ全員がスペイン語を知っています。"
+   }
+  ]
+ },
+ {
+  "voz": "kokoro",
+  "lang": "ja",
+  "erro": 0.7437,
+  "rapidez": 0.433,
+  "exemplos": [
+   {
+    "texto": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。",
+    "ouvido": "インターネットで工数に過ぎて数十投訴を開くのが手空運でしょう。"
+   },
+   {
+    "texto": "また、北側に行くなら世界的に有名なマリア像の聖地であるファティマの聖母の聖域（神社）を訪れましょう。",
+    "ouvido": "また憎んなさになましやの出会うファチマののを寝ましょうわ"
+   },
+   {
+    "texto": "バルセロナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタルーニャ語を理解し、ほぼ全員がスペイン語を知っています。",
+    "ouvido": "バフーセゾナーのやかたうるうにゃとすうぺいんですがかたうるうにゃおみがかたうるうにゃおしほぼがすうぺいのおていまーす"
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "zh",
+  "erro": 0.2281,
+  "rapidez": 0.049,
+  "exemplos": [
+   {
+    "texto": "“这并不是告别。这是一个篇章的结束，也是新篇章的开始。”",
+    "ouvido": "这并不是告别这是一个篇章的结束也是新篇章的开始"
+   },
+   {
+    "texto": "钙、钾等元素属于金属，银和金等元素当然也是金属。",
+    "ouvido": "该甲等元素属于金属银合金等元素当然也是金属"
+   },
+   {
+    "texto": "桥下垂直净空 15 米。该项目于 2011 年 8 月完工，但直到 2017 年 3 月才开始通车。",
+    "ouvido": "桥下垂直经空15米该项目于2011年8月完工但直到2017年3月才开始通车"
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "zh",
+  "erro": 0.6954,
+  "rapidez": 0.167,
+  "exemplos": [
+   {
+    "texto": "“这并不是告别。这是一个篇章的结束，也是新篇章的开始。”",
+    "ouvido": "不如不在国,以前一返照的物质は矢是新返照的故事"
+   },
+   {
+    "texto": "钙、钾等元素属于金属，银和金等元素当然也是金属。",
+    "ouvido": "立等元素属金属 岩金等元素当然や是金属"
+   },
+   {
+    "texto": "桥下垂直净空 15 米。该项目于 2011 年 8 月完工，但直到 2017 年 3 月才开始通车。",
+    "ouvido": "布古田水直空15坊名伊留米2020年8月刊行丹直岛2017年3月祭石通仪"
+   }
+  ]
+ },
+ {
+  "voz": "kokoro",
+  "lang": "zh",
+  "erro": 0.1377,
+  "rapidez": 0.43,
+  "exemplos": [
+   {
+    "texto": "“这并不是告别。这是一个篇章的结束，也是新篇章的开始。”",
+    "ouvido": "这并不是告别,这是一个篇章的结束,也是新篇章的开始。"
+   },
+   {
+    "texto": "钙、钾等元素属于金属，银和金等元素当然也是金属。",
+    "ouvido": "这A,钾等元素属于金属,银河金等元素当然也是金属。"
+   },
+   {
+    "texto": "桥下垂直净空 15 米。该项目于 2011 年 8 月完工，但直到 2017 年 3 月才开始通车。",
+    "ouvido": "桥下垂直近空15米该项目于2011年吧月完工但直到2017年算月才开始通车"
+   }
+  ]
+ },
+ {
+  "voz": "piper",
+  "lang": "hi",
+  "erro": 0.241,
+  "rapidez": 0.051,
+  "exemplos": [
+   {
+    "texto": "कुछ अणुओं में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है,",
+    "ouvido": "कुछ अनुवों में अस्थिर केंद्रक होता है, जिसका मतलब यहा है कि उनमें थोड़े या बिना किसी जटके से तूटने की प्रवृत्ती होती है।"
+   },
+   {
+    "texto": "ग्रीनलैंड को बहुत कम जगह बसाया गया था. नॉर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलैंड से निर्वासित किया गया था, और आगे पश्चिम की यात्रा करते समय, ग्रीनलैंड मिला जिसे ग्रीनलैंड नाम दिया गया.",
+    "ouvido": "Greenland को बहुत कम जगा बसाया गया था, नौर्ड सगास में वे कहते हैं कि Eric Raid हत्या के लिए Iceland से निर्वासित किया गया था और आगे पश्चिम की यात्रा करते समय, Greenland मिला जिसे Greenland नाम दिया गया"
+   },
+   {
+    "texto": "ऐसी कोई वैश्विक परिभाषा नहीं है जिसके लिए निर्मित सामान एंटीक होते हैं. कुछ कर एजेंसियाँ 100 साल से पुराने सामान को एंटीक के तौर पर परिभाषित करती हैं.",
+    "ouvido": "ऐसी कोई वैश्विक परिभाशा नहीं है, जिसके लिए निर्मिद सामान एंटीक होते हैं, कुछ कर एजंसियां एक सौ साल से पुराने सामान को एंटीक के तौर पर परिभाशित करती हैं।"
+   }
+  ]
+ },
+ {
+  "voz": "supertonic",
+  "lang": "hi",
+  "erro": 0.2068,
+  "rapidez": 0.165,
+  "exemplos": [
+   {
+    "texto": "कुछ अणुओं में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है,",
+    "ouvido": "कुछ अनों में अस्थिर केंद्रक होता है, जिसका मतलब ये है कि उनमें थोड़े या बिना किसी जटिके से तूटने की प्रवरित्ती होती है."
+   },
+   {
+    "texto": "ग्रीनलैंड को बहुत कम जगह बसाया गया था. नॉर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलैंड से निर्वासित किया गया था, और आगे पश्चिम की यात्रा करते समय, ग्रीनलैंड मिला जिसे ग्रीनलैंड नाम दिया गया.",
+    "ouvido": "ग्रीन लेंड को बहुत कम जगा बसाया गया था। नौर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलेंड से निर्वासित किया गया था और आगे पश्चिम की यात्रा करते समय ग्रीन लेंड मिला जिसे ग्रीन लेंड नाम दिया गया।"
+   },
+   {
+    "texto": "ऐसी कोई वैश्विक परिभाषा नहीं है जिसके लिए निर्मित सामान एंटीक होते हैं. कुछ कर एजेंसियाँ 100 साल से पुराने सामान को एंटीक के तौर पर परिभाषित करती हैं.",
+    "ouvido": "ऐसी कोई वैश्विक परिभाशा नहीं है जिसके लिए निर्मित सामान एंटीक होते हैं। कुछ कर एजेंसियां संस साल से पुराने सामान को एंटीक के तौर पर परिभाशित करती हैं।"
+   }
+  ]
+ },
+ {
+  "voz": "kokoro",
+  "lang": "hi",
+  "erro": 0.2201,
+  "rapidez": 0.375,
+  "exemplos": [
+   {
+    "texto": "कुछ अणुओं में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है,",
+    "ouvido": "कुछ अन्वों में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड ए या बिना किसी जटके से तूटने की प्रवृत्ती होती है।"
+   },
+   {
+    "texto": "ग्रीनलैंड को बहुत कम जगह बसाया गया था. नॉर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलैंड से निर्वासित किया गया था, और आगे पश्चिम की यात्रा करते समय, ग्रीनलैंड मिला जिसे ग्रीनलैंड नाम दिया गया.",
+    "ouvido": "ग्रीन लेंड को बहुत कम जगह बिसाया गया था। नौर्स सगास में वे कहते हैं कि एरिक रेर हत्या के लिए आइसलेंड से निर्वासित किया गया था। और आगे पश्चिम की यात्रा करते समय ग्रीन लेंड मिला जिसे ग्रीन लेंड नाम दिया गया।"
+   },
+   {
+    "texto": "ऐसी कोई वैश्विक परिभाषा नहीं है जिसके लिए निर्मित सामान एंटीक होते हैं. कुछ कर एजेंसियाँ 100 साल से पुराने सामान को एंटीक के तौर पर परिभाषित करती हैं.",
+    "ouvido": "ऐसी कोई वैश्विक परिभाशा नहीं है जिसके लिए निर्मित सामान इंटीक होते हैं। कुछ कर एजेंसियां 100 साल से पुराने सामान को इंटीक के तौर पर परिभाशित करती हैं।"
+   }
+  ]
+ }
+]

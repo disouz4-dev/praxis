@@ -1,0 +1,2 @@
+# Configurações de compilação por sistema. No macOS, compile com scripts/build-macos.sh
+# (ele liga o OpenMP do LLVM, sem o qual o Whisper fica 2× mais lento que no Python).

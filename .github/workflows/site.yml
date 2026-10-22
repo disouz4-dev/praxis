@@ -1,0 +1,56 @@
+# Publica a página do Praxis (pasta site/) no GitHub Pages: https://disouz4-dev.github.io/praxis/
+#
+# Leva junto, em /apt, o repositório de atualizações do Linux: as versões até a 0.3.3 buscam
+# as atualizações nesse endereço. O original fica na versão fixa "apt" da página de versões;
+# enquanto ela não existir, copia os arquivos que já estão publicados no Pages.
+name: Página do Praxis
+
+on:
+  push:
+    branches: [main, feat/multiplatform-qa]
+    paths: ["site/**", "install.sh", "install.ps1", ".github/workflows/site.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pagina
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    name: Publicar a página
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicar.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Montar a página e o repositório apt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp -r site _site
+          cp install.sh install.ps1 _site/   # curl …/praxis/install.sh | bash
+          mkdir -p _site/apt
+          if gh release view apt -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release download apt -R "$GITHUB_REPOSITORY" -D _site/apt
+          else
+            base=https://disouz4-dev.github.io/praxis/apt
+            for f in Packages Packages.gz Release Release.gpg InRelease praxis.asc; do
+              curl -fsSL "$base/$f" -o "_site/apt/$f" || true
+            done
+            for deb in $(grep -h '^Filename:' _site/apt/Packages 2>/dev/null | awk '{print $2}' | sed 's|^\./||'); do
+              curl -fsSL "$base/$deb" -o "_site/apt/$deb"
+            done
+          fi
+          ls -la _site _site/apt
+          test -s _site/apt/InRelease || echo "::warning::repositório apt vazio"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: _site }
+      - id: publicar
+        uses: actions/deploy-pages@v4

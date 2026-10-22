@@ -1,0 +1,422 @@
+[
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "hi",
+  "unidade": "palavras",
+  "erro_total": 0.3064,
+  "numero": 0.0163,
+  "escrita": 0.0403,
+  "nome": 0.001,
+  "erro_real": 0.2488,
+  "exemplos": [
+   {
+    "humano": "कुछ अणुओं में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है,",
+    "praxis": "कुछ आंवों में आज तक एंड्रक होता है, जिसका मतलब यहां की उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है।"
+   },
+   {
+    "humano": "ग्रीनलैंड को बहुत कम जगह बसाया गया था. नॉर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलैंड से निर्वासित किया गया था, और आगे पश्चिम की यात्रा करते समय, ग्रीनलैंड मिला जिसे ग्रीनलैंड नाम दिया गया.",
+    "praxis": "Greenland को बहुत कम जगह बसाया गया था, नॉर्स सगास में विकैते हैं कि Eric Red हथियार के लिए आइसलैंड से निर्वासित किया गया था और आगे पश्चिम की यात्रा क"
+   },
+   {
+    "humano": "ऐसी कोई वैश्विक परिभाषा नहीं है जिसके लिए निर्मित सामान एंटीक होते हैं. कुछ कर एजेंसियाँ 100 साल से पुराने सामान को एंटीक के तौर पर परिभाषित करती हैं.",
+    "praxis": "आईसी कोई व्यस्पिक परिवार सा नहीं है जिसके लिए निर्मित समान एंटीक होते हैं, कुछ कर एजेंसियां शव साल से पुराने समान को एंटीक के तौर पर परिवाशित करती हैं."
+   },
+   {
+    "humano": "इंटरनेट पर यह खोज 'शत्रुतापूर्ण पर्यावरण पाठ्यक्रम' के लिए अक्सर आपको एक स्थानीय कंपनी का पता प्रदान करेगी।",
+    "praxis": "इंटरनेट पर ये खोज, सत्रुता पूर्ण, पर्यावरण पाटकरम के लिए अक्सर आपको एक स्थान ने कंपनी का पता प्रदान करेगी."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "ko",
+  "unidade": "palavras",
+  "erro_total": 0.2073,
+  "numero": 0.0265,
+  "escrita": 0.005,
+  "nome": 0.0017,
+  "erro_real": 0.1741,
+  "exemplos": [
+   {
+    "humano": "다리 밑 수직 간격은 15미터이며, 공사는 2011년 8월에 마무리되었으며, 해당 다리의 통행금지는 2017년 3월까지이다.",
+    "praxis": "다리의 수직 간격은 15m이며, 공사는 2011년 8월에 마무리되었으며, 해당 다리의 통행 금지는 2017년 3월까지이다."
+   },
+   {
+    "humano": "델 포트로가 2세트에서 먼저 어드밴티지를 얻었지만 6 대 6이 된 후 다시 타이 브레이크가 필요했다.",
+    "praxis": "델포트로가 이 세트에서 먼저 어드벤티즈를 얻었지만, 6대 6기된 후 다시 타이브레이크가 필요했다."
+   },
+   {
+    "humano": "염소 사육은 대략 일만 년 전에 이란의 자그로스산맥에서 시작한 것으로 보입니다.",
+    "praxis": "염소사육은 대략 1만 년 전에 이란의 자그로스 산맥에서 시작한 것으로 보입니다."
+   },
+   {
+    "humano": "겨울에 북발트해를 건널 경우에는 빙판을 통과하면서 꽤 끔찍한 소음이 발생하기 때문에, 객실의 위치를 확인하는 것이 좋다.",
+    "praxis": "겨울에 북발트해를 건낼 경우에는 빙판을 통과하면서 꽤 끔찍한 소음이 발생하기 때문에 객실의 위치를 확인하는 것이 좋다."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "zh",
+  "unidade": "letras",
+  "erro_total": 0.0887,
+  "numero": 0.0123,
+  "escrita": 0.0,
+  "nome": 0.0,
+  "erro_real": 0.0764,
+  "exemplos": [
+   {
+    "humano": "\"适当使用博客，\"可以使学生变得更善于分析和进行思辨；通过积极回应网络材料，学生们可以在他人文章的上下文语境中找到自己的立场，并能够针对特定问题提出自己的观点（Oravec, 2002）。\"",
+    "praxis": "适当使用博客可以使学生变得更善于分析和进行思辨。通过积极回忆网络材料，学生们可以在他人的文章的上下文语境中找到自己的立场，并能够针对特定问题提出自己的观点。Work 2002。"
+   },
+   {
+    "humano": "大多数现代科研望远镜都是巨型设施，位于大气条件优良的偏远地区。",
+    "praxis": "大多数现代科研望远镜都是巨型设施，位于大气大气条件优良的偏远地区。"
+   },
+   {
+    "humano": "它的长下颚上布满了 70 多颗剃刀般锋利的牙齿，上颚上还有一排。这意味着任何与它相遇的东西都无路可逃。",
+    "praxis": "它的长下颚上布满了七十多颗剃刀般锋利的牙齿，上颚上还有一排。 这意味着，任何与他相遇的东西都无路可逃。"
+   },
+   {
+    "humano": "Scotturb 403 路公共汽车定期发车前往辛特拉 (Sintra)，在罗卡角停靠。",
+    "praxis": "Scotturb四零三路，公交汽车定期发车前往新特拉，在罗卡角停车靠。"
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "ar",
+  "unidade": "palavras",
+  "erro_total": 0.2682,
+  "numero": 0.0179,
+  "escrita": 0.0151,
+  "nome": 0.0,
+  "erro_real": 0.2352,
+  "exemplos": [
+   {
+    "humano": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري.",
+    "praxis": "تشكلت في المحيط الأطلسي اليوم عاصفة مسمايل موسم الاعصار الأطلسيّة، العاصفة الشبه الاستوائية جري."
+   },
+   {
+    "humano": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+    "praxis": "تغادر الحافلات المحطة الداخلية بين المنطوق عبر النهر في خلالي يوم على الرغم من أن معظمها وخاصتها المتاجمة إلى الشرق وجاكراب ومثانج تغادر بين ستة وثلاثين وسبعة وثلاثين."
+   },
+   {
+    "humano": "يتمُّ دعْم التعلُّم التفاعليّ في البرنامج داخليًا ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءاتِ التي قد يكون من الصعب على الطالب التعامل معها بمفرده.",
+    "praxis": "يتميّد عمق تعلّم التفاعلية في البرنامج داخلياً ويهدف إلى طرح الأسئلة والتحفيز وشرح الإجراءات التي قد يكون من الصعب على الطالب التعامل معها بمفرده."
+   },
+   {
+    "humano": "نصنع بيوتنا وملابسنا من النباتات . معظم الطعام الذي نتناوله من النباتات كذلك. بدون النباتات، لا يمكن للحيوانات البقاء.",
+    "praxis": "نص نعبيتنا وملابسنا من النباتات. معظم الطعام الذي نتناوله من النباتات كذلك. بدون النباتات لا يمكن للحيوانات البقاء."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "ja",
+  "unidade": "letras",
+  "erro_total": 0.1571,
+  "numero": 0.0127,
+  "escrita": 0.0,
+  "nome": 0.0,
+  "erro_real": 0.1445,
+  "exemplos": [
+   {
+    "humano": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。",
+    "praxis": "インターネットで敵対的環境構想について検索すると、おそらく現地企業の住所が出てくるでしょう。"
+   },
+   {
+    "humano": "また、北側に行くなら世界的に有名なマリア像の聖地であるファティマの聖母の聖域（神社）を訪れましょう。",
+    "praxis": "また北側に行くなら世界的に有名なマリアゾの聖地であるファティマの聖母の聖域、神社を訪れましょう。"
+   },
+   {
+    "humano": "バルセロナの公用語はカタルーニャ語とスペイン語です。約半数がカタルーニャ語を好み、大多数がカタルーニャ語を理解し、ほぼ全員がスペイン語を知っています。",
+    "praxis": "バルセロナの交流語は語るねことスペイン語です。約半数が語るねがお好み、大多数が語るね語り易し、ほぼ全員がスペインを知っています。"
+   },
+   {
+    "humano": "その長い顎には70本以上の鋭い歯が並び、口蓋には別の歯列があり、つまりここを通ったら逃げ道はないということになります。",
+    "praxis": "その長いあごには70本以上のスルート鋤が並び、後外には別のシリーズがあり、つまりここを通ったら逃げ道はないということになります。"
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "tr",
+  "unidade": "palavras",
+  "erro_total": 0.2901,
+  "numero": 0.0268,
+  "escrita": 0.0296,
+  "nome": 0.0338,
+  "erro_real": 0.2,
+  "exemplos": [
+   {
+    "humano": "Aynı ay, başka bir yolcu uçağı Meşhed'deki bir pisti aşarak bir duvara çarptı ve on yedi kişinin ölümüne neden oldu.",
+    "praxis": "Aynı ay, başka bir yolcu uçtu, meşhete ki bir piste aşırak, bir doğara çarpı ve 17 kişi'nin ölümüne neden oldu."
+   },
+   {
+    "humano": "Romantizm; Goethe, Fichte ve Schlegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu.",
+    "praxis": "Romantizin göte, fichte ve şilegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliğe taşıyordu."
+   },
+   {
+    "humano": "Japonya'nın nükleer ajansına göre, tesiste radyoaktif sezyum ve iyodin tespit edildi.",
+    "praxis": "Japonyanın nükleer acizine göre Tciste, radioaktif seyrum ve iodium tespit edildi."
+   },
+   {
+    "humano": "Bu teoriler, bazı insanların yaptıkları şeyleri arzu etmelerine sebebiyet veren şeylere ve çevrelerindeki şeylerin onlara belirli şeyleri yapıp yapmamasına sebep olan şeyler ile ilgilenir.",
+    "praxis": "Bu teoriler, bazı insanların yaptıkları şeyleri, arzu etmelerine sebepiyet veren şeyleri ve çevredekilerin onlara belirli şeyleri yapıp yapmamasına sebep olan şeyler ile ilgilenir."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "fr",
+  "unidade": "palavras",
+  "erro_total": 0.126,
+  "numero": 0.0108,
+  "escrita": 0.0054,
+  "nome": 0.0063,
+  "erro_real": 0.1035,
+  "exemplos": [
+   {
+    "humano": "Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation.",
+    "praxis": "Nous sommes d'accord avec la déclaration de l'USOC, comité olympique des États-Unis, selon laquelle les intérêts de nos athlètes et de nos clubs ainsi que de leur sport pour cette tète ont mieux servi. Cela peut être fait en allant de l'avant et en procédant plutôt à. A des changements significatifs au sein de notre organisation, quels révocations d'accréditation."
+   },
+   {
+    "humano": "Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. »",
+    "praxis": "Il ajoutait qu'on ne devrait cependant pas leur demander d'assumer les obligations qui dépassent leur statut de développeur, leur responsabilité et leur capacité."
+   },
+   {
+    "humano": "Le rugissement du tigre ne ressemble pas au rugissement ample du lion, mais plutôt à une phrase dont les mots seraient des cris et des grondements.",
+    "praxis": "Rougement du tygon ne ressemble pas au rougement en pluie de gants, mais plutôt à une phrase dans les mots surréalistes, des cris et des grondements."
+   },
+   {
+    "humano": "Le même mois, un autre avion de ligne a fait une sortie de piste à Mashhad et a heurté un mur, tuant ainsi dix-sept personnes.",
+    "praxis": "Le mémoire : Un autre avion de ligne a fait une sortie de piste à Machad et heurté un mur, tuant ainsi dix sept personnes."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "ru",
+  "unidade": "palavras",
+  "erro_total": 0.1911,
+  "numero": 0.0242,
+  "escrita": 0.0178,
+  "nome": 0.0166,
+  "erro_real": 0.1325,
+  "exemplos": [
+   {
+    "humano": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией.",
+    "praxis": "В древнем Китае использовали уникальный способ обозначения периодов времени. Каждая этап Китая или каждая семья. Находившиеся у власти были особой династии."
+   },
+   {
+    "humano": "Причиной дебатов стали разногласия относительно затрат на оказание материальной поддержки и восстановление зданий после урагана Катрина, который некоторые фискальные консерваторы в шутку назвали \"новоорлеанской сделкой Буша\".",
+    "praxis": "Причиной дебатов стали разногласия относительно затрат на озарение материальной поддержки и восстановление зданий после урагана Katrina, которые некоторые фискальные консерваторы в шутку назвали. Новая арлианская сделка Буша."
+   },
+   {
+    "humano": "В 1990 году он был добавлен в список всемирного наследия, находящегося под угрозой из-за опасности со стороны песков пустыни.",
+    "praxis": "В 1919 году он был добавлен в список всемирного наследия, находящийся под угрозой из-за опасности со стороны писков пустыни."
+   },
+   {
+    "humano": "Согласно ядерному управлению Японии, на заводе были обнаружены радиоактивный цезий и йод.",
+    "praxis": "Согласно ядерному упражнению Японии на заводе были обнаружены радиоактивный цезий и йод."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "pt",
+  "unidade": "palavras",
+  "erro_total": 0.1042,
+  "numero": 0.0115,
+  "escrita": 0.0115,
+  "nome": 0.0096,
+  "erro_real": 0.0717,
+  "exemplos": [
+   {
+    "humano": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, \"embora eu não estivesse presente nem diretamente envolvido neste trágico incidente, meus pensamentos e orações estão com a família da vítima\".",
+    "praxis": "Segundo informações, ele estava na casa dos 20 anos. Em uma declaração, Bieber disse que, embora eu não tivesse presente nem diretamente envolvido neste trágico incidente, meus pensamentos e orações estão com a família da vítima."
+   },
+   {
+    "humano": "Construída pelos egípcios no século 3 A.C., a Grande Pirâmide é uma das muitas grandes estruturas de pirâmide construídas para honrar faraós mortos.",
+    "praxis": "Construída pelos egípcios no século III a.C., a Grande Pirâmide é uma das muitas grandes estruturas da pirâmide construídas para honrar faraós mortos."
+   },
+   {
+    "humano": "Giancarlo Fisichella perdeu o controle do carro e acabou a corrida logo após a largada.",
+    "praxis": "Jean-Carlos Vizquelha perdeu o controle do carro e acabou a corrida logo após a largada."
+   },
+   {
+    "humano": "O romantismo tinha um grande elemento de determinismo cultural, extraído de escritores como Goethe, Fichte e Schlegel.",
+    "praxis": "O romantismo tinha um grande lembrete de determinismo cultural, estranho de escritores como Gold. Fist Esquerdil."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "en",
+  "unidade": "palavras",
+  "erro_total": 0.0539,
+  "numero": 0.0094,
+  "escrita": 0.0023,
+  "nome": 0.0082,
+  "erro_real": 0.034,
+  "exemplos": [
+   {
+    "humano": "However, due to the slow communication channels, styles in the west could lag behind by 25 to 30 year.",
+    "praxis": "However. Due to the slow communication channels, styles in the West could lag behind by 25 to 30 years."
+   },
+   {
+    "humano": "All nouns, alongside the word Sie for you, always begin with a capital letter, even in the middle of a sentence.",
+    "praxis": "All nouns alongside the world say, \"For you,\" always begin with a capital letter, even in the middle of a sentence."
+   },
+   {
+    "humano": "To the north and within easy reach is the romantic and fascinating town of Sintra and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron.",
+    "praxis": "To the north, and within easy reach, is a romantic and fascinating town of Cintra, and which was made famous to foreigners after a glowing account of its splendours recorded by Lord Byron."
+   },
+   {
+    "humano": "The cabbage juice changes color depending on how acidic or basic (alkaline) the chemical is.",
+    "praxis": "The cabbage juice changes color depending on how acidic, basic, alkaline the chemical is."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "es",
+  "unidade": "palavras",
+  "erro_total": 0.0645,
+  "numero": 0.003,
+  "escrita": 0.0089,
+  "nome": 0.005,
+  "erro_real": 0.0476,
+  "exemplos": [
+   {
+    "humano": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje.",
+    "praxis": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier rijo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje."
+   },
+   {
+    "humano": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+    "praxis": "Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras, no tienen la necesidad de siquiera programarse un sacapuntas."
+   },
+   {
+    "humano": "Duvall, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relató la historia.",
+    "praxis": "Dubal, que está casado y tiene dos hijos adultos, no causó una buena impresión a Miller, que fue a quien le relato la historia."
+   },
+   {
+    "humano": "Entre los fenómenos climáticos regionales y estacionales extremos encontramos los ventarrones, las tormentas de nieve, hielo o polvo.",
+    "praxis": "Entre los fenómenos climáticos regionales y estacionales extremos encontramos los ventarrones, las tormentas de nieve y el opulvo."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "de",
+  "unidade": "palavras",
+  "erro_total": 0.0994,
+  "numero": 0.0045,
+  "escrita": 0.0011,
+  "nome": 0.0418,
+  "erro_real": 0.052,
+  "exemplos": [
+   {
+    "humano": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf die Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde.",
+    "praxis": "Wenn Sie den Film „Das Vermächtnis der Tempelritter“ gesehen haben, denken Sie vielleicht, dass auf der Rückseite der Unabhängigkeitserklärung eine Schatzkarte gezeichnet wurde."
+   },
+   {
+    "humano": "Es leben noch viele Männer und Frauen, die ihre Zeit hier überlebt haben, und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen.",
+    "praxis": "Es lebten noch viele Männer und Frauen, die ihre Zeit hier überlebt haben und viele weitere mit Angehörigen, die dort ermordet wurden oder sich zu Tode arbeiteten, Juden und Nichtjuden gleichermaßen."
+   },
+   {
+    "humano": "Blogs können auch dazu beitragen, die Schreibfertigkeiten von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blogerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt.",
+    "praxis": "Blocks können auch dazu beitragen, die Schreibfähigkeit von Schülern zu verbessern. Zwar haben Schüler am Anfang ihrer Blockerfahrung oft eine schlampige Grammatik und Rechtschreibung, aber das ändert sich normalerweise, wenn es ein Publikum gibt."
+   },
+   {
+    "humano": "Nachdem der Damm 1963 erbaut worden war, kamen die jahreszeitlichen Überflutungen, die Sedimente im Fluss verteilen, zum Stillstand.",
+    "praxis": "Nachdem der Damm 1963 erbaut worden war. Kommen die jahreszeitlichen Überflutungen, die Sedimente im Fluss verteilen, zum Stillstand."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "it",
+  "unidade": "palavras",
+  "erro_total": 0.0826,
+  "numero": 0.0062,
+  "escrita": 0.0031,
+  "nome": 0.0072,
+  "erro_real": 0.066,
+  "exemplos": [
+   {
+    "humano": "Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro.",
+    "praxis": "Se avete visto il film *Il mistero dei tempiari*, potreste pensare che sul retro della dichiarazione di indipendenza sia disegnata una mappa del tesoro."
+   },
+   {
+    "humano": "Con ioni idrogeno si intendono dei protoni cui sono stati strappati via gli elettroni (dato che gli atomi di idrogeno sono formati da un protone e da un elettrone).",
+    "praxis": "Conioni idrogeno si intendono dei protone, cui sono stati strappati via gli elettroni, dato che gli atomi di idrogeno sono formati da un protone e da un elettrone."
+   },
+   {
+    "humano": "In maniera analoga, agli uomini è richiesto di indossare pantaloni lunghi fin sotto le ginocchia.",
+    "praxis": "In maniera analoga, agli uomini è richiesto di indossare pantaloni lunghi fino sotto le ginocchia."
+   },
+   {
+    "humano": "L'iniziativa contro le oscenità è stata finanziata dal Congresso a partire dall'anno fiscale 2005, con la specifica richiesta all'FBI di assegnare 10 agenti alla pornografia per adulti.",
+    "praxis": "L'iniziativa contro l'uscita è stata finanziata dal Congresso a partire dall'anno fiscale 2005. Con la specifica richiesta al FIBA di assegnare dieci agenti alla pornografia per adulti."
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "nl",
+  "unidade": "palavras",
+  "erro_total": 0.2397,
+  "numero": 0.0316,
+  "escrita": 0.0142,
+  "nome": 0.0251,
+  "erro_real": 0.1688,
+  "exemplos": [
+   {
+    "humano": "Volgens Angel (2006) kunnen organisaties beter presteren met een aanpak op basis van het continuümmodel.",
+    "praxis": "Volgens Angold 2006 kunnen organisaties beter presteren met een aanpak op basis van het Continuum model."
+   },
+   {
+    "humano": "Varkens dragen de ziekte bij zich en dragen het via muggen over op mensen.",
+    "praxis": "Vaker stragen ziekte bijzich en dragen het via een muggen over op mensen."
+   },
+   {
+    "humano": "Bij een verkeersstroom wordt gekeken naar de bewegingen van individuele bestuurders en voertuigen tussen twee punten en de interacties die plaatsvinden tussen de individuen.",
+    "praxis": "Bij een verkeersstroom wordt gekeken naar de bewegingen van individuele bestuurders en voertuigen tussen twee punten en de interactie die plaatsvinden tussen de individueelleden."
+   },
+   {
+    "humano": "Vanaf boekjaar 2005 financierde het Congres het initiatief tegen obsceniteit en verklaarde dat de FBI tien agenten moet inzetten op volwassenenpornografie.",
+    "praxis": "提Question"
+   }
+  ]
+ },
+ {
+  "model": "qwen3-asr-0.6b",
+  "lang": "pl",
+  "unidade": "palavras",
+  "erro_total": 0.5423,
+  "numero": 0.0583,
+  "escrita": 0.0117,
+  "nome": 0.0102,
+  "erro_real": 0.4621,
+  "exemplos": [
+   {
+    "humano": "Podróżni zwiedzający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach jak alkohol i tytoń.",
+    "praxis": "Podróżnizwiający państwa obłożone szczególnie wysokimi podatkami mogą czasem zaoszczędzić sporo pieniędzy, szczególnie na takich towarach jak alkohol i tytoni."
+   },
+   {
+    "humano": "Większość mniejszych wysp to narody niezależne lub sprzymierzone z Francją i słynące jako luksusowe nadmorskie miejscowości wypoczynkowe.",
+    "praxis": "W większości mniejszych wysp to narodnie niezależne lub z wymierną sferyią i twyńcą jako kulturowe na dwuską miejscowości wypoczynkowej."
+   },
+   {
+    "humano": "Zgodnie z oświadczeniem biura gubernatora wśród rannych było dziewiętnastu policjantów.",
+    "praxis": "Skąd nie z oświetleniem bioregulerynego oraz z utrznieniach południowych na sponi ciantów."
+   },
+   {
+    "humano": "Dzieci umieszcza się w pieczy zastępczej z rozmaitych przyczyn, jak zaniedbanie, wykorzystywanie, a nawet wymuszenia.",
+    "praxis": "Cieci umieścisz się w pieczyce zastępczej, zrozumiej tych przyczyn, jak zaniepawanie wykorzystywania a nawet wymuszenia."
+   }
+  ]
+ }
+]

@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "Permissões da janela principal do Praxis",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}

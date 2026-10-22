@@ -1,0 +1,5 @@
+# Opcional: clonagem de voz do OmniVoice a partir de uma amostra curta, sem
+# treino ("zero-shot") — precisa do PyTorch.
+torch
+torchaudio
+omnivoice

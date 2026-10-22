@@ -1,0 +1,5 @@
+# Dependências de desenvolvimento (testes e lint) além das do app.
+-r requirements.txt
+pytest>=8
+ruff>=0.6
+jiwer>=3.0

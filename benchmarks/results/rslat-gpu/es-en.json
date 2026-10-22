@@ -1,0 +1,17 @@
+{
+  "drain_s": 0.0,
+  "engine": "praxis-rs",
+  "keeps_up": true,
+  "lag_trend_ms": -8714.263671875,
+  "latency_audio_ms": {
+    "max": 11400.291015625,
+    "p50": 1612.6566162109375,
+    "p95": 11400.291015625
+  },
+  "pair": "es->en",
+  "reference": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo de clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje. El uso adecuado de los blogs «puede empoderar a los alumnos para que sean más analíticos y críticos, a través de la respuesta activa a los contenidos de internet, pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus perspectivas sobre temas específicos» (Oravec, 2002). Fue tanta la cantidad de gente que se concentró, que no todos pudieron acceder al funeral en la Plaza de San Pedro. Esto parece tener sentido, ya que en la Tierra no se percibe su movimiento, ¿cierto? Carpanedo participó en dos carreras individuales del campeonato aparte de la competencia del miércoles. Hoy en día, las personas escriben mensajes en las pantallas de sus computadoras. No tienen la necesidad de, siquiera, aproximarse a un sacapuntas.",
+  "segments": 8,
+  "speech_s": 157.8000030517578,
+  "transcript": "Se recomienda enfáticamente a los viajeros que se informen sobre cualquier riesgo del clima extremo en el área que visitan, dado que ello puede afectar sus planes de viaje. El uso adecuado de los blogs puede empoderar a los alumnos para que sean más analíticos y críticos a través de la respuesta activa a los contenidos de Internet. Pueden definir sus posturas en el contexto de los escritos de otros, además de establecer sus propias. perspectivas sobre temas específicos. Orabec 2002. Fue tanta la cantidad de gente que se concentró que no todos pudieron acceder al funeral en la plaza de San Pedro. Esto parece tener sentido, ya que en la Tierra no se percibe su movimiento, ¿cierto? Carpaneo participó en dos carreras individuales del campeonato aparte de la competencia del miércoles. Hoy en día las personas escriben mensajes en las pantallas de sus computadoras, no tienen la necesidad de siquiera aproximarse a un sacapuntas.",
+  "translation": "Travellers are strongly advised to inform themselves of any extreme weather risks in the area they are visiting, as this may affect their travel plans. Proper use of blogs can empower students to be more analytical and critical through active response to Internet content. They can define their positions in the context of others' writings, as well as establish their own. The European Parliament and the Council have adopted a resolution on this subject. It was 2002. So many people gathered that not everyone was able to attend the funeral in St. Peter's Square. This seems to make sense, since you don't see its movement on Earth, do you? Carpaneo participated in two individual championship races apart from Wednesday's competition. Nowadays people write messages on their computer screens, they don't even need to get close to a sacapunta."
+}

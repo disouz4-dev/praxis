@@ -1,0 +1,2539 @@
+{
+  "kind": "conversa",
+  "model": "small",
+  "backend": "cpu",
+  "machine": {
+    "os": "macOS-26.6.2-x86_64-i386-64bit",
+    "cpu": "i386",
+    "cores": 16,
+    "python": "3.12.15",
+    "cuda": false,
+    "faster_whisper": "1.2.1"
+  },
+  "eco_db": null,
+  "modo_eco": "nada",
+  "sobreposicao": 0.0,
+  "results": [
+    {
+      "pair": "pt<->en",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 66.9,
+        "wait_first_audio_s": 0.11,
+        "wait_translation_done_s": 4.61,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "and realized in a great dismay that the tropical set of the country of the sun would leave. Incomprehensible that his soul emigrated from there. incapable of perfect communion, of definitive infiltration with the Earth. What am I, then? What a worm, what a miserable atom you don't rule! That you can't love what you want. That you can't identify with all the molecules in the world? What am I?"
+      },
+      "B": {
+        "lang": "en",
+        "error_rate": 0.0079,
+        "error_metric": "words",
+        "translation_chrf": 72.0,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 6.47,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "Concord returned to its place amidst the tents.",
+            "dur": 3.392,
+            "avg_logprob": -0.07923746295273304,
+            "no_speech": 0.008620448410511017,
+            "rms": 0.02979990839958191
+          },
+          {
+            "text": "The English forwarded to the French baskets of flowers of which they had made a plentiful provision.",
+            "dur": 5.632,
+            "avg_logprob": -0.07633473893458192,
+            "no_speech": 0.03886401280760765,
+            "rms": 0.0424933023750782
+          },
+          {
+            "text": "to greet the arrival of the young princess. The French, in return, invited",
+            "dur": 4.768,
+            "avg_logprob": -0.13694291956284466,
+            "no_speech": 0.10586336255073547,
+            "rms": 0.03708285838365555
+          },
+          {
+            "text": "the English to a supper, which was to be given the next day.",
+            "dur": 4.032,
+            "avg_logprob": -0.0714486837387085,
+            "no_speech": 0.001813907059840858,
+            "rms": 0.03289595618844032
+          },
+          {
+            "text": "Congratulations were poured in upon the princess everywhere during her journey.",
+            "dur": 5.184,
+            "avg_logprob": -0.09734990275823154,
+            "no_speech": 0.007578347343951464,
+            "rms": 0.03767315670847893
+          },
+          {
+            "text": "From the respect paid her on all sides, she seemed like a queen.",
+            "dur": 4.736,
+            "avg_logprob": -0.06231915671378374,
+            "no_speech": 0.01044884417206049,
+            "rms": 0.03484366834163666
+          },
+          {
+            "text": "and from the adoration with which she was treated by two or three, she appeared an object.",
+            "dur": 5.856,
+            "avg_logprob": -0.11907595963705153,
+            "no_speech": 0.00662941113114357,
+            "rms": 0.04625469446182251
+          },
+          {
+            "text": "of worship.",
+            "dur": 1.152,
+            "avg_logprob": -0.14571070298552513,
+            "no_speech": 0.10265513509511948,
+            "rms": 0.03223148733377457
+          },
+          {
+            "text": "The Queen Mother gave the French the most affectionate reception. France was her native country.",
+            "dur": 5.664,
+            "avg_logprob": -0.08576634369398418,
+            "no_speech": 0.01075599156320095,
+            "rms": 0.03928612545132637
+          },
+          {
+            "text": "and she has suffered too much unhappiness in England for England to have made her forget France.",
+            "dur": 5.824,
+            "avg_logprob": -0.06270789896900003,
+            "no_speech": 0.007296815048903227,
+            "rms": 0.0478813610970974
+          }
+        ],
+        "reference": "concord returned to its place amidst the tents the english forwarded to the french baskets of flowers of which they had made a plentiful provision to greet the arrival of the young princess the french in return invited the english to a supper which was to be given the next day congratulations were poured in upon the princess everywhere during her journey from the respect paid her on all sides she seemed like a queen and from the adoration with which she was treated by two or three she appeared an object of worship the queen mother gave the french the most affectionate reception france was her native country and she had suffered too much unhappiness in england for england to have made her forget france",
+        "transcript": "Concord returned to its place amidst the tents. The English forwarded to the French baskets of flowers of which they had made a plentiful provision. to greet the arrival of the young princess. The French, in return, invited the English to a supper, which was to be given the next day. Congratulations were poured in upon the princess everywhere during her journey. From the respect paid her on all sides, she seemed like a queen. and from the adoration with which she was treated by two or three, she appeared an object. of worship. The Queen Mother gave the French the most affectionate reception. France was her native country. and she has suffered too much unhappiness in England for England to have made her forget France.",
+        "translation": "Concord voltou ao seu lugar no meio das tendas. Os ingleses enviaram aos cestos franceses de flores de que tinham feito uma provisão abundante. para saudar a chegada da jovem princesa. Os franceses, em troca, convidados os ingleses a uma ceia, que seria dada no dia seguinte. Parabéns foram derramados sobre a princesa em todos os lugares durante sua viagem. Pelo respeito que lhe foi dado, ela parecia uma rainha. e a partir da adoração com que ela foi tratada por dois ou três, ela apareceu um objeto. de adoração. A Rainha Mãe deu aos franceses a recepção mais afetuosa. A França era o seu país natal. e sofreu demasiada infelicidade na Inglaterra para que a Inglaterra a fizesse esquecer a França."
+      },
+      "duration_s": 110.7,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.6229983884841204e-05,
+          "end": 19.268436676997226,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.25127846596297,
+          "end": 43.39713749696966,
+          "text": "concord returned to its place amidst the tents the english forwarded to the french baskets of flowers of which they had made a plentiful provision to greet the arrival of the young princess the french in return invited the english to a supper which was to be given the next day"
+        },
+        {
+          "who": "A",
+          "start": 50.500177784997504,
+          "end": 62.05285871698288,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 66.91454452497419,
+          "end": 95.68400427396409,
+          "text": "congratulations were poured in upon the princess everywhere during her journey from the respect paid her on all sides she seemed like a queen and from the adoration with which she was treated by two or three she appeared an object of worship the queen mother gave the french the most affectionate reception france was her native country and she had suffered too much unhappiness in england for england to have made her forget france"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->es",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 70.0,
+        "wait_first_audio_s": 0.13,
+        "wait_translation_done_s": 4.75,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "y se dio cuenta en un gran consternación de que el conjunto tropical del país del sol se iría. Incomprensible que su alma emigró de allí. incapaz de comunión perfecta, de infiltración definitiva con la Tierra. ¿Qué soy entonces? ¡Qué gusano, qué átomo tan miserable no gobiernas! Que no puedes amar lo que quieres. ¿Que no puedes identificar con todas las moléculas del mundo? ¿Qué soy?"
+      },
+      "B": {
+        "lang": "es",
+        "error_rate": 0.0222,
+        "error_metric": "words",
+        "translation_chrf": 58.1,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 4.0,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "¿Es que acaso conoces tú?",
+            "dur": 2.016,
+            "avg_logprob": -0.16028403639793395,
+            "no_speech": 0.07206529378890991,
+            "rms": 0.02532356046140194
+          },
+          {
+            "text": "la angustia de sentir tu regazo sacudido de un ser que desconoces.",
+            "dur": 5.216,
+            "avg_logprob": -0.19360855931327456,
+            "no_speech": 0.20226643979549408,
+            "rms": 0.029718248173594475
+          },
+          {
+            "text": "y sin poder liberarlo.",
+            "dur": 1.984,
+            "avg_logprob": -0.12821116192000254,
+            "no_speech": 0.04471409693360329,
+            "rms": 0.03784317150712013
+          },
+          {
+            "text": "ha sentido tu espíritu en congoja, los apuros de un parto que no da luz.",
+            "dur": 5.504,
+            "avg_logprob": -0.09908076313634713,
+            "no_speech": 0.10934892296791077,
+            "rms": 0.05439823865890503
+          },
+          {
+            "text": "y queda entre dolores como un esfuerzo vano.",
+            "dur": 4.16,
+            "avg_logprob": -0.14418198053653425,
+            "no_speech": 0.04118987172842026,
+            "rms": 0.03437356650829315
+          }
+        ],
+        "reference": "es que acaso conoces tú la angustia de sentir tu regazo sacudido de un ser que desconoces y sin poder liberarlo ha sentido tu espíritu en congoja los apuros de un parto que no da á luz y queda entre dolores como un esfuerzo vano",
+        "transcript": "¿Es que acaso conoces tú? la angustia de sentir tu regazo sacudido de un ser que desconoces. y sin poder liberarlo. ha sentido tu espíritu en congoja, los apuros de un parto que no da luz. y queda entre dolores como un esfuerzo vano.",
+        "translation": "Sabes? A angústia de sentir o teu colo partido de um ser que não conheces. e não pode libertá-lo. Ele sentiu seu espírito em congoja, as dificuldades de um nascimento que não dá luz. e é deixado entre as dores como um esforço vão."
+      },
+      "duration_s": 80.5,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.9463011994957924e-05,
+          "end": 19.268254661001265,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.22085694503039,
+          "end": 35.58879385900218,
+          "text": "es que acaso conoces tú la angustia de sentir tu regazo sacudido de un ser que desconoces y sin poder liberarlo"
+        },
+        {
+          "who": "A",
+          "start": 40.83627217198955,
+          "end": 52.385213108034804,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 57.54184601700399,
+          "end": 68.4203804830322,
+          "text": "ha sentido tu espíritu en congoja los apuros de un parto que no da á luz y queda entre dolores como un esfuerzo vano"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->fr",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 60.8,
+        "wait_first_audio_s": 0.09,
+        "wait_translation_done_s": 4.78,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "et réalisé dans une grande consternation que le set tropical du pays du soleil partirait. Incompréhensible que son âme émigre de là. incapable de communion parfaite, d'infiltration définitive avec la Terre. Je suis quoi, alors ? Quel ver, quel misérable atome tu ne règnes pas ! Que tu ne peux pas aimer ce que tu veux. Que vous ne pouvez pas vous identifier avec toutes les molécules du monde ? Je suis quoi ?"
+      },
+      "B": {
+        "lang": "fr",
+        "error_rate": 0.3226,
+        "error_metric": "words",
+        "translation_chrf": 47.0,
+        "wait_first_audio_s": 0.29,
+        "wait_translation_done_s": 4.79,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "10ème nuit des milliers de nuit, ton premier.",
+            "dur": 3.072,
+            "avg_logprob": -0.3829175508939303,
+            "no_speech": 0.0717092975974083,
+            "rms": 0.037104956805706024
+          },
+          {
+            "text": "traduit par Antoine Gallant.",
+            "dur": 1.6,
+            "avg_logprob": -0.30875656339857316,
+            "no_speech": 0.1929854303598404,
+            "rms": 0.025605350732803345
+          },
+          {
+            "text": "enregistré pour LibriVox.org par Nkerli.",
+            "dur": 3.776,
+            "avg_logprob": -0.2297960501164198,
+            "no_speech": 0.03998428210616112,
+            "rms": 0.02415272407233715
+          },
+          {
+            "text": "NKRD.wp.com",
+            "dur": 2.4,
+            "avg_logprob": -0.8534481167793274,
+            "no_speech": 0.07785823941230774,
+            "rms": 0.020410969853401184
+          },
+          {
+            "text": "Dénarça de la nuit suivante, à place à sœur quand il en fut temps.",
+            "dur": 3.904,
+            "avg_logprob": -0.325112433537193,
+            "no_speech": 0.008173166774213314,
+            "rms": 0.025651494041085243
+          },
+          {
+            "text": "Si vous ne dormez pas ma sœur lui dis-t-elle, je vous prie en attendant le jour qui paraîtra bientôt.",
+            "dur": 5.088,
+            "avg_logprob": -0.1782848765142262,
+            "no_speech": 0.10605089366436005,
+            "rms": 0.022964846342802048
+          },
+          {
+            "text": "de continuer le compte du pêcheur.",
+            "dur": 1.92,
+            "avg_logprob": -0.16329556703567505,
+            "no_speech": 0.015630945563316345,
+            "rms": 0.014269446022808552
+          }
+        ],
+        "reference": "dixième nuit des mille et une nuits tome premier traduit par antoine galland enregistré pour librivox point org par enkirli enkirli point wolrdpress point com la nuit suivante appela sa soeur quand il en fut temps si vous ne dormez pas ma soeur lui dit-elle je vous prie en attendant le jour qui paraîtra bientôt de continuer le conte du pêcheur",
+        "transcript": "10ème nuit des milliers de nuit, ton premier. traduit par Antoine Gallant. enregistré pour LibriVox.org par Nkerli. NKRD.wp.com Dénarça de la nuit suivante, à place à sœur quand il en fut temps. Si vous ne dormez pas ma sœur lui dis-t-elle, je vous prie en attendant le jour qui paraîtra bientôt. de continuer le compte du pêcheur.",
+        "translation": "10a noite, milhares de noites, a primeira. traduzido por Antoine Gallant. registado para LibriVox.org por Nkerli. NKRD.wp.com Narrou na noite seguinte, em vez de irmã quando era hora. Se você não dormir minha irmã lhe diz, eu rezo para você enquanto espera pelo dia que logo aparecerá. Continue o relato do pescador."
+      },
+      "duration_s": 87.8,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 2.4938024580478668e-05,
+          "end": 19.26742811902659,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.312835613032803,
+          "end": 39.49053239100613,
+          "text": "dixième nuit des mille et une nuits tome premier traduit par antoine galland enregistré pour librivox point org par enkirli enkirli point wolrdpress point com"
+        },
+        {
+          "who": "A",
+          "start": 42.82136178703513,
+          "end": 54.36989335302496,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 59.48984652000945,
+          "end": 72.16504904202884,
+          "text": "la nuit suivante appela sa soeur quand il en fut temps si vous ne dormez pas ma soeur lui dit-elle je vous prie en attendant le jour qui paraîtra bientôt de continuer le conte du pêcheur"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->de",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 57.1,
+        "wait_first_audio_s": 0.67,
+        "wait_translation_done_s": 5.53,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "und erkannte in großer Bestürzung, dass das tropische Land der Sonne gehen würde. Unverständlich, dass seine Seele von dort auswanderte. Unfähig zur vollkommenen Gemeinschaft, zur endgültigen Infiltration mit der Erde. Was bin ich dann? Was für ein Wurm, was für ein elendes Atom du nicht beherrschst! Dass du nicht lieben kannst, was du willst. Dass man sich nicht mit allen Molekülen der Welt identifizieren kann? Was bin ich?"
+      },
+      "B": {
+        "lang": "de",
+        "error_rate": 0.2083,
+        "error_metric": "words",
+        "translation_chrf": 49.8,
+        "wait_first_audio_s": 1.84,
+        "wait_translation_done_s": 4.85,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "Eins.",
+            "dur": 0.96,
+            "avg_logprob": -0.24690977732340494,
+            "no_speech": 0.042757339775562286,
+            "rms": 0.03586670011281967
+          },
+          {
+            "text": "ein kühnes Unternehmen.",
+            "dur": 2.176,
+            "avg_logprob": -0.4637132201875959,
+            "no_speech": 0.021463194862008095,
+            "rms": 0.03668953850865364
+          },
+          {
+            "text": "Professor Doktor Heinrich Schulze lehnte sinnen in seinen Sessel zurück.",
+            "dur": 5.984,
+            "avg_logprob": -0.20106074527690285,
+            "no_speech": 0.004977504722774029,
+            "rms": 0.04058420658111572
+          },
+          {
+            "text": "",
+            "dur": 0.096,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 9.439609129913151e-05
+          },
+          {
+            "text": "vor ihm.",
+            "dur": 1.056,
+            "avg_logprob": -0.45981694757938385,
+            "no_speech": 0.15198861062526703,
+            "rms": 0.05466264858841896
+          },
+          {
+            "text": "Auf dem mit Büchern und Papierens bedeckten Schreibtisch lag ein Brief.",
+            "dur": 5.856,
+            "avg_logprob": -0.1136006840637752,
+            "no_speech": 0.011959468945860863,
+            "rms": 0.04219057783484459
+          },
+          {
+            "text": "der seine Gedanken beschäftigte.",
+            "dur": 2.496,
+            "avg_logprob": -0.029906988609582186,
+            "no_speech": 0.03779644891619682,
+            "rms": 0.03524143621325493
+          },
+          {
+            "text": "Der Leute ist an der Eingangstüre seiner Wohnung.",
+            "dur": 4.16,
+            "avg_logprob": -0.314220911690167,
+            "no_speech": 0.00932044256478548,
+            "rms": 0.035215094685554504
+          },
+          {
+            "text": "und kurz darauf pockte es gewaltig an die Studie Zimmertöre.",
+            "dur": 4.704,
+            "avg_logprob": -0.1891538075038365,
+            "no_speech": 0.0002485065197106451,
+            "rms": 0.050476547330617905
+          }
+        ],
+        "reference": "eins ein kühnes unternehmen professor dr heinrich schultze lehnte sinnend in seinen sessel zurück vor ihm auf dem mit büchern und papieren bedeckten schreibtisch lag ein brief der seine gedanken beschäftigte da läutete es an der eingangstüre seiner wohnung und kurz darauf pochte es gewaltig an die studiozimmertüre",
+        "transcript": "Eins. ein kühnes Unternehmen. Professor Doktor Heinrich Schulze lehnte sinnen in seinen Sessel zurück. vor ihm. Auf dem mit Büchern und Papierens bedeckten Schreibtisch lag ein Brief. der seine Gedanken beschäftigte. Der Leute ist an der Eingangstüre seiner Wohnung. und kurz darauf pockte es gewaltig an die Studie Zimmertöre.",
+        "translation": "Uma. Uma empresa ousada. O Professor Heinrich Schulze inclinou-se para a cadeira. Antes dele. Na mesa coberta de livros e papel havia uma carta. Que ocupava seus pensamentos. O homem está na porta da frente do apartamento. E pouco tempo depois, ele jogou enormemente no estudo Zimmertöre."
+      },
+      "duration_s": 92.4,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.1191004887223244e-05,
+          "end": 19.26871031097835,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.921680907020345,
+          "end": 36.67513536999468,
+          "text": "eins ein kühnes unternehmen professor dr heinrich schultze lehnte sinnend in seinen sessel zurück"
+        },
+        {
+          "who": "A",
+          "start": 41.89178758201888,
+          "end": 53.44440071401186,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 59.460835090023465,
+          "end": 78.59685020899633,
+          "text": "vor ihm auf dem mit büchern und papieren bedeckten schreibtisch lag ein brief der seine gedanken beschäftigte da läutete es an der eingangstüre seiner wohnung und kurz darauf pochte es gewaltig an die studiozimmertüre"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->it",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 61.3,
+        "wait_first_audio_s": 0.14,
+        "wait_translation_done_s": 4.52,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.808,
+            "avg_logprob": -0.18094169441610575,
+            "no_speech": 0.04657619446516037,
+            "rms": 0.03641559183597565
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.144,
+            "avg_logprob": -0.1400273640950521,
+            "no_speech": 0.049214646220207214,
+            "rms": 0.03707465901970863
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "e realizzato in un grande sgomento che l'insieme tropicale del paese del sole sarebbe partito. Incomprensibile che la sua anima emigrasse da lì. incapace di perfetta comunione, di definitiva infiltrazione con la Terra. Cosa sono, allora? Che verme, che atomo miserabile non governate! Che non puoi amare quello che vuoi. Che non puoi identificarti con tutte le molecole del mondo? Cosa sono?"
+      },
+      "B": {
+        "lang": "it",
+        "error_rate": 0.2807,
+        "error_metric": "words",
+        "translation_chrf": 47.6,
+        "wait_first_audio_s": 0.18,
+        "wait_translation_done_s": 3.78,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "La signora ordinò a Isabella che colla a favola seguitasse.",
+            "dur": 4.32,
+            "avg_logprob": -0.2880003577784488,
+            "no_speech": 0.019494619220495224,
+            "rms": 0.05053870752453804
+          },
+          {
+            "text": "la quale non sorda ne muta in cotta al guisa disse.",
+            "dur": 3.744,
+            "avg_logprob": -0.24052785572252774,
+            "no_speech": 0.014183925464749336,
+            "rms": 0.04729596897959709
+          },
+          {
+            "text": "favola 12esima",
+            "dur": 1.824,
+            "avg_logprob": -0.5073903501033783,
+            "no_speech": 0.045675989240407944,
+            "rms": 0.057371582835912704
+          },
+          {
+            "text": "Guglielmo, radibretagna, aggravato d'une infermità, fa venir tutti i medici...",
+            "dur": 5.376,
+            "avg_logprob": -0.32925791541735333,
+            "no_speech": 0.03875838220119476,
+            "rms": 0.047671087086200714
+          },
+          {
+            "text": "per riaverla a salute e conservarsi sano.",
+            "dur": 2.656,
+            "avg_logprob": -0.185955116382012,
+            "no_speech": 0.11923862993717194,
+            "rms": 0.04504065215587616
+          },
+          {
+            "text": "Maestro Goffreddo, medico e povero, li da tre documenti e con...",
+            "dur": 4.672,
+            "avg_logprob": -0.35749750516631384,
+            "no_speech": 0.013846371322870255,
+            "rms": 0.044599879533052444
+          },
+          {
+            "text": "Quelli si regge e sano rimane.",
+            "dur": 2.272,
+            "avg_logprob": -0.2514928976694743,
+            "no_speech": 0.35695794224739075,
+            "rms": 0.03836344927549362
+          }
+        ],
+        "reference": "la signora ordinò ad isabella che colla favola seguitasse la qual non sorda né muta in cotal guisa disse favola guglielmo re di bertagna aggravato d'una infermità fa venir tutti e medici per riaver la salute e conservarsi sano maestro gotfreddu medico e povero li dà tre documenti e con quelli si regge e sano rimane",
+        "transcript": "La signora ordinò a Isabella che colla a favola seguitasse. la quale non sorda ne muta in cotta al guisa disse. favola 12esima Guglielmo, radibretagna, aggravato d'une infermità, fa venir tutti i medici... per riaverla a salute e conservarsi sano. Maestro Goffreddo, medico e povero, li da tre documenti e con... Quelli si regge e sano rimane.",
+        "translation": "A senhora ordenou que Isabella seguisse a história. que ele não surdo, disse. fábula 12a William, radibretagna, exacerbado por uma única enfermidade, faz todos os médicos virem... para ela voltar à saúde e manter-se saudável. Mestre Goffreddo, doutor e pobre, dá-lhes três documentos e... São fortes e saudáveis."
+      },
+      "duration_s": 84.7,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.921399962157011e-05,
+          "end": 19.265966927981935,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.378031276981346,
+          "end": 36.13260708999587,
+          "text": "la signora ordinò ad isabella che colla favola seguitasse la qual non sorda né muta in cotal guisa disse favola"
+        },
+        {
+          "who": "A",
+          "start": 39.169628970033955,
+          "end": 50.724368900002446,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 55.20347982598469,
+          "end": 70.88283446303103,
+          "text": "guglielmo re di bertagna aggravato d'una infermità fa venir tutti e medici per riaver la salute e conservarsi sano maestro gotfreddu medico e povero li dà tre documenti e con quelli si regge e sano rimane"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->ru",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 47.0,
+        "wait_first_audio_s": 0.17,
+        "wait_translation_done_s": 4.58,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "И в глубоком смятении понял, что тропическая страна солнца уйдет. Непостижимо, что оттуда эмигрировала его душа. Неспособен к совершенному общению, к окончательному проникновению на Землю. Тогда кто я? Какой червь, какой жалкий атом ты не правишь! Что ты не можешь любить то, что хочешь. Что вы не можете идентифицировать себя со всеми молекулами в мире? Что я такое?"
+      },
+      "B": {
+        "lang": "ru",
+        "error_rate": 0.1714,
+        "error_metric": "words",
+        "translation_chrf": 63.0,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 2.62,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "В Древнем Китае использовали уникальный способ обозначения передов времени.",
+            "dur": 5.664,
+            "avg_logprob": -0.09101291237906976,
+            "no_speech": 0.02263832837343216,
+            "rms": 0.017939774319529533
+          },
+          {
+            "text": "Каждый этап Китая или каждая семья",
+            "dur": 3.232,
+            "avg_logprob": -0.19977829853693643,
+            "no_speech": 0.1876937448978424,
+            "rms": 0.012640837579965591
+          },
+          {
+            "text": "находившиеся у власти были особые династии.",
+            "dur": 3.648,
+            "avg_logprob": -0.1059370650909841,
+            "no_speech": 0.01437599491328001,
+            "rms": 0.00664276210591197
+          },
+          {
+            "text": "Мадагаскар намного больше других и является самобытным континентом.",
+            "dur": 5.088,
+            "avg_logprob": -0.10366370562802661,
+            "no_speech": 0.05862735956907272,
+            "rms": 0.02221778966486454
+          },
+          {
+            "text": "то, что касается дикой природы.",
+            "dur": 2.336,
+            "avg_logprob": -0.1477519708375136,
+            "no_speech": 0.019677624106407166,
+            "rms": 0.011519740335643291
+          }
+        ],
+        "reference": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией. Мадагаскар намного больше других и  является самобытным континентом в том, что касается дикой природы.",
+        "transcript": "В Древнем Китае использовали уникальный способ обозначения передов времени. Каждый этап Китая или каждая семья находившиеся у власти были особые династии. Мадагаскар намного больше других и является самобытным континентом. то, что касается дикой природы.",
+        "translation": "Na China antiga, uma forma única de designar o avanço do tempo foi usada. Cada fase da China ou cada família Havia dinastias especiais no poder. Madagáscar é muito maior do que outros e é um continente original. É sobre a vida selvagem."
+      },
+      "duration_s": 108.1,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.3634038623422384e-05,
+          "end": 19.264969356008805,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 24.77211931301281,
+          "end": 41.69723826099653,
+          "text": "В древнем Китае использовали уникальный способ обозначения периодов времени; каждый этап Китая или каждая семья, находившаяся у власти, были особой династией."
+        },
+        {
+          "who": "A",
+          "start": 67.20356521499343,
+          "end": 78.7546567870304,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 84.00356197799556,
+          "end": 95.52398750401335,
+          "text": "Мадагаскар намного больше других и  является самобытным континентом в том, что касается дикой природы."
+        }
+      ]
+    },
+    {
+      "pair": "pt<->zh",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 37.8,
+        "wait_first_audio_s": 0.27,
+        "wait_translation_done_s": 4.65,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.808,
+            "avg_logprob": -0.18094169441610575,
+            "no_speech": 0.04657619446516037,
+            "rms": 0.03641559183597565
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.144,
+            "avg_logprob": -0.1400273640950521,
+            "no_speech": 0.049214646220207214,
+            "rms": 0.03707465901970863
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "并且非常失望地意识到 太阳之地的热带地区会离开 无法理解他的灵魂从那里移民。 无法完成圣餐 无法彻底渗透地球 我是什么人,然后吗? 真是个虫子,你统治不了的原子 你不能爱你想要的。 你无法认同世界上所有的分子? 我是谁?"
+      },
+      "B": {
+        "lang": "zh",
+        "error_rate": 0.2045,
+        "error_metric": "characters",
+        "translation_chrf": 36.4,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 1.91,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "这并不是告别",
+            "dur": 1.856,
+            "avg_logprob": -0.06408754736185074,
+            "no_speech": 0.007937813177704811,
+            "rms": 0.005509933922439814
+          },
+          {
+            "text": "这是一个偏张的结束,也是新偏张的开始",
+            "dur": 3.84,
+            "avg_logprob": -0.15049076080322266,
+            "no_speech": 0.016911722719669342,
+            "rms": 0.005184032488614321
+          },
+          {
+            "text": "代价等元素属于金属",
+            "dur": 2.4,
+            "avg_logprob": -0.20405094898664033,
+            "no_speech": 0.33407554030418396,
+            "rms": 0.005235173273831606
+          },
+          {
+            "text": "银河经的元素",
+            "dur": 1.728,
+            "avg_logprob": -0.22281631976366043,
+            "no_speech": 0.13619568943977356,
+            "rms": 0.005588720086961985
+          },
+          {
+            "text": "当然也是金属",
+            "dur": 1.568,
+            "avg_logprob": -0.2706371992826462,
+            "no_speech": 0.0064465696923434734,
+            "rms": 0.006058209575712681
+          }
+        ],
+        "reference": "“这并不是告别。这是一个篇章的结束，也是新篇章的开始。” 钙、钾等元素属于金属，银和金等元素当然也是金属。",
+        "transcript": "这并不是告别 这是一个偏张的结束,也是新偏张的开始 代价等元素属于金属 银河经的元素 当然也是金属",
+        "translation": "Não é um adeus. É o fim da intolerância. É o início de uma nova intolerância. Os elementos de custo são de metal. Elementos da Via Láctea Metal, claro."
+      },
+      "duration_s": 73.2,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 2.455298090353608e-05,
+          "end": 19.274643126991577,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.025891622994095,
+          "end": 35.42752677499084,
+          "text": "“这并不是告别。这是一个篇章的结束，也是新篇章的开始。”"
+        },
+        {
+          "who": "A",
+          "start": 38.47291945503093,
+          "end": 50.018192663032096,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 55.14160751900636,
+          "end": 63.434180490032304,
+          "text": "钙、钾等元素属于金属，银和金等元素当然也是金属。"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->nl",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 57.5,
+        "wait_first_audio_s": 0.41,
+        "wait_translation_done_s": 6.3,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "en besefte in grote ontzetting dat de tropische ondergang van het land van de zon zou vertrekken. Onbegrijpelijk dat zijn ziel van daaruit emigreerde. niet in staat tot perfecte communie, van definitieve infiltratie met de aarde. Wat ben ik dan? Wat een worm, wat een ellendig atoom heers je niet! Dat je niet kunt houden van wat je wilt. Dat je je niet kunt identificeren met alle moleculen in de wereld? Wat ben ik?"
+      },
+      "B": {
+        "lang": "nl",
+        "error_rate": 0.2083,
+        "error_metric": "words",
+        "translation_chrf": 45.2,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 5.12,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "In het bos, hoog op de stijl-oever vlak bij de zeekwust, stond een heel oude eik.",
+            "dur": 5.568,
+            "avg_logprob": -0.271916249219109,
+            "no_speech": 0.01795259118080139,
+            "rms": 0.04017143324017525
+          },
+          {
+            "text": "Hij was 365 jaar en oud, maar die lange tijd was voor de boom niet meer...",
+            "dur": 5.888,
+            "avg_logprob": -0.21214037463068963,
+            "no_speech": 0.23006565868854523,
+            "rms": 0.03357040882110596
+          },
+          {
+            "text": "dan even zoveel dagen voor ons mensen zijn.",
+            "dur": 3.136,
+            "avg_logprob": -0.09957425047953923,
+            "no_speech": 0.026951679959893227,
+            "rms": 0.03062419965863228
+          },
+          {
+            "text": "Wij waken overdag, slapensnacht en hebben dan onze dromen.",
+            "dur": 4.864,
+            "avg_logprob": -0.17776590337355933,
+            "no_speech": 0.021224170923233032,
+            "rms": 0.03790247440338135
+          },
+          {
+            "text": "Met de boom gaat het anders. Hij is drie jaar getijden achtereen wakker.",
+            "dur": 4.832,
+            "avg_logprob": -0.10249310306140355,
+            "no_speech": 0.024097144603729248,
+            "rms": 0.03255733847618103
+          },
+          {
+            "text": "Eerst tegen de winter komt zijn slaap.",
+            "dur": 2.368,
+            "avg_logprob": -0.06688724864612926,
+            "no_speech": 0.009574848227202892,
+            "rms": 0.02957557700574398
+          }
+        ],
+        "reference": "in het bos hoog op de steile oever vlak bij de zeekust stond een heel oude eik hij was driehonderd vijfenzestig jaren oud maar die lange tijd was voor de boom niet meer dan even zo vele dagen voor ons mensen zijn wij waken overdag slapen s nachts en hebben dan onze droomen met den boom gaat het anders hij is drie jaargetijden achtereen wakker eerst tegen den winter komt zijn slaap",
+        "transcript": "In het bos, hoog op de stijl-oever vlak bij de zeekwust, stond een heel oude eik. Hij was 365 jaar en oud, maar die lange tijd was voor de boom niet meer... dan even zoveel dagen voor ons mensen zijn. Wij waken overdag, slapensnacht en hebben dan onze dromen. Met de boom gaat het anders. Hij is drie jaar getijden achtereen wakker. Eerst tegen de winter komt zijn slaap.",
+        "translation": "Na floresta, no alto da elegante margem perto do kwust beira-mar, estava um carvalho muito velho. Tinha 365 anos e era velho, mas muito tempo antes da árvore já não era... do que tantos dias para sermos humanos. Observamos durante o dia, dormimos e depois temos os nossos sonhos. A árvore é diferente. Ele acordou três anos seguidos. Primeiro, no inverno, vem o seu sono."
+      },
+      "duration_s": 94.3,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.8821039702743292e-05,
+          "end": 19.266872971027624,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 26.66508463502396,
+          "end": 43.177694170037284,
+          "text": "in het bos hoog op de steile oever vlak bij de zeekust stond een heel oude eik hij was driehonderd vijfenzestig jaren oud maar die lange tijd was voor de boom niet meer dan even zo vele dagen voor ons mensen zijn"
+        },
+        {
+          "who": "A",
+          "start": 49.92987554700812,
+          "end": 61.48244275600882,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 68.29631679900922,
+          "end": 81.19187979400158,
+          "text": "wij waken overdag slapen s nachts en hebben dan onze droomen met den boom gaat het anders hij is drie jaargetijden achtereen wakker eerst tegen den winter komt zijn slaap"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->pl",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 64.5,
+        "wait_first_audio_s": 0.14,
+        "wait_translation_done_s": 5.03,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "I zdałem sobie sprawę w wielkim niepokoju, że tropikalny zbiór kraju słońca odejdzie. To zrozumiałe, że jego dusza wyemigrowała stamtąd. niezdolny do doskonałej komunii, do ostatecznej infiltracji z Ziemią. Więc kim jestem? Co za robak, jaki żałosny atom nie rządzisz! Że nie możesz kochać tego, czego chcesz. Że nie możesz się identyfikować ze wszystkimi cząsteczkami na świecie? Kim jestem?"
+      },
+      "B": {
+        "lang": "pl",
+        "error_rate": 0.1803,
+        "error_metric": "words",
+        "translation_chrf": 49.0,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 4.63,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "Zaledwie subiekt i bratmój z wzdętymi płaszczami wkroczyli jedną nogą w ciemność.",
+            "dur": 5.056,
+            "avg_logprob": -0.13820240274071693,
+            "no_speech": 0.002600090578198433,
+            "rms": 0.07515120506286621
+          },
+          {
+            "text": "Noc ich pouknęła zaraz na progu domu.",
+            "dur": 2.656,
+            "avg_logprob": -0.10015373031298319,
+            "no_speech": 0.09197060018777847,
+            "rms": 0.06496760994195938
+          },
+          {
+            "text": "Bicher zmył momentalnie ślad i wyjścia.",
+            "dur": 2.784,
+            "avg_logprob": -0.22362518310546875,
+            "no_speech": 0.005753581877797842,
+            "rms": 0.07895509898662567
+          },
+          {
+            "text": "Nie widać był on przez okno nawet latarki, którą ze sobą zabrali.",
+            "dur": 3.552,
+            "avg_logprob": -0.08284963260997426,
+            "no_speech": 0.025084173306822777,
+            "rms": 0.06823980808258057
+          },
+          {
+            "text": "pochłonąwszy ich wicher na chwilę przy cichu.",
+            "dur": 2.72,
+            "avg_logprob": -0.15585862927966648,
+            "no_speech": 0.031157158315181732,
+            "rms": 0.054848428815603256
+          },
+          {
+            "text": "a Dela z matką próbowały na nowo rozpalić ogień pod kuchnią.",
+            "dur": 3.52,
+            "avg_logprob": -0.18096414323036486,
+            "no_speech": 0.003630479099228978,
+            "rms": 0.07380229234695435
+          },
+          {
+            "text": "Zapałki gasły przez drzwiczki dmuchało popiołem i sadzą.",
+            "dur": 3.968,
+            "avg_logprob": -0.1515473503133525,
+            "no_speech": 0.029919691383838654,
+            "rms": 0.06623025983572006
+          }
+        ],
+        "reference": "zaledwie subiekt i brat mój z wzdętymi płaszczami wkroczyli jedną nogą w ciemność noc ich połknęła zaraz na progu domu wicher zmył momentalnie ślad ich wyjścia nie widać było przez okno nawet latarki którą ze sobą zabrali pochłonąwszy ich wicher na chwilę przycichł adela z matką próbowały na nowo rozpalić ogień pod kuchnią zapałki gasły przez drzwiczki dmuchało popiołem i sadzą",
+        "transcript": "Zaledwie subiekt i bratmój z wzdętymi płaszczami wkroczyli jedną nogą w ciemność. Noc ich pouknęła zaraz na progu domu. Bicher zmył momentalnie ślad i wyjścia. Nie widać był on przez okno nawet latarki, którą ze sobą zabrali. pochłonąwszy ich wicher na chwilę przy cichu. a Dela z matką próbowały na nowo rozpalić ogień pod kuchnią. Zapałki gasły przez drzwiczki dmuchało popiołem i sadzą.",
+        "translation": "Apenas um sujeito e um irmão com casacos inchados entraram na escuridão com um pé. A noite apanhou-os mesmo à porta. Bicher imediatamente lavou a trilha e as saídas. Não era visível mesmo da janela da lanterna que levaram com eles. Tendo absorvido seu vento por um tempo em silêncio. E a Dela e a mãe tentaram reacender o fogo debaixo da cozinha. Os fósforos saíram pela porta, soprando cinzas e plantando."
+      },
+      "duration_s": 89.2,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.7936050426214933e-05,
+          "end": 19.273486182035413,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.223468679003417,
+          "end": 40.67807789205108,
+          "text": "zaledwie subiekt i brat mój z wzdętymi płaszczami wkroczyli jedną nogą w ciemność noc ich połknęła zaraz na progu domu wicher zmył momentalnie ślad ich wyjścia nie widać było przez okno nawet latarki którą ze sobą zabrali"
+        },
+        {
+          "who": "A",
+          "start": 45.929519000055734,
+          "end": 57.482019798015244,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 63.21027060702909,
+          "end": 75.43061139900237,
+          "text": "pochłonąwszy ich wicher na chwilę przycichł adela z matką próbowały na nowo rozpalić ogień pod kuchnią zapałki gasły przez drzwiczki dmuchało popiołem i sadzą"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->uk",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 45.1,
+        "wait_first_audio_s": 0.74,
+        "wait_translation_done_s": 4.83,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "І я усвідомив, що в великій розчаруванні тропічний комплекс країни Сонця відмовляється. Не зрозуміло, що його душа переїхала звідти. не в змозі досконалої комунізації, не в змозі досконалої проникнення з Землею. Хто ж я? Що за черво, що за нещасний атом, який не управляється! Вона не може любити те, що хоче. що ви не можете ідентифікувати з усіма молекулами світу? Що я?"
+      },
+      "B": {
+        "lang": "uk",
+        "error_rate": 0.1163,
+        "error_metric": "words",
+        "translation_chrf": 76.7,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 4.96,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "Жінки усім подорожням жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану.",
+            "dur": 6.016,
+            "avg_logprob": -0.09244582837536222,
+            "no_speech": 0.008042835630476475,
+            "rms": 0.0977235734462738
+          },
+          {
+            "text": "",
+            "dur": 0.128,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 5.1714301662286744e-05
+          },
+          {
+            "text": "Такі батьки можуть вирішити створити для своєї дитини план всиновування.",
+            "dur": 5.184,
+            "avg_logprob": -0.13164776358111152,
+            "no_speech": 0.006850575562566519,
+            "rms": 0.1443324238061905
+          },
+          {
+            "text": "Міжнє кора становить приблизно 70 км у товщину на ближній стороні.",
+            "dur": 5.376,
+            "avg_logprob": -0.3377423245331337,
+            "no_speech": 0.14967700839042664,
+            "rms": 0.03815526142716408
+          },
+          {
+            "text": "та 100 км утовщину на дальній стороні.",
+            "dur": 2.688,
+            "avg_logprob": -0.2571250691133387,
+            "no_speech": 0.08244743198156357,
+            "rms": 0.035359397530555725
+          }
+        ],
+        "reference": "Жінки: усім подорожнім жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану. Такі батьки можуть вирішити створити для своєї дитини план всиновлення. Місячна кора становить приблизно 70 км у товщину на ближній стороні та 100 км у товщину на дальній стороні.",
+        "transcript": "Жінки усім подорожням жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану. Такі батьки можуть вирішити створити для своєї дитини план всиновування. Міжнє кора становить приблизно 70 км у товщину на ближній стороні. та 100 км утовщину на дальній стороні.",
+        "translation": "Mulheres em todas as viagens aconselham as mulheres a dizerem que são casadas, independentemente da situação familiar real. Esses pais podem decidir criar um plano de adopção para o seu filho. A corteza intermédia é de cerca de 70 km de espessura no lado próximo. e 100 quilômetros de praia no lado de fora."
+      },
+      "duration_s": 88.6,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.98000343516469e-05,
+          "end": 19.2734222120489,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.505134035018273,
+          "end": 40.39366192300804,
+          "text": "Жінки: усім подорожнім жінкам радять казати, що вони заміжні, незалежно від справжнього сімейного стану. Такі батьки можуть вирішити створити для своєї дитини план всиновлення."
+        },
+        {
+          "who": "A",
+          "start": 45.60659043904161,
+          "end": 57.16211143200053,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 62.15387289202772,
+          "end": 71.65658926300239,
+          "text": "Місячна кора становить приблизно 70 км у товщину на ближній стороні та 100 км у товщину на дальній стороні."
+        }
+      ]
+    },
+    {
+      "pair": "pt<->tr",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 54.1,
+        "wait_first_audio_s": 0.64,
+        "wait_translation_done_s": 5.06,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "Ve güneş ülkesinin tropikal birimi terk ettiğini büyük bir hayal kırıklığı içinde fark etti. Ruhunun oradan göç etmesi çok şaşırtıcı. Mükemmel bir ortaklığa, Dünya'yla kesin bir infiltrasyona sahip olamayacak. Ben kimim o zaman? Ne yaramaz bir solucan, ne de yönetilmeyen bir atom! İstediğini sevemez. Dünyadaki tüm molekülleri tanımlayamıyor musunuz? Ben kimim?"
+      },
+      "B": {
+        "lang": "tr",
+        "error_rate": 0.3429,
+        "error_metric": "words",
+        "translation_chrf": 49.4,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 4.43,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "Aynı ay başka bir yolcu uçağı meş etteki bir piste aşarak",
+            "dur": 4.96,
+            "avg_logprob": -0.322182460129261,
+            "no_speech": 0.005723669193685055,
+            "rms": 0.0580398291349411
+          },
+          {
+            "text": "bir duvara çarptı ve 17 kişinin ölümüne neden oldu.",
+            "dur": 4.256,
+            "avg_logprob": -0.1136809893344578,
+            "no_speech": 0.0115654980763793,
+            "rms": 0.05592208355665207
+          },
+          {
+            "text": "Romantizin, göte, pihte ve şile gel gibi yazarlardan geçen geniş bir kültür.",
+            "dur": 4.96,
+            "avg_logprob": -0.1543644854316005,
+            "no_speech": 0.06926073133945465,
+            "rms": 0.0254350658506155
+          },
+          {
+            "text": "eterminizin özelliği taşıyordu.",
+            "dur": 2.56,
+            "avg_logprob": -0.3702201098203659,
+            "no_speech": 0.297585666179657,
+            "rms": 0.02000252716243267
+          }
+        ],
+        "reference": "Aynı ay, başka bir yolcu uçağı Meşhed'deki bir pisti aşarak bir duvara çarptı ve on yedi kişinin ölümüne neden oldu. Romantizm; Goethe, Fichte ve Schlegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu.",
+        "transcript": "Aynı ay başka bir yolcu uçağı meş etteki bir piste aşarak bir duvara çarptı ve 17 kişinin ölümüne neden oldu. Romantizin, göte, pihte ve şile gel gibi yazarlardan geçen geniş bir kültür. eterminizin özelliği taşıyordu.",
+        "translation": "No mesmo mês , outro avião de passageiros atravessou uma pista no bosque . Ele bateu numa parede e matou 17 pessoas. A cultura romântica é muito ampla, passando por escritores como o assado, o feijão e o gel. Ele tinha a propriedade de eterminina."
+      },
+      "duration_s": 89.5,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.780100865289569e-05,
+          "end": 19.270974346029107,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.96232297900133,
+          "end": 40.13792375504272,
+          "text": "Aynı ay, başka bir yolcu uçağı Meşhed'deki bir pisti aşarak bir duvara çarptı ve on yedi kişinin ölümüne neden oldu."
+        },
+        {
+          "who": "A",
+          "start": 44.13506265101023,
+          "end": 55.68826602800982,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 60.71271977899596,
+          "end": 73.09560284402687,
+          "text": "Romantizm; Goethe, Fichte ve Schlegel gibi yazarlardan geçen geniş bir kültürel determinizm özelliği taşıyordu."
+        }
+      ]
+    },
+    {
+      "pair": "pt<->ar",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 56.7,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 9.22,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "ولاحظت في خيبة أمل كبيرة أن المجموعة الاستوائية في بلد الشمس كانت تتوقف. من المستحيل أن تتحرك روحها من هناك غير قادر على التواصل المثالي، أو التسلل النهائي مع الأرض. ما أنا إذن؟ يا له من ورم، يا له من ذرة لا تحكم نفسها! الذي لا يستطيع أن يحب ما يريد إذا لم تتمكن من التعرف على كل الجزيئات في العالم؟ ما أنا؟"
+      },
+      "B": {
+        "lang": "ar",
+        "error_rate": 0.4444,
+        "error_metric": "words",
+        "translation_chrf": 53.9,
+        "wait_first_audio_s": 0.83,
+        "wait_translation_done_s": 7.47,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "تشكلت في المحيط الأطلسي اليوم عشر عاصفة مسماي لموسى من الأعاصير الأطلسية",
+            "dur": 5.248,
+            "avg_logprob": -0.26239819557238847,
+            "no_speech": 0.04675636440515518,
+            "rms": 0.09546030312776566
+          },
+          {
+            "text": "العصفة شبه الاستوائية جري",
+            "dur": 2.176,
+            "avg_logprob": -0.26226693391799927,
+            "no_speech": 0.02637520805001259,
+            "rms": 0.10331261157989502
+          },
+          {
+            "text": "تغدر بحافلات المحطة الدخلية بين المنوطق عبر النهر في خلال اليوم على الرغم منها",
+            "dur": 5.696,
+            "avg_logprob": -0.18255108740271592,
+            "no_speech": 0.0880298763513565,
+            "rms": 0.10540930181741714
+          },
+          {
+            "text": "ونحن نمعظمها وخاصة المتجه منها إلى الشرق وجكارب ومثانج",
+            "dur": 4.64,
+            "avg_logprob": -0.5336524738984949,
+            "no_speech": 0.49921149015426636,
+            "rms": 0.08570405840873718
+          },
+          {
+            "text": "تغادر بين 36 و 37",
+            "dur": 3.104,
+            "avg_logprob": -0.4017128414577908,
+            "no_speech": 0.06896544992923737,
+            "rms": 0.08464942127466202
+          }
+        ],
+        "reference": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري. تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30.",
+        "transcript": "تشكلت في المحيط الأطلسي اليوم عشر عاصفة مسماي لموسى من الأعاصير الأطلسية العصفة شبه الاستوائية جري تغدر بحافلات المحطة الدخلية بين المنوطق عبر النهر في خلال اليوم على الرغم منها ونحن نمعظمها وخاصة المتجه منها إلى الشرق وجكارب ومثانج تغادر بين 36 و 37",
+        "translation": "Formaram-se no Atlântico hoje dez tempestades chamadas de Moisés dos furacões atlânticos. A tempestade semi-tropical está acontecendo. Os ônibus da estação de entrada atravessam o rio durante o dia, apesar de E a maioria deles, especialmente os que vêm para o leste, Scarpe e Manganj. Saia entre 36 e 37."
+      },
+      "duration_s": 100.5,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 2.6425987016409636e-05,
+          "end": 19.27359106595395,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 29.60995480697602,
+          "end": 37.76504001399735,
+          "text": "تشكلت في المحيط الأطلسي اليوم عاشر عاصفة مُسماة لموسم الأعاصير الأطلسية، العاصفة شبه الاستوائية جيري."
+        },
+        {
+          "who": "A",
+          "start": 46.726848430989776,
+          "end": 58.2794651259901,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 67.96943286596797,
+          "end": 82.1491726230015,
+          "text": "تغادر الحافلات المحطة الداخلية بين المناطق (عبر النهر) في خلال اليوم على الرغم من أن معظمها وخاصة المتجهة منها إلى الشرق وجاكار/بومثانج تغادر بين 06:30 و 07:30."
+        }
+      ]
+    },
+    {
+      "pair": "pt<->hi",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 49.2,
+        "wait_first_audio_s": 0.25,
+        "wait_translation_done_s": 7.09,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "और मुझे बहुत निराशा हुई कि सूर्य के देश का उष्णकटिबंधीय समूह छोड़ रहा था। यह समझ में नहीं आता था कि उसकी आत्मा वहां से पलायन कर रही थी। पृथ्वी के साथ पूरी तरह से सामंजस्य स्थापित करने में असमर्थ। तो मैं कौन हूँ? कौन सा कृंतक, कौन सा कंगाल परमाणु जो अपने आप को नियंत्रित नहीं करता है! वह जो चाहे प्यार नहीं कर सकता। कि अगर आप दुनिया के सभी अणुओं के साथ पहचान नहीं कर सकते? मैं कौन हूँ?"
+      },
+      "B": {
+        "lang": "hi",
+        "error_rate": 1.0312,
+        "error_metric": "words",
+        "translation_chrf": 26.2,
+        "wait_first_audio_s": 2.2,
+        "wait_translation_done_s": 11.77,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "अग्वो में आज़िस्टर केंदर कोता हैं जिसका मतलब यहां की उन्में तोडे यह बिना किसी जध्च्च",
+            "dur": 5.856,
+            "avg_logprob": -0.2527770657009549,
+            "no_speech": 0.024291235953569412,
+            "rms": 0.045325227081775665
+          },
+          {
+            "text": "तो तो त",
+            "dur": 2.208,
+            "avg_logprob": -0.13372135162353516,
+            "no_speech": 0.07143369317054749,
+            "rms": 0.04223109036684036
+          },
+          {
+            "text": "ग्रील लेंड़ो बहुत्गम जग़ब आप आप नोर्च शगास में वे कहती हैं",
+            "dur": 4.48,
+            "avg_logprob": -0.6341487953537389,
+            "no_speech": 0.010310875251889229,
+            "rms": 0.11165136843919754
+          },
+          {
+            "text": "कि एरेक रीड अद्या के लिए आईस लेंच लेंच ते निर्वासिद की आगया ता और आगे पश्चम की आप्रट्र करते समः",
+            "dur": 5.504,
+            "avg_logprob": -0.5831187091908365,
+            "no_speech": 0.03583487123250961,
+            "rms": 0.0895334854722023
+          },
+          {
+            "text": "ग्रील लेंड मिला जिसे ग्रील लेंड नाम दिया गया अग्रील लेंड मिला जिसे ग्रील लेंड नाम दिया गया अग्रील दिया ग्रील दिया ग्रील ग्रील ताए ग्रील ताए",
+            "dur": 2.528,
+            "avg_logprob": -0.39280421362982854,
+            "no_speech": 0.011953949928283691,
+            "rms": 0.11049114167690277
+          }
+        ],
+        "reference": "कुछ अणुओं में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है, ग्रीनलैंड को बहुत कम जगह बसाया गया था. नॉर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलैंड से निर्वासित किया गया था, और आगे पश्चिम की यात्रा करते समय, ग्रीनलैंड मिला जिसे ग्रीनलैंड नाम दिया गया.",
+        "transcript": "अग्वो में आज़िस्टर केंदर कोता हैं जिसका मतलब यहां की उन्में तोडे यह बिना किसी जध्च्च तो तो त ग्रील लेंड़ो बहुत्गम जग़ब आप आप नोर्च शगास में वे कहती हैं कि एरेक रीड अद्या के लिए आईस लेंच लेंच ते निर्वासिद की आगया ता और आगे पश्चम की आप्रट्र करते समः ग्रील लेंड मिला जिसे ग्रील लेंड नाम दिया गया अग्रील लेंड मिला जिसे ग्रील लेंड नाम दिया गया अग्रील दिया ग्रील दिया ग्रील ग्रील ताए ग्रील ताए",
+        "translation": "O Águvo tem um centro de águia, o que significa que ele se rompe aqui sem qualquer conexão. Então, então Grill Lendo Multicolor Jagg You You em Norch Sagas eles dizem Que, para Eric Reid, a Lente de Gelo, a Lente do Exílio, e a Lente do Ocidente, O Grill Land recebeu um Grill Land recebeu um Grill Land recebeu um Grill Land recebeu um Grill Grill recebeu Grill recebeu Grill recebeu Grill recebeu"
+      },
+      "duration_s": 97.8,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 2.1543994080275297e-05,
+          "end": 19.274383578973357,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 26.376053881947882,
+          "end": 35.497622438997496,
+          "text": "कुछ अणुओं में अस्थिर केंद्रक होता है, जिसका मतलब यह है कि उनमें थोड़े या बिना किसी झटके से टूटने की प्रवृत्ति होती है,"
+        },
+        {
+          "who": "A",
+          "start": 44.804990232980344,
+          "end": 56.35452053695917,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 65.0299110939959,
+          "end": 78.85743176296819,
+          "text": "ग्रीनलैंड को बहुत कम जगह बसाया गया था. नॉर्स सगास में वे कहते हैं कि एरिक रेड हत्या के लिए आइसलैंड से निर्वासित किया गया था, और आगे पश्चिम की यात्रा करते समय, ग्रीनलैंड मिला जिसे ग्रीनलैंड नाम दिया गया."
+        }
+      ]
+    },
+    {
+      "pair": "pt<->ja",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 35.3,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 25.66,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "太陽の国の熱帯地域が 絶え間なく残っていることに 驚きました 彼の魂がそこから移住したなんて 地球との完全な共融に 耐えられないのです では,私は何者だ? 管理できない虫,卑劣な原子! 好きなものを愛することができない 地球上の全ての分子と識別できないか? 私は何者?"
+      },
+      "B": {
+        "lang": "ja",
+        "error_rate": 0.1648,
+        "error_metric": "characters",
+        "translation_chrf": 44.4,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 5.34,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "インターネットで適対的環境構成について検索すると、おそらく現地",
+            "dur": 5.088,
+            "avg_logprob": -0.23204627260565758,
+            "no_speech": 0.05772534757852554,
+            "rms": 0.06163492426276207
+          },
+          {
+            "text": "企業の重視所が出てくるでしょう",
+            "dur": 1.92,
+            "avg_logprob": -0.3534611974443708,
+            "no_speech": 0.28857752680778503,
+            "rms": 0.051952626556158066
+          },
+          {
+            "text": "また北側に行くなら世界的に有名なマリアゾーの聖地である",
+            "dur": 4.928,
+            "avg_logprob": -0.1221039339348122,
+            "no_speech": 0.0180175993591547,
+            "rms": 0.16337421536445618
+          },
+          {
+            "text": "パティマの生物生意気神社を訪れましょう",
+            "dur": 3.392,
+            "avg_logprob": -0.4303399970134099,
+            "no_speech": 0.08288641273975372,
+            "rms": 0.12036524713039398
+          }
+        ],
+        "reference": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。 また、北側に行くなら世界的に有名なマリア像の聖地であるファティマの聖母の聖域（神社）を訪れましょう。",
+        "transcript": "インターネットで適対的環境構成について検索すると、おそらく現地 企業の重視所が出てくるでしょう また北側に行くなら世界的に有名なマリアゾーの聖地である パティマの生物生意気神社を訪れましょう",
+        "translation": "Se você pesquisar na Internet sobre a configuração do meio ambiente, talvez seja local. O que é importante para as empresas? E se formos para o norte, é o santuário do Mariazo, mundialmente conhecido. Vamos visitar o templo biológico-comercial de Patima."
+      },
+      "duration_s": 126.8,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.7978018149733543e-05,
+          "end": 19.27183285402134,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 44.77577643003315,
+          "end": 55.24212145304773,
+          "text": "インターネットで「敵対的環境コース」について検索すると、おそらく現地企業の住所が出てくるでしょう。"
+        },
+        {
+          "who": "A",
+          "start": 62.47286740801064,
+          "end": 74.02471660199808,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 97.40845491900109,
+          "end": 111.65296596899861,
+          "text": "また、北側に行くなら世界的に有名なマリア像の聖地であるファティマの聖母の聖域（神社）を訪れましょう。"
+        }
+      ]
+    },
+    {
+      "pair": "pt<->ko",
+      "A": {
+        "lang": "pt",
+        "error_rate": 0.1096,
+        "error_metric": "words",
+        "translation_chrf": 23.5,
+        "wait_first_audio_s": 0.36,
+        "wait_translation_done_s": 5.03,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar.",
+            "dur": 5.824,
+            "avg_logprob": -0.16904249077751524,
+            "no_speech": 0.11534731090068817,
+            "rms": 0.04190737381577492
+          },
+          {
+            "text": "",
+            "dur": 1.888,
+            "avg_logprob": 0.0,
+            "no_speech": 0.0,
+            "rms": 0.027035074308514595
+          },
+          {
+            "text": "incompreensível que a sua alma emigrava dali.",
+            "dur": 4.032,
+            "avg_logprob": -0.1548105524852872,
+            "no_speech": 0.08175951987504959,
+            "rms": 0.04001215845346451
+          },
+          {
+            "text": "incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra.",
+            "dur": 5.664,
+            "avg_logprob": -0.04650558107955889,
+            "no_speech": 0.019747884944081306,
+            "rms": 0.03927239775657654
+          },
+          {
+            "text": "Que sou eu, então?",
+            "dur": 1.664,
+            "avg_logprob": -0.1186286381312779,
+            "no_speech": 0.013363887555897236,
+            "rms": 0.041074417531490326
+          },
+          {
+            "text": "Que verme, que átomo miserável que se não governa!",
+            "dur": 3.776,
+            "avg_logprob": -0.17261766828596592,
+            "no_speech": 0.05756266787648201,
+            "rms": 0.03656952455639839
+          },
+          {
+            "text": "que não pode amar o que quer.",
+            "dur": 2.176,
+            "avg_logprob": -0.13782289293077257,
+            "no_speech": 0.04098852723836899,
+            "rms": 0.036801114678382874
+          },
+          {
+            "text": "que se não pode identificar com todas as moléculas do mundo?",
+            "dur": 3.712,
+            "avg_logprob": -0.06653332617133856,
+            "no_speech": 0.011843226850032806,
+            "rms": 0.03642415255308151
+          },
+          {
+            "text": "Que sou eu?",
+            "dur": 1.184,
+            "avg_logprob": -0.19122467041015626,
+            "no_speech": 0.01513171847909689,
+            "rms": 0.028247740119695663
+          }
+        ],
+        "reference": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu",
+        "transcript": "e percebia num grande desalento que o conjunto tropical do país do sol deixava estar. incompreensível que a sua alma emigrava dali. incapaz de uma comunhão perfeita, de uma infiltração definitiva com a Terra. Que sou eu, então? Que verme, que átomo miserável que se não governa! que não pode amar o que quer. que se não pode identificar com todas as moléculas do mundo? Que sou eu?",
+        "translation": "그리고 저는 매우 실망스러웠고, 태양의 나라 열대 지역이 사라지고 있다는 것을 깨달았습니다. 그의 영혼이 그 곳에서 이주한다는 것은 이해할 수 없습니다. 완벽한 공동체를 이루지 못하고 지구와 확고한 침투를 할 수 없습니다. 그럼 내가 누구야? 어떤 벌레, 어떤 불행한 원자, 스스로 지배하지 못하는! 자신이 원하는 것을 사랑할 수 없는 만약 여러분이 세계 모든 분자와 동일시할 수 없다면? 내가 뭐야?"
+      },
+      "B": {
+        "lang": "ko",
+        "error_rate": 0.0638,
+        "error_metric": "characters",
+        "translation_chrf": 46.2,
+        "wait_first_audio_s": 0.0,
+        "wait_translation_done_s": 5.54,
+        "stray_segments": 0,
+        "stray_words": 0,
+        "stray_text": "",
+        "stray": [],
+        "real": [
+          {
+            "text": "다리미 수직 간격은 15m이며 공사는 2011년 8월에 마무리되었으며",
+            "dur": 5.664,
+            "avg_logprob": -0.17613305427409984,
+            "no_speech": 0.0656297355890274,
+            "rms": 0.018385417759418488
+          },
+          {
+            "text": "해당 다리의 통행 금지는 2017년 3월까지이다.",
+            "dur": 3.84,
+            "avg_logprob": -0.06872771768008962,
+            "no_speech": 0.006445742677897215,
+            "rms": 0.016416093334555626
+          },
+          {
+            "text": "델포트로가 2세트에서 먼저 어드베티즈를 얻었지만 6",
+            "dur": 4.608,
+            "avg_logprob": -0.21154594669739404,
+            "no_speech": 0.06966469436883926,
+            "rms": 0.027113646268844604
+          },
+          {
+            "text": "2대6이 된 후 다시 타이브레이크가 필요했다.",
+            "dur": 3.232,
+            "avg_logprob": -0.2827292049632353,
+            "no_speech": 0.10966430604457855,
+            "rms": 0.020522912964224815
+          }
+        ],
+        "reference": "다리 밑 수직 간격은 15미터이며, 공사는 2011년 8월에 마무리되었으며, 해당 다리의 통행금지는 2017년 3월까지이다. 델 포트로가 2세트에서 먼저 어드밴티지를 얻었지만 6 대 6이 된 후 다시 타이 브레이크가 필요했다.",
+        "transcript": "다리미 수직 간격은 15m이며 공사는 2011년 8월에 마무리되었으며 해당 다리의 통행 금지는 2017년 3월까지이다. 델포트로가 2세트에서 먼저 어드베티즈를 얻었지만 6 2대6이 된 후 다시 타이브레이크가 필요했다.",
+        "translation": "A distância vertical do prédio é de 15 metros e a obra foi concluída em agosto de 2011. A proibição de trânsito da ponte é até março de 2017. O Delphoto recebeu o primeiro advertência em dois conjuntos. Depois de 2 a 6, eu precisava de um novo tirebrake."
+      },
+      "duration_s": 88.6,
+      "schedule": [
+        {
+          "who": "A",
+          "start": 1.9524013623595238e-05,
+          "end": 19.27364015299827,
+          "text": "e percebia num grande desalento que o conjunto tropical do país do sol o deixava estático errante e incompreensível e que a sua alma emigrava dali incapaz de uma comunhão perfeita de uma infiltração definitiva com a terra o que sou eu então"
+        },
+        {
+          "who": "B",
+          "start": 25.83398302301066,
+          "end": 38.31095767399529,
+          "text": "다리 밑 수직 간격은 15미터이며, 공사는 2011년 8월에 마무리되었으며, 해당 다리의 통행금지는 2017년 3월까지이다."
+        },
+        {
+          "who": "A",
+          "start": 45.351588671968784,
+          "end": 56.90577230998315,
+          "text": "que verme que átomo miserável que se não governa que não pôde amar o que quer que se não pôde identificar com todas as moléculas do mundo que sou eu"
+        },
+        {
+          "who": "B",
+          "start": 61.990465287002735,
+          "end": 72.80824313196354,
+          "text": "델 포트로가 2세트에서 먼저 어드밴티지를 얻었지만 6 대 6이 된 후 다시 타이 브레이크가 필요했다."
+        }
+      ]
+    }
+  ]
+}
