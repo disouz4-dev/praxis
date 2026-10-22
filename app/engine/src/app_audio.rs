@@ -6,7 +6,9 @@
 #[cfg(windows)]
 use anyhow::Result;
 #[cfg(any(target_os = "linux", windows))]
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::AtomicBool;
+#[cfg(target_os = "linux")]
+use std::sync::atomic::Ordering;
 #[cfg(any(target_os = "linux", windows))]
 use std::sync::Arc;
 

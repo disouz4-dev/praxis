@@ -409,6 +409,7 @@ impl VirtualMic {
                 vm.peer_capture = Some(SINK_IN_DESC.into());
                 vm.peer_label = SINK_IN_DESC.into();
                 // app escolhido: o próprio Praxis manda o som dele para o Praxis Speaker
+                #[cfg(target_os = "linux")]
                 if let Some(app) = vm.peer_app.clone() {
                     vm.router = Some(crate::app_audio::Router::start(app, SINK_IN));
                 }
