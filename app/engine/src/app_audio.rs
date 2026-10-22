@@ -277,10 +277,12 @@ mod imp {
         Some(pid)
     }
 
-    /// marca de progresso (PRAXIS_DEPURAR=1)
+    /// marca de progresso (PRAXIS_DEPURAR=1), com o tempo desde o começo do programa
     fn passo(p: &str) {
         if std::env::var_os("PRAXIS_DEPURAR").is_some() {
-            eprintln!("captura: {p}");
+            static T0: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+            let t = T0.get_or_init(std::time::Instant::now).elapsed().as_secs_f32();
+            eprintln!("captura {t:.2}s: {p}");
         }
     }
 
@@ -343,6 +345,7 @@ mod imp {
                 let cap: IAudioCaptureClient = client.GetService()?;
                 passo("start");
                 client.Start()?;
+                passo("começou");
                 Ok((client, cap, ev))
             }
         };
@@ -356,6 +359,7 @@ mod imp {
         unsafe {
             while !stop.load(std::sync::atomic::Ordering::Relaxed) {
                 if WaitForSingleObject(ev, 200) != WAIT_OBJECT_0 {
+                    passo("sem sinal");
                     continue;
                 }
                 while let Ok(n) = cap.GetNextPacketSize() {
@@ -378,9 +382,13 @@ mod imp {
                     push(mono);
                 }
             }
+            passo("laço terminou");
             let _ = client.Stop();
             let _ = CloseHandle(ev);
+            passo("parou");
         }
+        drop((cap, client));
+        passo("soltou");
     }
 }
 

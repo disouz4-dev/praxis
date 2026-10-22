@@ -1,0 +1,26 @@
+name: Teste da captura (Windows)
+
+on:
+  push:
+    paths: ["app/engine/src/app_audio.rs", "app/tools/teste-captura/**", ".github/workflows/teste-captura.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: teste-captura-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  compilar:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: app/tools/teste-captura }
+      - run: cargo build --release
+        working-directory: app/tools/teste-captura
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teste-captura
+          path: app/tools/teste-captura/target/release/teste-captura.exe
