@@ -108,23 +108,35 @@ Português · English · Español · Français · Deutsch · Italiano · 日本�
 
 ## Instalação
 
-### Linux / macOS
+O instalador sempre pergunta ao GitHub qual é a versão mais atual e instala essa. Depois de instalado, o Praxis **se atualiza sozinho**: as versões novas chegam pela atualização do sistema, e o próprio aplicativo avisa e atualiza com um clique.
+
+### Linux — pacote .deb (Debian, Ubuntu e derivados)
+
+Baixe o `praxis_<versão>_amd64.deb` da [página de versões](https://github.com/disouz4-dev/praxis/releases/latest) e abra com dois cliques, ou:
 
 ```bash
-git clone https://github.com/disouz4-dev/praxis.git
-cd praxis
-./install.sh
+sudo apt install ./praxis_*_amd64.deb
 ```
 
-### Windows (PowerShell)
+Com placa de vídeo NVIDIA, a instalação baixa as bibliotecas oficiais da placa (~1,8 GB, uma vez só).
+
+### Linux — pelo terminal
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.sh | bash
+```
+
+### Windows — pelo PowerShell
 
 ```powershell
-git clone https://github.com/disouz4-dev/praxis.git
-cd praxis
-powershell -ExecutionPolicy Bypass -File install.ps1
+irm https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.ps1 | iex
 ```
 
-O instalador cria um ambiente virtual isolado, instala as dependências (Whisper, Argos, Piper — **sem PyTorch**), baixa uma voz padrão e cria o atalho do app com ícone (menu de aplicativos no Linux, `~/Applications/Praxis.app` no macOS, Menu Iniciar no Windows). Clonagem de voz (OmniVoice, requer PyTorch) é opcional: `PRAXIS_WITH_CLONE=1 ./install.sh`.
+_(o instalador do Windows está em preparação)_
+
+### macOS
+
+Por enquanto, a versão anterior em Python: `scripts/instalar-python.sh`.
 
 ### Requisitos
 

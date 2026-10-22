@@ -6,6 +6,7 @@ pub mod mt;
 pub mod text;
 pub mod vad;
 pub mod tts;
+pub mod update;
 pub mod pipeline;
 pub mod devices;
 pub mod models;

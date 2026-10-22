@@ -214,6 +214,23 @@ async function main() {
     if (e.e === "engine") eventoDoMotorInterno(e.ev);
     else eventoDoMotor(e);
   });
+  if (await invoke("modo_qa")) iniciarOuParar();   // verificação de qualidade automática
+  verificarAtualizacao();
+}
+
+// Versão nova publicada: avisa no topo; o botão pede a senha do sistema e atualiza.
+async function verificarAtualizacao() {
+  let r;
+  try { r = await invoke("verificar_atualizacao"); } catch { return; }
+  if (!r || !r.nova) return;
+  $("atualizacao_texto").textContent = `Versão ${r.nova} disponível (você tem a ${r.atual}).`;
+  $("atualizacao").hidden = false;
+  $("atualizar").onclick = async () => {
+    $("atualizar").disabled = true;
+    $("atualizacao_texto").textContent = "Atualizando… (o sistema vai pedir a sua senha)";
+    try { await invoke("atualizar"); }
+    catch (e) { $("atualizacao_texto").textContent = String(e); $("atualizar").disabled = false; }
+  };
 }
 
 function aplicarTemaInicial() {

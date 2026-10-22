@@ -126,7 +126,9 @@ fn onnxruntime_path() -> std::path::PathBuf {
     } else {
         "libonnxruntime.so"
     };
-    dir.join(name)
+    // a versão para placa de vídeo (subpasta placa/), quando instalada, vem primeiro
+    let placa = dir.join("placa").join(name);
+    if placa.exists() { placa } else { dir.join(name) }
 }
 
 static ORT_ENV: std::sync::OnceLock<std::result::Result<ort::environment::Environment, String>> = std::sync::OnceLock::new();

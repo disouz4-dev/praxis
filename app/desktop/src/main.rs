@@ -61,6 +61,40 @@ fn salvar_config(config: Value) -> Result<(), String> {
     std::fs::rename(tmp, p).map_err(|e| e.to_string())
 }
 
+/// Verificação de qualidade automática: com PRAXIS_QA_INICIAR=1 a janela começa a traduzir
+/// sozinha ao abrir (o mesmo caminho do botão "Iniciar").
+#[tauri::command]
+fn modo_qa() -> bool {
+    std::env::var("PRAXIS_QA_INICIAR").map(|v| v == "1").unwrap_or(false)
+}
+
+/// Atualizador do .deb, quando instalado (Linux): pede a senha e chama o apt.
+const LINUX_UPDATER: &str = "/opt/praxis/praxis-atualizar";
+
+/// Há versão nova? (só onde o Praxis sabe se atualizar sozinho)
+#[tauri::command]
+async fn verificar_atualizacao() -> Value {
+    let atual = env!("CARGO_PKG_VERSION");
+    if !(cfg!(target_os = "linux") && std::path::Path::new(LINUX_UPDATER).exists()) {
+        return json!({"atual": atual, "nova": null});
+    }
+    let nova = tauri::async_runtime::spawn_blocking(praxis_engine::update::latest_version).await.ok().and_then(|r| r.ok());
+    json!({"atual": atual, "nova": nova.filter(|n| praxis_engine::update::is_newer(n, atual))})
+}
+
+/// Instala a versão nova (pede a senha do sistema) e reabre o Praxis.
+#[tauri::command]
+async fn atualizar(app: tauri::AppHandle) -> Result<(), String> {
+    let ok = tauri::async_runtime::spawn_blocking(|| std::process::Command::new("pkexec").arg(LINUX_UPDATER).status())
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| format!("não foi possível pedir a senha: {e}"))?;
+    if !ok.success() {
+        return Err("a atualização não terminou (senha cancelada ou sem internet)".into());
+    }
+    app.restart();
+}
+
 #[tauri::command]
 fn dispositivos() -> Value {
     json!({"entradas": devices::list_inputs(), "saidas": devices::list_outputs()})
@@ -76,8 +110,14 @@ fn iniciar(handle: tauri::AppHandle, config: SessionConfig) -> Result<(), String
     std::thread::spawn(move || {
         let (tx, rx) = std::sync::mpsc::channel::<SessionEvent>();
         let h2 = handle.clone();
+        // PRAXIS_REGISTRO=<arquivo>: guarda cada evento do motor (verificação de qualidade)
+        let mut log = std::env::var_os("PRAXIS_REGISTRO").and_then(|p| std::fs::File::create(p).ok());
         let fwd = std::thread::spawn(move || {
             while let Ok(e) = rx.recv() {
+                if let Some(f) = log.as_mut() {
+                    use std::io::Write;
+                    let _ = writeln!(f, "{}", serde_json::to_string(&e).unwrap_or_default());
+                }
                 let _ = h2.emit("praxis", &e);
             }
         });
@@ -109,7 +149,7 @@ fn parar(handle: tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, salvar_config, dispositivos, iniciar, parar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

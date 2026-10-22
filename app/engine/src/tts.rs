@@ -49,7 +49,9 @@ pub type PiperVoice = Voice;
 /// A biblioteca do onnxruntime com placa de vídeo NVIDIA está ao lado do programa?
 pub fn cuda_provider_available() -> bool {
     let name = if cfg!(target_os = "windows") { "onnxruntime_providers_cuda.dll" } else { "libonnxruntime_providers_cuda.so" };
-    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join(name).exists())).unwrap_or(false)
+    // na pasta do programa ou na subpasta placa/ (onde o instalador põe as da placa de vídeo)
+    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("placa").join(name).exists() || d.join(name).exists()))
+        .unwrap_or(false)
 }
 
 fn file_with(dir: &Path, prefix: &str, ext: &str) -> Result<String> {

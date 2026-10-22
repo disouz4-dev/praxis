@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 [[ -f target/ct2-lib/libctranslate2.so ]] || scripts/ct2-do-pacote-oficial.sh >/dev/null
 export CMAKE_LIBRARY_PATH="$PWD/target/ct2-lib"
-export RUSTFLAGS="${RUSTFLAGS:-} -L native=$PWD/target/ct2-lib -C link-arg=-Wl,--disable-new-dtags -C link-arg=-Wl,-rpath,\$ORIGIN -C link-arg=-Wl,-rpath,$PWD/target/ct2-lib"
+export RUSTFLAGS="${RUSTFLAGS:-} -L native=$PWD/target/ct2-lib -C link-arg=-Wl,--disable-new-dtags -C link-arg=-Wl,-rpath,\$ORIGIN/placa -C link-arg=-Wl,-rpath,\$ORIGIN -C link-arg=-Wl,-rpath,$PWD/target/ct2-lib"
 # O sherpa-onnx-sys baixa as bibliotecas prontas para target/sherpa-onnx-prebuilt/ e as
 # copia para target/<perfil>/, mas só quando o build.rs dele roda. O cache do GitHub
 # Actions (Swatinem/rust-cache) guarda o "já compilado" do sherpa-onnx-sys e apaga essas
