@@ -11,16 +11,16 @@ Onde testar:
 
 | Item | Linux | Windows |
 |---|---|---|
-| Instalar pelo pacote (`.deb` / `.exe`) | ✅ 0.3.0 | ⏳ |
-| Instalar pelo terminal (`install.sh` / `install.ps1`) | ⏳ | ⏳ |
+| Instalar pelo pacote (`.deb` / `.exe`) | ✅ 0.3.0 | ✅ 0.3.3 (pelo `install.ps1`) |
+| Instalar pelo terminal (`install.sh` / `install.ps1`) | ⏳ (pede a senha do usuário) | ✅ 0.3.3 em 7 s, comando da página (`github.io/praxis/install.ps1`) |
 | Bibliotecas da placa de vídeo baixadas e conferidas | ✅ | — (sem placa) |
-| Microfone virtual instalado (VB-Cable) | — | ⏳ |
-| Atalho no menu de aplicativos e ícone | ⏳ | ⏳ |
+| Microfone virtual instalado (VB-Cable) | — | ✅ (já instalado: detectado e mantido) |
+| Atalho no menu de aplicativos e ícone | ⏳ | ✅ Menu Iniciar e área de trabalho; abre pelo ícone sem erro |
 | Aviso de versão nova na janela | ✅ simulador | ⏳ |
 | Botão "Atualizar": senha → atualiza → reabre | ⏳ | ⏳ |
 | Atualização pelo sistema (`apt upgrade`) | ⏳ | — |
 | Falha na atualização mostra o motivo e permite tentar de novo | ✅ simulador | ⏳ |
-| Desinstalar remove tudo (inclui as bibliotecas da placa) | ⏳ | ⏳ |
+| Desinstalar remove tudo (inclui as bibliotecas da placa) | ⏳ | ✅ pasta, atalho e registro removidos |
 
 ## 2. Telas e navegação
 
@@ -53,7 +53,7 @@ Onde testar:
 
 | Item | Linux | Windows |
 |---|---|---|
-| pt→en, saída só no microfone virtual | ✅ áudio claro | ⏳ |
+| pt→en, saída só no microfone virtual | ✅ áudio claro | ✅ janela chega a "Traduzindo" (CABLE Output); motor traduz 3 frases reais, simultâneo em 3 de 3; fecha em 0,7 s |
 | Ouvir a tradução na própria saída (Scarlett, 32 bits) | ❌ "formato não suportado: I32" (corrigido, falta reconferir) | ⏳ |
 | Bilateral (a outra pessoa traduzida na minha saída) | ❌ mesmo defeito (falta reconferir) | ⏳ |
 | Sem fone: a trava de eco não deixa a tradução voltar pelo microfone | ⏳ | ⏳ |
@@ -72,3 +72,4 @@ Onde testar:
 8. **macOS**: não há instalador do aplicativo novo.
 9. **Windows**: bibliotecas da placa de vídeo NVIDIA e atualização automática pelo próprio aplicativo.
 10. **Volume da tradução** na própria saída.
+11. **Tradução sem placa de vídeo**: o modo automático escolhe o Argos, que come palavras ("you do not necessarily a yacht"). Medir o NLLB no processador e trocar se couber no tempo.
