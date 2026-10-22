@@ -11,6 +11,7 @@
     <img id="logo" src="logo.png" alt="Praxis">
     <p id="tagline" data-t="tagline"></p>
     <div class="topo">
+      <button id="sobre_abrir" class="icone" data-t-title="btn_about" aria-label="Sobre">ⓘ</button>
       <button id="relatar" class="icone" data-t-title="btn_report" aria-label="Relatar problema">⚑</button>
       <select id="ui_lang" data-t-title="ttl_ui_lang"></select>
     </div>
@@ -99,6 +100,26 @@
   <footer>
     <button id="iniciar" class="principal" data-t="btn_start"></button>
   </footer>
+
+  <dialog id="sobre">
+    <div class="sobre-topo">
+      <img src="logo-escuro.png" alt="">
+      <div><h2>Praxis</h2><p id="sobre_versao" class="dica"></p></div>
+    </div>
+    <p class="dica" data-t="about_license"></p>
+    <div class="sobre-atualizacao">
+      <button id="sobre_verificar" class="pequeno" data-t="btn_check_update"></button>
+      <button id="sobre_atualizar" class="pequeno" data-t="btn_update" hidden></button>
+      <p id="sobre_status" class="dica"></p>
+    </div>
+    <p class="sobre-links">
+      <a href="#" data-link="https://disouz4-dev.github.io/praxis/" data-t="link_site"></a> ·
+      <a href="#" data-link="https://github.com/disouz4-dev/praxis" data-t="link_github"></a> ·
+      <a href="#" data-link="https://github.com/disouz4-dev/praxis/releases" data-t="link_releases"></a> ·
+      <a href="#" id="sobre_relatar" data-t="btn_report"></a>
+    </p>
+    <div class="botoes"><button id="sobre_fechar" class="secundario" data-t="btn_close"></button></div>
+  </dialog>
 
   <dialog id="relatorio">
     <h2 data-t="report_title"></h2>

@@ -26,13 +26,14 @@ const idiomas = ["pt", "en", "es", "fr", "de", "it", "ja", "zh", "ru", "nl", "pl
   .map((c) => ({ codigo: c, liberado: true, motivo: "", tem_voz: true, modelo: "large-v3-turbo", erro: 0.02 }));
 window.__TAURI__ = {
   core: {
-    invoke: async (cmd) => {
+    invoke: async (cmd, args) => {
       switch (cmd) {
         case "estado_inicial":
           return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
-                   idioma_do_sistema: "pt", rodando: false,
+                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.5", apps: [{ id: "discord", name: "Discord" }],
                    config: { src: "pt", tgt: "en", bilateral: true, headphones: true, monitor: false } };
-        case "verificar_atualizacao": return { atual: "0.3.3", nova: null };
+        case "verificar_atualizacao": await esperar(600); return { atual: "0.3.5", nova: null, pode_atualizar: true };
+        case "abrir_link": window.open(args?.url, "_blank"); return null;
         case "modo_qa": return false;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;

@@ -122,12 +122,17 @@ pub fn abrir_relato(corpo: &str) -> Result<(), String> {
     let url = format!("https://github.com/{REPO}/issues/new?labels={}&title={}&body={}",
         codificar("relatório do app"), codificar(&format!("[{}] Problema no Praxis {}", std::env::consts::OS, env!("CARGO_PKG_VERSION"))),
         codificar(&corpo));
+    abrir_navegador(&url)
+}
+
+/// Abre um endereço no navegador padrão do sistema.
+pub fn abrir_navegador(url: &str) -> Result<(), String> {
     let r = if cfg!(windows) {
-        std::process::Command::new("rundll32").args(["url.dll,FileProtocolHandler", &url]).spawn()
+        std::process::Command::new("rundll32").args(["url.dll,FileProtocolHandler", url]).spawn()
     } else if cfg!(target_os = "macos") {
-        std::process::Command::new("open").arg(&url).spawn()
+        std::process::Command::new("open").arg(url).spawn()
     } else {
-        std::process::Command::new("xdg-open").arg(&url).spawn()
+        std::process::Command::new("xdg-open").arg(url).spawn()
     };
     r.map(|_| ()).map_err(|e| format!("não foi possível abrir o navegador: {e}"))
 }

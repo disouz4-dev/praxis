@@ -318,6 +318,13 @@ async function main() {
   avisoEco();
   $("iniciar").onclick = iniciarOuParar;
   $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;
+  $("sobre_abrir").onclick = abrirSobre;
+  $("sobre_fechar").onclick = () => $("sobre").close();
+  $("sobre_verificar").onclick = verificarNoSobre;
+  $("sobre_relatar").onclick = (ev) => { ev.preventDefault(); $("sobre").close(); abrirRelatorio(); };
+  document.querySelectorAll("#sobre [data-link]").forEach((a) => {
+    a.onclick = (ev) => { ev.preventDefault(); invoke("abrir_link", { url: a.dataset.link }); };
+  });
   $("relatorio_fechar").onclick = () => $("relatorio").close();
   $("relatorio_copiar").onclick = async () => {
     try { await navigator.clipboard.writeText(textoDoRelato()); fixo("relatorio_copiar", t("report_copied")); } catch { /* sem área de transferência */ }
@@ -337,19 +344,50 @@ async function main() {
   verificarAtualizacao();
 }
 
-// Versão nova publicada: avisa no topo; o botão pede a senha do sistema e atualiza.
+// Versão nova publicada: avisa no topo. Onde o Praxis sabe se atualizar sozinho (Windows; Linux
+// pelo .deb) o botão atualiza; nos outros, abre a página de versões.
+const PAGINA_VERSOES = "https://github.com/disouz4-dev/praxis/releases/latest";
 async function verificarAtualizacao() {
   let r;
   try { r = await invoke("verificar_atualizacao"); } catch { return; }
   if (!r || !r.nova) return;
   vivo("atualizacao_texto", () => tf("upd_available", { new: r.nova, cur: r.atual }));
   $("atualizacao").hidden = false;
-  $("atualizar").onclick = async () => {
-    $("atualizar").disabled = true;
-    vivo("atualizacao_texto", () => t("upd_running"));
+  ligarAtualizar($("atualizar"), "atualizacao_texto", r);
+}
+
+function ligarAtualizar(botao, statusId, r) {
+  botao.hidden = false;
+  if (!r.pode_atualizar) {
+    botao.onclick = () => invoke("abrir_link", { url: PAGINA_VERSOES });
+    return;
+  }
+  botao.onclick = async () => {
+    botao.disabled = true;
+    vivo(statusId, () => t("upd_running"));
     try { await invoke("atualizar"); }
-    catch (e) { fixo("atualizacao_texto", String(e)); $("atualizar").disabled = false; }
+    catch (e) { fixo(statusId, String(e)); botao.disabled = false; }
   };
+}
+
+// Sobre: a versão instalada e "Verificar atualização" a qualquer momento.
+function abrirSobre() {
+  vivo("sobre_versao", () => tf("about_version", { v: ESTADO.versao }));
+  fixo("sobre_status", ""); $("sobre_atualizar").hidden = true;
+  $("sobre").showModal();
+}
+
+async function verificarNoSobre() {
+  $("sobre_verificar").disabled = true; $("sobre_atualizar").hidden = true;
+  vivo("sobre_status", () => t("upd_checking"));
+  let r;
+  try { r = await invoke("verificar_atualizacao"); } catch (e) { r = { erro: String(e) }; }
+  $("sobre_verificar").disabled = false;
+  if (r.erro) vivo("sobre_status", () => t("upd_error"));
+  else if (r.nova) {
+    vivo("sobre_status", () => tf("upd_available", { new: r.nova, cur: r.atual }) + (r.pode_atualizar ? "" : " " + t("upd_not_here")));
+    ligarAtualizar($("sobre_atualizar"), "sobre_status", r);
+  } else vivo("sobre_status", () => tf("upd_latest", { v: r.atual }));
 }
 
 function aplicarTemaInicial() {

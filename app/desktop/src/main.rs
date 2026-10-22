@@ -52,6 +52,7 @@ fn estado_inicial(app: State<App>) -> Value {
         "config": salva,
         "rodando": app.session.lock().unwrap().is_some(),
         "sistema": std::env::consts::OS,
+        "versao": env!("CARGO_PKG_VERSION"),
         "apps": praxis_engine::app_audio::list(),
     })
 }
@@ -81,15 +82,28 @@ fn modo_qa() -> bool {
 /// Atualizador do .deb, quando instalado (Linux): pede a senha e chama o apt.
 const LINUX_UPDATER: &str = "/opt/praxis/praxis-atualizar";
 
-/// Há versão nova? (só onde o Praxis sabe se atualizar sozinho)
+/// Há versão nova? `pode_atualizar`: este sistema sabe se atualizar sozinho (Windows; Linux
+/// instalado pelo .deb); nos outros a janela manda para a página de versões. `erro`: não deu
+/// para perguntar ao GitHub (sem internet) — a janela não pode dizer "está atualizado".
 #[tauri::command]
 async fn verificar_atualizacao() -> Value {
     let atual = env!("CARGO_PKG_VERSION");
-    if !(cfg!(windows) || (cfg!(target_os = "linux") && std::path::Path::new(LINUX_UPDATER).exists())) {
-        return json!({"atual": atual, "nova": null});
+    let pode = cfg!(windows) || (cfg!(target_os = "linux") && std::path::Path::new(LINUX_UPDATER).exists());
+    match tauri::async_runtime::spawn_blocking(praxis_engine::update::latest_version).await {
+        Ok(Ok(n)) => json!({"atual": atual, "nova": praxis_engine::update::is_newer(&n, atual).then_some(n), "pode_atualizar": pode}),
+        Ok(Err(e)) => json!({"atual": atual, "nova": null, "pode_atualizar": pode, "erro": e.to_string()}),
+        Err(e) => json!({"atual": atual, "nova": null, "pode_atualizar": pode, "erro": e.to_string()}),
     }
-    let nova = tauri::async_runtime::spawn_blocking(praxis_engine::update::latest_version).await.ok().and_then(|r| r.ok());
-    json!({"atual": atual, "nova": nova.filter(|n| praxis_engine::update::is_newer(n, atual))})
+}
+
+/// Abre no navegador um endereço do próprio Praxis (página, código, versões).
+#[tauri::command]
+fn abrir_link(url: String) -> Result<(), String> {
+    let ok = ["https://disouz4-dev.github.io/praxis", "https://github.com/disouz4-dev/praxis"].iter().any(|p| url.starts_with(p));
+    if !ok {
+        return Err("endereço não permitido".into());
+    }
+    erros::abrir_navegador(&url)
 }
 
 /// Instala a versão nova e reabre o Praxis. Linux: pede a senha e chama o apt. Windows: baixa
@@ -198,7 +212,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, relatorio_de_erros, abrir_relato, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {
