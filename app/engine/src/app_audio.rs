@@ -181,6 +181,17 @@ mod imp {
         }
     }
 
+    /// O processo ainda está rodando?
+    pub fn vivo(pid: u32) -> bool {
+        unsafe {
+            let Ok(h) = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid) else { return false };
+            let mut code = 0u32;
+            let ok = GetExitCodeProcess(h, &mut code).is_ok();
+            let _ = CloseHandle(h);
+            ok && code == 259 // STILL_ACTIVE
+        }
+    }
+
     /// Sessões de som ativas em todas as saídas: (processo, programa)
     fn sessions() -> Vec<(u32, String)> {
         let mut v = vec![];
@@ -398,7 +409,14 @@ mod imp {
             Err(e) => return ready(Err(e)),
         };
         unsafe {
+            let mut voltas = 0u32;
             while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                // o app fechou (ou trocou de processo): sai para quem chamou procurar de novo
+                voltas += 1;
+                if voltas % 10 == 0 && !vivo(pid) {
+                    passo("o app fechou");
+                    break;
+                }
                 if WaitForSingleObject(ev, 200) != WAIT_OBJECT_0 {
                     passo("sem sinal");
                     continue;
@@ -468,12 +486,34 @@ pub fn spawn_capture(app_id: String, tx: std::sync::mpsc::Sender<Vec<f32>>, stop
     let h = std::thread::spawn(move || {
         let mut rs = crate::devices::Resampler::new(44_100, SR as u32);
         let mut buf: Vec<f32> = vec![];
-        imp::capture(pid, &stop, |r| { let _ = rtx.send(r); }, |mono| {
-            buf.extend(rs.process(&mono));
-            while buf.len() >= CHUNK {
-                let _ = tx.send(buf.drain(..CHUNK).collect());
+        let mut pid = Some(pid);
+        let mut rtx = Some(rtx);
+        let mut primeira = true;
+        // se o app fechar ou trocar de processo (reiniciou, o navegador trocou o processo de
+        // áudio), procura de novo e continua gravando, até mandarem parar
+        while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+            let Some(p) = pid.take().or_else(|| imp::root_pid(&app_id)) else {
+                std::thread::sleep(std::time::Duration::from_secs(1));
+                continue;
+            };
+            let mut abriu = false;
+            imp::capture(p, &stop, |r| {
+                abriu = r.is_ok();
+                if let Some(t) = rtx.take() {
+                    let _ = t.send(r);
+                }
+            }, |mono| {
+                buf.extend(rs.process(&mono));
+                while buf.len() >= CHUNK {
+                    let _ = tx.send(buf.drain(..CHUNK).collect());
+                }
+            });
+            if primeira && !abriu {
+                break; // nem chegou a abrir: o erro já foi devolvido a quem chamou
             }
-        });
+            primeira = false;
+            std::thread::sleep(std::time::Duration::from_millis(500));
+        }
     });
     rrx.recv().map_err(|_| anyhow::anyhow!("a gravação do app parou"))??;
     Ok(h)
