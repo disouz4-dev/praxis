@@ -294,8 +294,8 @@ mod imp {
         }
     }
 
-    /// Grava o som do processo `pid` (e dos filhos): estéreo, 16 bits, 48 kHz. `push` recebe
-    /// blocos mono f32 a 48 kHz até `stop`.
+    /// Grava o som do processo `pid` (e dos filhos): estéreo, 16 bits, 44,1 kHz. `push` recebe
+    /// blocos mono f32 a 44,1 kHz até `stop`.
     pub fn capture(pid: u32, stop: &std::sync::atomic::AtomicBool, ready: impl FnOnce(anyhow::Result<()>),
                    mut push: impl FnMut(Vec<f32>)) {
         let abrir = || -> anyhow::Result<(IAudioClient, IAudioCaptureClient, windows::Win32::Foundation::HANDLE)> {
@@ -331,13 +331,13 @@ mod imp {
                 passo("resultado");
                 let client: IAudioClient = unk.ok_or_else(|| anyhow::anyhow!("captura do app indisponível"))?.cast()?;
                 let fmt = WAVEFORMATEX {
-                    wFormatTag: WAVE_FORMAT_PCM as u16, nChannels: 2, nSamplesPerSec: 48_000,
-                    nAvgBytesPerSec: 48_000 * 4, nBlockAlign: 4, wBitsPerSample: 16, cbSize: 0,
+                    wFormatTag: WAVE_FORMAT_PCM as u16, nChannels: 2, nSamplesPerSec: 44_100,
+                    nAvgBytesPerSec: 44_100 * 4, nBlockAlign: 4, wBitsPerSample: 16, cbSize: 0,
                 };
                 passo("iniciar");
                 client.Initialize(AUDCLNT_SHAREMODE_SHARED,
                     AUDCLNT_STREAMFLAGS_LOOPBACK | AUDCLNT_STREAMFLAGS_EVENTCALLBACK | AUDCLNT_STREAMFLAGS_AUTOCONVERTPCM,
-                    2_000_000, 0, &fmt, None)?;
+                    0, 0, &fmt, None)?;   // como o exemplo da Microsoft: o Windows escolhe o buffer
                 let ev = CreateEventW(None, false, false, None)?;
                 client.SetEventHandle(ev)?;
                 let cap: IAudioCaptureClient = client.GetService()?;
@@ -363,6 +363,7 @@ mod imp {
                         break;
                     }
                     let (mut data, mut frames, mut flags) = (std::ptr::null_mut(), 0u32, 0u32);
+                    passo("pacote pronto");
                     if cap.GetBuffer(&mut data, &mut frames, &mut flags, None, None).is_err() {
                         break;
                     }
@@ -396,7 +397,7 @@ pub fn spawn_capture(app_id: String, tx: std::sync::mpsc::Sender<Vec<f32>>, stop
     let pid = imp::root_pid(&app_id).ok_or_else(|| anyhow::anyhow!("o app {app_id} não está aberto: abra a chamada e tente de novo"))?;
     let (rtx, rrx) = std::sync::mpsc::channel::<Result<()>>();
     let h = std::thread::spawn(move || {
-        let mut rs = crate::devices::Resampler::new(48_000, SR as u32);
+        let mut rs = crate::devices::Resampler::new(44_100, SR as u32);
         let mut buf: Vec<f32> = vec![];
         imp::capture(pid, &stop, |r| { let _ = rtx.send(r); }, |mono| {
             buf.extend(rs.process(&mono));
