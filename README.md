@@ -2,6 +2,8 @@
 
 > **Uma mensagem. Todas as línguas.**
 
+**🌐 Site: [disouz4-dev.github.io/praxis](https://disouz4-dev.github.io/praxis/)** — conheça o Praxis, veja o aplicativo funcionando e baixe.
+
 <div align="center">
 
 **[🇧🇷 Português](README.md)** · [🇺🇸 English](docs/README.en.md) · [🇪🇸 Español](docs/README.es.md) · [🇫🇷 Français](docs/README.fr.md) · [🇩🇪 Deutsch](docs/README.de.md) · [🇮🇹 Italiano](docs/README.it.md) · [🇷🇺 Русский](docs/README.ru.md) · [🇨🇳 中文](docs/README.zh.md) · [🇳🇱 Nederlands](docs/README.nl.md) · [🇵🇱 Polski](docs/README.pl.md) · [🇺🇦 Українська](docs/README.uk.md) · [🇹🇷 Türkçe](docs/README.tr.md) · [🇸🇦 العربية](docs/README.ar.md) · [🇮🇳 हिन्दी](docs/README.hi.md)
@@ -12,6 +14,7 @@
 [![Motor em Rust](https://github.com/disouz4-dev/praxis/actions/workflows/rust.yml/badge.svg)](https://github.com/disouz4-dev/praxis/actions/workflows/rust.yml)
 [![Rust](https://img.shields.io/badge/Rust-motor-orange?logo=rust)](app/engine)
 [![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri)](app/desktop)
+[![Site](https://img.shields.io/badge/Site-disouz4--dev.github.io%2Fpraxis-6ea8ff)](https://disouz4-dev.github.io/praxis/)
 [![License](https://img.shields.io/badge/Licença-MIT-green)](LICENSE)
 [![Offline](https://img.shields.io/badge/100%25-offline-success)](https://github.com/disouz4-dev/praxis)
 
@@ -84,6 +87,8 @@ A versão anterior, em Python (`praxis.py`), continua no repositório como banca
 ---
 
 ## Instalação
+
+O jeito mais fácil: entre no **[site do Praxis](https://disouz4-dev.github.io/praxis/#baixar)** e siga o botão do seu sistema.
 
 O instalador sempre pergunta ao GitHub qual é a versão mais atual e instala essa. Depois de instalado, o Praxis **se atualiza sozinho**: as versões novas chegam pela atualização do sistema, e o próprio aplicativo avisa e atualiza com um clique.
 
