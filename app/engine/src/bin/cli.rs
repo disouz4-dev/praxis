@@ -170,9 +170,9 @@ fn main() -> Result<()> {
             let (atx, arx) = std::sync::mpsc::channel();
             let (etx, erx) = std::sync::mpsc::channel();
             let shared = pipeline::Shared::new();
-            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, leaks: false, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             let cfg = vad::SegmenterConfig { max_seg_s: max_seg, ..Default::default() };
-            let handles = pipeline::spawn_direction(arx, asr, translator, voice, Arc::new(FakeSpeaker), dir, cfg,
+            let handles = pipeline::spawn_direction(arx, asr, translator, Some(voice), Arc::new(FakeSpeaker), dir, cfg,
                                                      pos[2].to_string(), shared.clone(), etx)?;
             let t0 = Instant::now();
             for (k, c) in a.chunks(vad::CHUNK).enumerate() {
@@ -276,6 +276,10 @@ fn main() -> Result<()> {
                 "drain_s": drain, "keeps_up": keeps_up, "segments": ends.len()});
             std::fs::write(pos[9], serde_json::to_string_pretty(&out)?)?;
         }
+        // apps tocando som agora (bilateral: de qual app vem a outra pessoa)
+        Some("apps") => {
+            println!("{}", serde_json::to_string_pretty(&praxis_engine::app_audio::list())?);
+        }
         Some("dispositivos") => {
             println!("{}", serde_json::to_string_pretty(&serde_json::json!({
                 "entradas": devices::list_inputs(), "saidas": devices::list_outputs()}))?);
@@ -294,7 +298,7 @@ fn main() -> Result<()> {
             let secs: Option<f32> = args.iter().find_map(|a| a.strip_prefix("--segundos=")).and_then(|v| v.parse().ok());
             let emit = |v: serde_json::Value| println!("{v}");
             emit(serde_json::json!({"e": "progress", "pct": 10, "msg": "Preparando o microfone virtual…"}));
-            let vm = devices::VirtualMic::setup(bilateral)?;
+            let vm = devices::VirtualMic::setup(bilateral, opt("--app"))?;
             emit(serde_json::json!({"e": "virtual_mic", "mic": vm.mic_label, "peer": vm.peer_label}));
             emit(serde_json::json!({"e": "progress", "pct": 30, "msg": "Carregando o reconhecimento de fala…"}));
             let asr = Arc::new(Asr::load(need("--whisper")?.as_ref(), gpu, threads)?);
@@ -330,18 +334,18 @@ fn main() -> Result<()> {
             let (mtx, mrx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(opt("--mic"), mtx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
             let dir_out = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(),
-                to_speaker: ouvir, echo_gate: ouvir && !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
-            handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, voice_out,
+                to_speaker: ouvir, echo_gate: !fones && (ouvir || opt("--voz-in").is_some()), leaks: ouvir && !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+            handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, Some(voice_out),
                 Arc::new(devices::Speakers(outs, Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
             // volta (bilateral): a outra pessoa → tradução → meu fone/caixa de som
             if let Some(vin) = opt("--voz-in") {
                 let voice_in = Arc::new(tts::PiperVoice::load(vin.as_ref(), 2)?);
                 let (ptx, prx) = std::sync::mpsc::channel();
-                handles.push(devices::spawn_capture(vm.peer_capture.clone(), ptx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
+                handles.push(devices::spawn_peer_capture(&vm, ptx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
                 let dir_in = pipeline::Direction { name: "in".into(), src: tgt.clone(), tgt: src.clone(),
-                    to_speaker: true, echo_gate: !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+                    to_speaker: true, echo_gate: false, leaks: !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
                 // a trava de eco da ida também precisa saber quando a volta toca no alto-falante
-                handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, voice_in,
+                handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, Some(voice_in),
                     Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?], Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_in, cfg,
                     silero.clone(), shared.clone(), etx.clone())?);
             }

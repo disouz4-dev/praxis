@@ -44,6 +44,19 @@
       <div class="cartao">
         <h2 data-t="sec_bilateral"></h2>
         <label class="chave"><input type="checkbox" id="bilateral"><span data-t="lbl_bilateral"></span></label>
+        <div id="bilateral_opcoes" hidden>
+          <label><span data-t="lbl_peer_app"></span>
+            <span class="linha-botao"><select id="peer_app"></select><button id="atualizar_apps" class="icone" data-t-title="ttl_refresh_apps">↻</button></span>
+          </label>
+          <p id="dica_peer_app" class="dica"></p>
+          <div class="escolha"><span data-t="lbl_peer_mode"></span>
+            <label class="chave"><input type="radio" name="peer_modo" id="peer_voz"><span data-t="opt_peer_voice"></span></label>
+            <label class="chave"><input type="radio" name="peer_modo" id="peer_legenda"><span data-t="opt_peer_subtitles"></span></label>
+          </div>
+          <label id="original_linha" class="chave"><input type="checkbox" id="original"><span data-t="lbl_original"></span></label>
+          <label id="original_volume_linha" class="volume" hidden><span data-t="lbl_original_volume"></span>
+            <input type="range" id="original_volume" min="5" max="60" step="5"><output id="original_volume_valor"></output></label>
+        </div>
       </div>
 
       <details class="cartao">

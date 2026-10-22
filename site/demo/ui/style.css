@@ -93,3 +93,24 @@ option:disabled { color: var(--suave); }
 }
 .chave input[type="checkbox"]:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
 .topo select { padding: 4px 24px 4px 8px; background-position: right 7px center; }
+.erro-topo { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; color: var(--texto);
+  background: rgba(239, 68, 68, .12); border: 1px solid var(--erro); }
+.erro-topo[hidden] { display: none; }
+.linha-botao { display: flex; gap: 6px; align-items: center; }
+.linha-botao select { flex: 1; }
+.linha-botao button.icone { height: 33px; width: 36px; flex: 0 0 auto; color: var(--texto); }
+#bilateral_opcoes { margin-top: 10px; }
+#bilateral_opcoes[hidden], #original_volume_linha[hidden] { display: none; }
+.volume { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 10px; }
+.volume > span { grid-column: 1 / -1; }
+.volume input[type="range"] { width: 100%; accent-color: var(--destaque); }
+.volume output { font-size: 12px; color: var(--suave); min-width: 34px; text-align: right; }
+.escolha { margin: 10px 0 8px; }
+.escolha > span { display: block; font-size: 12px; color: var(--suave); margin-bottom: 6px; }
+.escolha .chave { margin-bottom: 6px; }
+.chave input[type="radio"] {
+  -webkit-appearance: none; appearance: none; flex: 0 0 auto; margin: 0; cursor: pointer;
+  width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--suave); background: var(--campo);
+}
+.chave input[type="radio"]:checked { border: 5px solid var(--destaque); background: #fff; }
+#original_linha[hidden] { display: none; }

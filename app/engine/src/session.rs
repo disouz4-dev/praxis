@@ -153,6 +153,17 @@ pub struct SessionConfig {
     pub voice_out: Option<String>,
     #[serde(default)]
     pub voice_in: Option<String>,
+    /// bilateral: o app de chamada de onde vem a outra pessoa (o Praxis pega o som dele
+    /// sozinho); vazio = o usuário manda a saída do app para o "Praxis Speaker"
+    #[serde(default)]
+    pub peer_app: Option<String>,
+    /// bilateral: a outra pessoa ganha voz traduzida (falso = só legenda: ouço a voz original
+    /// e leio a tradução, por exemplo para treinar o idioma)
+    #[serde(default = "sim")]
+    pub peer_voice: bool,
+    /// bilateral: volume da voz original da outra pessoa por baixo da tradução (0 = não ouvir)
+    #[serde(default)]
+    pub original_volume: f32,
     /// ignora o limite de qualidade (só para testes)
     #[serde(default)]
     pub allow_weak_language: bool,
@@ -217,8 +228,10 @@ impl Session {
 
         // os dispositivos primeiro: sem o cabo virtual não adianta baixar nada (e o erro vem na hora)
         progress(2, "Preparando o microfone virtual…");
-        let vm = VirtualMic::setup(cfg.bilateral)?;
-        emit(SessionEvent::VirtualMic { mic: vm.mic_label.clone(), peer: vm.peer_label.clone() });
+        let vm = VirtualMic::setup(cfg.bilateral, cfg.peer_app.clone())?;
+        // com o app de chamada escolhido não há nada a configurar na saída dele
+        let peer = if vm.peer_app.is_some() { String::new() } else { vm.peer_label.clone() };
+        emit(SessionEvent::VirtualMic { mic: vm.mic_label.clone(), peer });
 
         progress(5, "Preparando os modelos…");
         let ensure_asr = |m: &str| if m.starts_with("parakeet") { store.ensure_parakeet(m, &dl) } else { store.ensure_whisper(m, &dl) };
@@ -251,7 +264,8 @@ impl Session {
         };
         let voice_out_dir = voice_dir(&cfg.voice_out, &cfg.tgt)
             .map_err(|e| anyhow!("não há voz para o idioma de destino ({}): {e:#}", cfg.tgt))?;
-        let voice_in_dir = if cfg.bilateral {
+        // no modo legenda a outra pessoa não ganha voz traduzida: nem baixa nem carrega a voz
+        let voice_in_dir = if cfg.bilateral && cfg.peer_voice {
             Some(voice_dir(&cfg.voice_in, &cfg.src)
                 .map_err(|e| anyhow!("não há voz para o seu idioma ({}): o modo bilateral precisa dela. {e:#}", cfg.src))?)
         } else {
@@ -306,20 +320,51 @@ impl Session {
         let (mtx, mrx) = std::sync::mpsc::channel();
         handles.push(devices::spawn_capture(cfg.mic.clone(), mtx, stop_capture.clone())?);
         let out_dir = Direction { name: "out".into(), src: cfg.src.clone(), tgt: cfg.tgt.clone(),
-            to_speaker: cfg.monitor, echo_gate: cfg.monitor && !cfg.headphones, simultaneous: cfg.simultaneous };
-        handles.extend(pipeline::spawn_direction(mrx, asr.clone(), make_tr(tr_out, &cfg.src, &cfg.tgt)?, voice_out,
+            to_speaker: cfg.monitor,
+            // o meu microfone fica surdo enquanto algo toca na caixa de som (sem fone)
+            echo_gate: !cfg.headphones && (cfg.monitor || cfg.bilateral),
+            leaks: cfg.monitor && !cfg.headphones, simultaneous: cfg.simultaneous };
+        handles.extend(pipeline::spawn_direction(mrx, asr.clone(), make_tr(tr_out, &cfg.src, &cfg.tgt)?, Some(voice_out),
             Arc::new(Speakers(outs, stop_capture.clone())), out_dir, seg, silero.clone(), shared.clone(), ptx.clone())?);
 
         // volta (bilateral): a outra pessoa → tradução → minha saída
-        if let Some(dir) = voice_in_dir {
-            let voice_in = Arc::new(Voice::load_on(&dir, &cfg.src, voice_threads(&dir), gpu)?);
+        if cfg.bilateral {
+            let voice_in = match &voice_in_dir {
+                Some(dir) => Some(Arc::new(Voice::load_on(dir, &cfg.src, voice_threads(dir), gpu)?)),
+                None => None,
+            };
             let (itx, irx) = std::sync::mpsc::channel();
-            handles.push(devices::spawn_capture(vm.peer_capture.clone(), itx, stop_capture.clone())?);
+            let (ctx, crx) = std::sync::mpsc::channel::<Vec<f32>>();
+            handles.push(devices::spawn_peer_capture(&vm, ctx, stop_capture.clone())?);
+            let my_output = OutputDevice::open(cfg.output.clone())?;
+            // a voz original da outra pessoa, baixinho por baixo da tradução (se pedida). Sem
+            // fone ela também sai na caixa de som: o meu microfone fica surdo enquanto ela soa.
+            {
+                // só legenda: a voz original inteira. No Windows o próprio app de chamada continua
+                // tocando a voz original (a gravação não a desvia): o Praxis não a repete.
+                let gain = if cfg!(windows) { 0.0 } else if cfg.peer_voice { cfg.original_volume.clamp(0.0, 1.0) } else { 1.0 };
+                let (out, leaks, shared) = (my_output.clone(), !cfg.headphones, shared.clone());
+                handles.push(std::thread::spawn(move || {
+                    while let Ok(chunk) = crx.recv() {
+                        if gain > 0.0 {
+                            out.feed_bed(&chunk, gain);
+                            let rms = (chunk.iter().map(|x| x * x).sum::<f32>() / chunk.len().max(1) as f32).sqrt();
+                            if leaks && rms * gain > 0.002 {
+                                let until = ((shared.now_s() + 0.3) * 1000.0) as u64;
+                                shared.speaker_busy_until_ms.fetch_max(until, std::sync::atomic::Ordering::Relaxed);
+                            }
+                        }
+                        if itx.send(chunk).is_err() {
+                            break;
+                        }
+                    }
+                }));
+            }
             let in_dir = Direction { name: "in".into(), src: cfg.tgt.clone(), tgt: cfg.src.clone(),
-                to_speaker: true, echo_gate: !cfg.headphones, simultaneous: cfg.simultaneous };
+                to_speaker: cfg.peer_voice, echo_gate: false, leaks: cfg.peer_voice && !cfg.headphones, simultaneous: cfg.simultaneous };
             let seg_in = SegmenterConfig { max_seg_s: max_segment_s(&model_in, gpu), ..Default::default() };
             handles.extend(pipeline::spawn_direction(irx, asr_in, make_tr(tr_in, &cfg.tgt, &cfg.src)?, voice_in,
-                Arc::new(Speakers(vec![OutputDevice::open(cfg.output.clone())?], stop_capture.clone())), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);
+                Arc::new(Speakers(vec![my_output], stop_capture.clone())), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);
         }
         drop(ptx);
         // repassa os eventos do motor

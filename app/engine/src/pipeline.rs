@@ -102,9 +102,13 @@ pub struct Direction {
     pub name: String, // "out" (usuário) | "in" (interlocutor)
     pub src: String,
     pub tgt: String,
-    /// a tradução toca num alto-falante (eco possível)
+    /// a tradução toca num alto-falante
     pub to_speaker: bool,
+    /// a captura desta direção é o microfone do usuário: fica surda enquanto algo toca na caixa
+    /// de som (trava de eco). A captura da outra pessoa é digital e nunca é travada.
     pub echo_gate: bool,
+    /// o que esta direção toca vaza para o microfone do usuário (caixa de som, sem fone)
+    pub leaks: bool,
     /// tradução simultânea: fala a tradução enquanto a pessoa ainda fala (a premissa do
     /// Praxis); falso = espera o fim de cada trecho
     pub simultaneous: bool,
@@ -171,7 +175,8 @@ pub fn spawn_direction(
     audio_rx: Receiver<Vec<f32>>,
     asr: Arc<Asr>,
     translator: Arc<dyn Translate>,
-    voice: Arc<PiperVoice>,
+    // sem voz = só legenda (a tradução só aparece em texto)
+    voice: Option<Arc<PiperVoice>>,
     speaker: Arc<dyn Speaker>,
     dir: Direction,
     seg_cfg: SegmenterConfig,
@@ -249,12 +254,13 @@ pub fn spawn_direction(
                 }
                 let tr = translator.translate(&t.text, &dir.src, &dir.tgt)?;
                 let mut chunks = speech_chunks(&tr);
-                let first = if chunks.is_empty() {
-                    None
-                } else {
-                    let c = chunks.remove(0);
-                    let scale = speech_length_scale(*backlog.lock().unwrap());
-                    Some(voice.synthesize(&c, scale)?)
+                let first = match &voice {
+                    Some(voice) if !chunks.is_empty() => {
+                        let c = chunks.remove(0);
+                        let scale = speech_length_scale(*backlog.lock().unwrap());
+                        Some(voice.synthesize(&c, scale)?)
+                    }
+                    _ => None,
                 };
                 Ok(Some(Done { text: t.text, translation: tr, first, rest: chunks }))
             };
@@ -269,6 +275,7 @@ pub fn spawn_direction(
                 let (src_txt, tgt_txt) = (src_words.join(" "), tgt_words.join(" "));
                 let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: src_txt });
                 let _ = events.send(Event::Translation { dir: dir.name.clone(), text: tgt_txt.clone() });
+                let Some(voice) = &voice else { return };
                 let scale = speech_length_scale(*backlog.lock().unwrap());
                 match voice.synthesize(&tgt_txt, scale) {
                     Ok(pcm) if !pcm.is_empty() => {
@@ -396,6 +403,7 @@ pub fn spawn_direction(
                 }
                 let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: done.text.clone() });
                 let _ = events.send(Event::Translation { dir: dir.name.clone(), text: done.translation.clone() });
+                let Some(voice) = &voice else { continue };   // só legenda
                 let send = |pcm: Vec<f32>| {
                     *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
                     let _ = play_tx.send((id, pcm, voice.sample_rate));
@@ -432,7 +440,7 @@ pub fn spawn_direction(
                 };
                 let dur = pcm.len() as f32 / sr as f32;
                 let start = shared.now_s();
-                if dir.to_speaker && dir.echo_gate {
+                if dir.to_speaker && dir.leaks {
                     let until = ((start + dur + ECHO_TAIL_S) * 1000.0) as u64;
                     shared.speaker_busy_until_ms.fetch_max(until, Ordering::Relaxed);
                 }

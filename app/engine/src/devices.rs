@@ -185,9 +185,22 @@ pub fn spawn_capture(device: Option<String>, tx: Sender<Vec<f32>>, stop: Arc<Ato
     Ok(h)
 }
 
+/// A fala da outra pessoa (bilateral): no Windows, com um app escolhido, o som gravado direto
+/// do app; nos outros casos, a gravação do Praxis Speaker (ou do segundo cabo virtual).
+pub fn spawn_peer_capture(vm: &VirtualMic, tx: Sender<Vec<f32>>, stop: Arc<AtomicBool>) -> Result<JoinHandle<()>> {
+    #[cfg(windows)]
+    if let Some(app) = vm.peer_app.clone() {
+        return crate::app_audio::spawn_capture(app, tx, stop);
+    }
+    spawn_capture(vm.peer_capture.clone(), tx, stop)
+}
+
 /// Uma saída de áudio aberta (a fila é tocada pelo sistema; `play` espera terminar).
 pub struct OutputDevice {
     queue: Arc<Mutex<VecDeque<f32>>>,
+    /// faixa de fundo somada à tradução (a voz original da outra pessoa, baixinho)
+    bed: Arc<Mutex<VecDeque<f32>>>,
+    bed_rs: Mutex<Resampler>,
     rate: u32,
     _keep: Arc<AtomicBool>,
 }
@@ -195,23 +208,26 @@ pub struct OutputDevice {
 impl OutputDevice {
     pub fn open(name: Option<String>) -> Result<Arc<Self>> {
         let queue = Arc::new(Mutex::new(VecDeque::<f32>::new()));
+        let bed = Arc::new(Mutex::new(VecDeque::<f32>::new()));
         let keep = Arc::new(AtomicBool::new(true));
         let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<u32>>();
-        let (q, k) = (queue.clone(), keep.clone());
+        let (q, k, b) = (queue.clone(), keep.clone(), bed.clone());
         std::thread::spawn(move || {
             let start = || -> Result<(cpal::Stream, u32)> {
                 let dev = find_output(name.as_deref())?;
                 let sup = dev.default_output_config().context("configuração da saída de áudio")?;
                 let (ch, rate, fmt) = (sup.channels() as usize, sup.sample_rate(), sup.sample_format());
                 let cfg = sup.config();
-                let q2 = q.clone();
+                let q2 = (q.clone(), b.clone());
                 // qualquer formato da placa: a mesma amostra em todos os canais
                 fn output<T: cpal::SizedSample + cpal::FromSample<f32>>(dev: &cpal::Device, cfg: cpal::StreamConfig,
-                        ch: usize, q: Arc<Mutex<VecDeque<f32>>>) -> Result<cpal::Stream> {
+                        ch: usize, q: (Arc<Mutex<VecDeque<f32>>>, Arc<Mutex<VecDeque<f32>>>)) -> Result<cpal::Stream> {
                     Ok(dev.build_output_stream(cfg, move |d: &mut [T], _: &_| {
-                        let mut qq = q.lock().unwrap();
+                        let mut qq = q.0.lock().unwrap();
+                        let mut bb = q.1.lock().unwrap();
                         for f in d.chunks_mut(ch) {
-                            let v = T::from_sample(qq.pop_front().unwrap_or(0.0).clamp(-1.0, 1.0));
+                            let x = qq.pop_front().unwrap_or(0.0) + bb.pop_front().unwrap_or(0.0);
+                            let v = T::from_sample(x.clamp(-1.0, 1.0));
                             f.iter_mut().for_each(|x| *x = v);
                         }
                     }, |e| eprintln!("saída de áudio: {e}"), None)?)
@@ -244,7 +260,20 @@ impl OutputDevice {
             }
         });
         let rate = ready_rx.recv().map_err(|_| anyhow!("a saída de áudio parou"))??;
-        Ok(Arc::new(Self { queue, rate, _keep: keep }))
+        Ok(Arc::new(Self { queue, bed, bed_rs: Mutex::new(Resampler::new(SR as u32, rate)), rate, _keep: keep }))
+    }
+
+    /// Soma um bloco (16 kHz) à faixa de fundo, com volume `gain`. Se a faixa atrasar mais de
+    /// 0,4 s (a placa toca um pouco mais devagar que a captura), o excesso antigo é descartado.
+    pub fn feed_bed(&self, samples: &[f32], gain: f32) {
+        let x = self.bed_rs.lock().unwrap().process(samples);
+        let mut bb = self.bed.lock().unwrap();
+        bb.extend(x.iter().map(|v| v * gain));
+        let max = (self.rate as f32 * 0.4) as usize;
+        if bb.len() > max {
+            let sobra = bb.len() - max;
+            bb.drain(..sobra);
+        }
     }
 
     fn enqueue(&self, samples: &[f32], sr: u32) -> f32 {
@@ -324,6 +353,10 @@ pub struct VirtualMic {
     pub peer_capture: Option<String>,
     /// para onde o usuário manda a saída do app de chamada (bilateral)
     pub peer_label: String,
+    /// bilateral: o app de chamada escolhido na lista (o Praxis pega o som dele sozinho)
+    pub peer_app: Option<String>,
+    #[cfg(target_os = "linux")]
+    router: Option<crate::app_audio::Router>,
     pulse_modules: Vec<u32>,
 }
 
@@ -341,8 +374,9 @@ fn pactl(args: &[&str]) -> Result<String> {
 }
 
 impl VirtualMic {
-    pub fn setup(bilateral: bool) -> Result<Self> {
+    pub fn setup(bilateral: bool, peer_app: Option<String>) -> Result<Self> {
         let mut vm = VirtualMic::default();
+        vm.peer_app = if bilateral { peer_app.filter(|a| !a.is_empty()) } else { None };
         if cfg!(target_os = "linux") && which("pactl") {
             // sobras de uma execução que terminou à força (travou, foi morta): sem isto os
             // dispositivos se duplicam a cada abertura
@@ -374,6 +408,10 @@ impl VirtualMic {
                 // Praxis Speaker"), não pelo nome técnico (Praxis_In.monitor)
                 vm.peer_capture = Some(SINK_IN_DESC.into());
                 vm.peer_label = SINK_IN_DESC.into();
+                // app escolhido: o próprio Praxis manda o som dele para o Praxis Speaker
+                if let Some(app) = vm.peer_app.clone() {
+                    vm.router = Some(crate::app_audio::Router::start(app, SINK_IN));
+                }
             }
             return Ok(vm);
         }
@@ -393,7 +431,10 @@ impl VirtualMic {
         }))?;
         vm.target = Some(target);
         vm.mic_label = label;
-        if bilateral {
+        if bilateral && cfg!(windows) && vm.peer_app.is_some() {
+            // Windows: o som do app escolhido é gravado direto, sem segundo cabo
+            vm.peer_label = vm.peer_app.clone().unwrap_or_default();
+        } else if bilateral {
             let (peer_out, peer_in) = pick(&PEER_LOOPBACK_DRIVERS)
                 .ok_or_else(|| anyhow!(if cfg!(target_os = "macos") {
                     "o modo bilateral precisa do BlackHole 16ch (o instalador do Praxis instala)"
@@ -408,6 +449,9 @@ impl VirtualMic {
 
     /// Remove os dispositivos virtuais criados (Linux). Chamado sempre ao parar.
     pub fn teardown(&mut self) {
+        // primeiro devolve o som do app de chamada à saída normal
+        #[cfg(target_os = "linux")]
+        drop(self.router.take());
         for id in self.pulse_modules.drain(..).rev() {
             let _ = pactl(&["unload-module", &id.to_string()]);
         }

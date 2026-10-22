@@ -82,6 +82,7 @@ function verificarIdiomas() {
   const aviso = () => s === d ? t("warn_same_lang")
     : !info(s).liberado ? info(s).motivo
     : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
+    : bi && ESTADO.sistema === "windows" && !$("peer_app").value ? t("warn_peer_app")
     : "";
   vivo("aviso_idioma", aviso);
   $("aviso_idioma").hidden = !aviso();
@@ -101,6 +102,34 @@ function preencherDispositivos() {
   }
 }
 
+// Bilateral: de qual app vem a outra pessoa. Com um app escolhido o Praxis pega o som dele
+// sozinho; sem escolha (Linux/macOS), o usuário manda a saída do app para o Praxis Speaker.
+function preencherApps(lista) {
+  const sel = $("peer_app");
+  const atual = sel.value || cfg.peer_app || "";
+  sel.replaceChildren(opcao("", t(ESTADO.sistema === "windows" ? "opt_peer_none" : "opt_peer_manual")));
+  const nomes = new Map(lista.map((a) => [a.id, a.name]));
+  if (cfg.peer_app && !nomes.has(cfg.peer_app)) nomes.set(cfg.peer_app, cfg.peer_app_nome || cfg.peer_app);
+  for (const [id, nome] of nomes) { const o = opcao(id, nome); o.dataset.nome = nome; sel.append(o); }
+  sel.value = nomes.has(atual) ? atual : "";
+  dicaBilateral();
+}
+
+function dicaBilateral() {
+  const sel = $("peer_app");
+  $("bilateral_opcoes").hidden = !$("bilateral").checked;
+  vivo("dica_peer_app", () => sel.value ? tf("hint_peer_app_auto", { app: sel.selectedOptions[0].textContent })
+    : t(ESTADO.sistema === "windows" ? "hint_peer_win" : "hint_peer_manual"));
+  // só legenda: a voz original já toca inteira. No Windows o próprio app toca a voz original.
+  $("original_linha").hidden = $("peer_legenda").checked || ESTADO.sistema === "windows";
+  $("original_volume_linha").hidden = $("original_linha").hidden || !$("original").checked;
+  $("original_volume_valor").textContent = $("original_volume").value + "%";
+}
+
+async function atualizarApps() {
+  try { preencherApps(await invoke("apps_com_som")); } catch { /* lista fica como está */ }
+}
+
 function coletar() {
   return {
     ...cfg,
@@ -109,6 +138,11 @@ function coletar() {
     monitor: $("monitor").checked, headphones: $("headphones").checked,
     bilateral: $("bilateral").checked,
     model: $("model").value, translator: $("translator").value,
+    peer_app: $("peer_app").value || null,
+    peer_app_nome: $("peer_app").selectedOptions[0]?.dataset.nome || null,
+    peer_voice: !$("peer_legenda").checked,
+    original_nivel: +$("original_volume").value,
+    original_volume: $("original").checked ? +$("original_volume").value / 100 : 0,
   };
 }
 
@@ -220,7 +254,11 @@ async function main() {
   const ui = $("ui_lang");
   for (const c of Object.keys(I18N.strings)) ui.append(opcao(c, I18N.native_names[c] || c));
   ui.value = cfg.ui_lang;
-  ui.onchange = () => { cfg.ui_lang = ui.value; aplicarTextos(); preencherIdiomas(); preencherDispositivos(); salvar(); };
+  ui.onchange = () => {
+    cfg.ui_lang = ui.value; aplicarTextos(); preencherIdiomas(); preencherDispositivos();
+    preencherApps([...$("peer_app").options].filter((o) => o.value).map((o) => ({ id: o.value, name: o.dataset.nome })));
+    salvar();
+  };
 
   for (const id of ["monitor", "headphones", "bilateral"]) $(id).checked = !!cfg[id];
   $("model").value = cfg.model; $("translator").value = cfg.translator;
@@ -229,10 +267,17 @@ async function main() {
   if (!$("translator").value) { $("translator").value = "auto"; cfg.translator = "auto"; }
   vivo("hardware", () => t(ESTADO.placa_de_video ? "hw_gpu_found" : "hw_no_gpu"));
   aplicarTemaInicial();
-  aplicarTextos(); preencherIdiomas(); preencherDispositivos();
+  $("original").checked = (cfg.original_volume || 0) > 0;
+  $(cfg.peer_voice === false ? "peer_legenda" : "peer_voz").checked = true;
+  $("original_volume").value = cfg.original_nivel || 15;
+  aplicarTextos(); preencherIdiomas(); preencherDispositivos(); preencherApps(ESTADO.apps || []); verificarIdiomas();
 
   for (const id of ["src", "tgt", "bilateral"]) $(id).addEventListener("change", () => { verificarIdiomas(); salvar(); });
   for (const id of ["mic", "output", "monitor", "headphones", "model", "translator"]) $(id).addEventListener("change", salvar);
+  $("bilateral").addEventListener("change", () => { dicaBilateral(); if ($("bilateral").checked) atualizarApps(); });
+  $("peer_app").addEventListener("change", () => { dicaBilateral(); verificarIdiomas(); salvar(); });
+  $("atualizar_apps").onclick = atualizarApps;
+  for (const id of ["original", "original_volume", "peer_voz", "peer_legenda"]) $(id).addEventListener("input", () => { dicaBilateral(); salvar(); });
   // sem fone e com tradução tocando na caixa de som, a trava de eco deixa o microfone surdo
   const avisoEco = () => { $("aviso_eco").hidden = $("headphones").checked || !($("monitor").checked || $("bilateral").checked); };
   for (const id of ["monitor", "headphones", "bilateral"]) $(id).addEventListener("change", avisoEco);

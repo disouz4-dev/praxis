@@ -49,7 +49,15 @@ fn estado_inicial(app: State<App>) -> Value {
         "idioma_do_sistema": system_language(),
         "config": salva,
         "rodando": app.session.lock().unwrap().is_some(),
+        "sistema": std::env::consts::OS,
+        "apps": praxis_engine::app_audio::list(),
     })
+}
+
+/// Apps tocando som agora (bilateral: de qual app vem a outra pessoa).
+#[tauri::command]
+fn apps_com_som() -> Value {
+    json!(praxis_engine::app_audio::list())
 }
 
 #[tauri::command]
@@ -173,7 +181,7 @@ fn parar(handle: tauri::AppHandle) {
 fn main() {
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {
