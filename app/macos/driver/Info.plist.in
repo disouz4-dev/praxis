@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>pt-BR</string>
+	<key>CFBundleExecutable</key>
+	<string>@PRAXIS_DRIVER_NOME@</string>
+	<key>CFBundleIdentifier</key>
+	<string>@PRAXIS_DRIVER_ID@</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>@PRAXIS_DRIVER_NOME@</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>@PRAXIS_DRIVER_VERSAO@</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleSupportedPlatforms</key>
+	<array>
+		<string>MacOSX</string>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>@PRAXIS_DRIVER_VERSAO@</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>@CMAKE_OSX_DEPLOYMENT_TARGET@</string>
+	<key>CFPlugInFactories</key>
+	<dict>
+		<key>@PRAXIS_FABRICA_UUID@</key>
+		<string>@PRAXIS_FABRICA_FUNCAO@</string>
+	</dict>
+	<key>CFPlugInTypes</key>
+	<dict>
+		<key>443ABAB8-E7B3-491A-B985-BEB9187030DB</key>
+		<array>
+			<string>@PRAXIS_FABRICA_UUID@</string>
+		</array>
+	</dict>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright (c) Praxis. Licença MIT.</string>
+	<key>AudioServerPlugIn_MachServices</key>
+	<array/>
+	<key>sandboxSafe</key>
+	<true/>
+</dict>
+</plist>
