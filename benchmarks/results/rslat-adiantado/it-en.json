@@ -1,0 +1,17 @@
+{
+  "drain_s": 0.0,
+  "engine": "praxis-rs",
+  "keeps_up": true,
+  "lag_trend_ms": -136.78173828125,
+  "latency_audio_ms": {
+    "max": 1456.432373046875,
+    "p50": 1260.4522705078125,
+    "p95": 1456.432373046875
+  },
+  "pair": "it->en",
+  "reference": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale. Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017. Se avete visto il film \"Il mistero dei Templari\", potreste pensare che sul retro della Dichiarazione d'Indipendenza sia disegnata una mappa del tesoro. Con ioni idrogeno si intendono dei protoni cui sono stati strappati via gli elettroni (dato che gli atomi di idrogeno sono formati da un protone e da un elettrone). L'incidente è avvenuto in alta montagna e si ritiene sia stato causato da fuoco nemico. In maniera analoga, agli uomini è richiesto di indossare pantaloni lunghi fin sotto le ginocchia.",
+  "segments": 6,
+  "speech_s": 150.72000122070312,
+  "transcript": "Il blog è uno strumento che si prefigge di incoraggiare la collaborazione e sviluppare l'apprendimento degli studenti ben oltre la giornata scolastica normale. Sotto il ponte lo spazio in verticale libero è di 15 metri. La costruzione è terminata nell'agosto del 2011, ma l'apertura al traffico è avvenuta solo nel marzo 2017. Se avete visto il film Il mistero dei Templari, potreste pensare che sul retro della dichiarazione di indipendenza sia disegnata una mappa del tesoro. Con ioni idrogeno si intendono dei protoni cui sono stati strappati via gli elettroni, dato che gli atomi di idrogeno sono formati da un protone e da un elettrone. L'incidente è avvenuto in alta montagna e si ritiene sia stato causato da fuoco nemico. In maniera analoga agli uomini è richiesto di indossare pantaloni lunghi fin sotto le ginocchia.",
+  "translation": "The blog is a tool that aims to encourage collaboration and develop students' learning well beyond the normal school day. Under the bridge the free vertical space is 15 meters. Construction was completed in August 2011, but it was not opened to traffic until March 2017. If you've seen the movie The Templar Mystery, you might think that on the back of the Declaration of Independence is a treasure map drawn. Hydrogen ions are protons from which electrons have been ripped away, since hydrogen atoms are made up of a proton and an electron. The accident occurred in a high mountain and is believed to have been caused by enemy fire. Similarly, men are required to wear long pants down to their knees."
+}

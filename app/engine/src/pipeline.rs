@@ -107,6 +107,21 @@ fn voiced_end(audio: &[f32]) -> usize {
     env.iter().rposition(|&e| e > thr).map(|i| (i + 1) * chunk).unwrap_or(audio.len()).min(audio.len())
 }
 
+/// Trabalho para o reconhecedor: um trecho adiantado (a fala parece ter acabado) ou o
+/// trecho final (o fim se confirmou).
+enum Job {
+    Tentative(Vec<f32>),
+    Final(usize, Vec<f32>),
+}
+
+/// Resultado de um trecho: texto, tradução e a voz do 1º pedaço já pronta.
+struct Done {
+    text: String,
+    translation: String,
+    first: Option<Vec<f32>>,
+    rest: Vec<String>,
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn spawn_direction(
     audio_rx: Receiver<Vec<f32>>,
@@ -121,7 +136,7 @@ pub fn spawn_direction(
     events: Sender<Event>,
 ) -> Result<Vec<JoinHandle<()>>> {
     let dir = Arc::new(dir);
-    let (seg_tx, seg_rx) = channel::<(usize, Vec<f32>)>();
+    let (seg_tx, seg_rx) = channel::<Job>();
     let (play_tx, play_rx) = channel::<(usize, Vec<f32>, u32)>();
     let backlog = Arc::new(Mutex::new(0f32)); // segundos de tradução ainda não tocados
     let probe = SileroV6::load(&silero_model, seg_cfg.threshold)?;
@@ -147,12 +162,16 @@ pub fn spawn_direction(
                     let end = *seg.ends.last().unwrap_or(&0);
                     let speech_end = (end - (audio.len() - voiced_end(&audio))) as f32 / SR as f32;
                     let _ = events.send(Event::Segment { dir: dir.name.clone(), id, speech_end_s: speech_end, emitted_s: shared.now_s() });
-                    let _ = seg_tx.send((id, audio));
+                    let _ = seg_tx.send(Job::Final(id, audio));
                     id += 1;
+                }
+                // a fala parece ter acabado: adianta o trabalho enquanto o fim é confirmado
+                if let Some(audio) = seg.tentative() {
+                    let _ = seg_tx.send(Job::Tentative(audio));
                 }
             }
             for audio in seg.flush() {
-                let _ = seg_tx.send((id, audio));
+                let _ = seg_tx.send(Job::Final(id, audio));
                 id += 1;
             }
         }));
@@ -162,46 +181,68 @@ pub fn spawn_direction(
     {
         let (shared, events, dir, backlog) = (shared.clone(), events.clone(), dir.clone(), backlog.clone());
         handles.push(std::thread::spawn(move || {
+            // reconhecer + traduzir + sintetizar o 1º pedaço da voz
+            let work = |audio: &[f32]| -> Result<Option<Done>> {
+                let t = asr.transcribe(audio, &dir.src)?;
+                if t.text.is_empty() {
+                    return Ok(None);
+                }
+                let tr = translator.translate(&t.text, &dir.src, &dir.tgt)?;
+                let mut chunks = speech_chunks(&tr);
+                let first = if chunks.is_empty() {
+                    None
+                } else {
+                    let c = chunks.remove(0);
+                    let scale = speech_length_scale(*backlog.lock().unwrap());
+                    Some(voice.synthesize(&c, scale)?)
+                };
+                Ok(Some(Done { text: t.text, translation: tr, first, rest: chunks }))
+            };
+            // trabalho adiantado do trecho em curso: (áudio, resultado)
+            let mut spec: Option<(Vec<f32>, Result<Option<Done>>)> = None;
             while !shared.stop.load(Ordering::Relaxed) {
                 let (id, audio) = match seg_rx.recv_timeout(Duration::from_millis(200)) {
-                    Ok(x) => x,
+                    Ok(Job::Tentative(audio)) => {
+                        let r = work(&crate::vad::with_tail_silence(&audio));
+                        spec = Some((audio, r));
+                        continue;
+                    }
+                    Ok(Job::Final(id, audio)) => (id, audio),
                     Err(RecvTimeoutError::Timeout) => continue,
                     Err(RecvTimeoutError::Disconnected) => break,
                 };
-                let r = (|| -> Result<Option<String>> {
-                    let t = asr.transcribe(&audio, &dir.src)?;
-                    if t.text.is_empty() {
-                        return Ok(None);
-                    }
-                    let stage = |name: &str| {
-                        let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: name.into(), at_s: shared.now_s() });
-                    };
-                    stage("transcrito");
-                    let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: t.text.clone() });
-                    let tr = translator.translate(&t.text, &dir.src, &dir.tgt)?;
-                    stage("traduzido");
-                    let _ = events.send(Event::Translation { dir: dir.name.clone(), text: tr.clone() });
-                    Ok(Some(tr))
-                })();
-                let translated = match r {
-                    Ok(Some(t)) => t,
+                // o fim se confirmou: reaproveita o adiantado se o trecho é o mesmo
+                let r = match spec.take() {
+                    Some((t, r)) if crate::vad::reuse_ok(&t, &audio) => r,
+                    _ => work(&audio),
+                };
+                let done = match r {
+                    Ok(Some(d)) => d,
                     Ok(None) => continue,
                     Err(e) => {
                         let _ = events.send(Event::Error { msg: format!("{e:#}") });
                         continue; // um trecho com problema não pode derrubar a direção
                     }
                 };
-                // síntese por frase: a primeira começa a tocar enquanto a próxima é sintetizada
-                for (k, sent) in speech_chunks(&translated).into_iter().enumerate() {
+                for name in ["transcrito", "traduzido"] {
+                    let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: name.into(), at_s: shared.now_s() });
+                }
+                let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: done.text.clone() });
+                let _ = events.send(Event::Translation { dir: dir.name.clone(), text: done.translation.clone() });
+                let send = |pcm: Vec<f32>| {
+                    *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
+                    let _ = play_tx.send((id, pcm, voice.sample_rate));
+                };
+                if let Some(pcm) = done.first.filter(|p| !p.is_empty()) {
+                    let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
+                    send(pcm);
+                }
+                // o resto, pedaço a pedaço: o primeiro já toca enquanto o próximo é sintetizado
+                for sent in done.rest {
+                    // a trava do atraso é solta antes de sintetizar: `send` a pega de novo
                     let scale = speech_length_scale(*backlog.lock().unwrap());
                     match voice.synthesize(&sent, scale) {
-                        Ok(pcm) if !pcm.is_empty() => {
-                            if k == 0 {
-                                let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
-                            }
-                            *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
-                            let _ = play_tx.send((id, pcm, voice.sample_rate));
-                        }
+                        Ok(pcm) if !pcm.is_empty() => send(pcm),
                         Ok(_) => {}
                         Err(e) => {
                             let _ = events.send(Event::Error { msg: format!("síntese de voz: {e:#}") });

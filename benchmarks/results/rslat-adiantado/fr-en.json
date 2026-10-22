@@ -1,0 +1,17 @@
+{
+  "drain_s": 0.0,
+  "engine": "praxis-rs",
+  "keeps_up": true,
+  "lag_trend_ms": -1397.8310546875,
+  "latency_audio_ms": {
+    "max": 8179.52734375,
+    "p50": 1145.85107421875,
+    "p95": 8179.52734375
+  },
+  "pair": "fr->en",
+  "reference": "L’accident a eu lieu en terrain montagneux, et il semblerait que cela ait été causé par un incendie malveillant. Nous sommes d'accord avec la déclaration de l'USOC (Comité olympique des États-Unis) selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourraient être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt à des changements significatifs au sein de notre organisation, qu'à la révocation d'accréditation. Il a ajouté qu’« on ne devrait cependant pas leur demander d’assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leurs capacités. » Le rugissement du tigre ne ressemble pas au rugissement ample du lion, mais plutôt à une phrase dont les mots seraient des cris et des grondements. Le même mois, un autre avion de ligne a fait une sortie de piste à Mashhad et a heurté un mur, tuant ainsi dix-sept personnes. Giancarlo Fisichella a perdu le contrôle de sa voiture et a terminé la course peu après le démarrage.",
+  "segments": 7,
+  "speech_s": 147.24000549316406,
+  "transcript": "L'accident a eu lieu en terrain montagneux, et il semblerait que cela ait été causé par un incendie malveillant. Nous sommes d'accord avec la déclaration de Lusk, comité olympique des États-Unis, selon laquelle les intérêts de nos athlètes et de nos clubs, ainsi que de leur sport, pourront être mieux servis. Cela peut être fait en allant de l'avant et en procédant plutôt. à des changements significatifs au sein de notre organisation qu'est la révocation d'accréditation. Il a ajouté qu'on ne devrait cependant pas leur demander d'assumer des obligations qui dépassent leur stade de développement, leur responsabilité et leur capacité. Le rugissement du tigre ne ressemble pas au rugissement empluillant, mais plutôt à une phrase dont les mots seraient des cris et des grondements. Le même mois, un autre avion de ligne a fait une sortie de piste à Machad et heurté un mur, tuant ainsi 17 personnes. Giancarlo Ficilla a perdu le contrôle de sa voiture et a terminé la course peu après le démarrage.",
+  "translation": "The accident occurred in mountainous terrain, and it appears to have been caused by a malicious fire. We agree with Lusk's statement, the United States Olympic Committee, that the interests of our athletes and our clubs, and their sport. They can be better served. This can be done by moving forward and proceeding instead. I would like to thank the Commissioner for his report. He added, however, that they should not be asked to assume obligations that go beyond their stage of development, responsibility and capacity. The tiger's roar is not like the roar of a snake, but rather a phrase whose words would be screams and roars. In the same month, another airliner took off from the runway at Machad and hit a wall, killing 17 people. Giancarlo Ficilla lost control of his car and finished the race shortly after the start."
+}

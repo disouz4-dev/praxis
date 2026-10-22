@@ -48,6 +48,42 @@ pub enum Event {
 pub trait SpeechProbe {
     fn feed(&mut self, chunk: &[f32]) -> Event;
     fn reset(&mut self);
+    /// A fala parece ter acabado (chance de fala abaixo do limiar), mas o fim ainda não foi
+    /// confirmado: é a hora de adiantar o reconhecimento.
+    fn quiet(&self) -> bool {
+        false
+    }
+}
+
+/// Silêncio posto no fim do áudio adiantado antes de reconhecer: o Whisper erra a última
+/// palavra quando o áudio termina seco (o trecho final sempre termina com silêncio).
+pub const TENTATIVE_PAD_S: f32 = 0.3;
+
+pub fn with_tail_silence(audio: &[f32]) -> Vec<f32> {
+    let mut v = audio.to_vec();
+    v.resize(audio.len() + (TENTATIVE_PAD_S * SR as f32) as usize, 0.0);
+    v
+}
+
+/// Reaproveita o trabalho adiantado quando o trecho final é o adiantado mais, no máximo,
+/// este tanto de áudio de fim de fala (silêncio e o finzinho que o detector ainda esperou).
+pub const REUSE_MAX_TAIL_S: f32 = 0.8;
+
+/// O trecho final começa exatamente com o áudio adiantado e só acrescenta silêncio? Se o
+/// que veio depois tem voz (um fim de frase falado baixinho), o trabalho é refeito: medido,
+/// aproveitar sem olhar o volume subia o erro (alemão 2,0% → 2,5%).
+pub fn reuse_ok(tentative: &[f32], final_audio: &[f32]) -> bool {
+    if final_audio.len() < tentative.len()
+        || (final_audio.len() - tentative.len()) as f32 / SR as f32 > REUSE_MAX_TAIL_S
+        || final_audio[..tentative.len()] != *tentative
+    {
+        return false;
+    }
+    // volume de cada bloco; "voz" = acima de 10% do bloco mais alto do trecho (como voiced_end)
+    let rms = |c: &[f32]| (c.iter().map(|x| x * x).sum::<f32>() / c.len().max(1) as f32).sqrt();
+    let peak = final_audio.chunks(CHUNK).map(rms).fold(0.0f32, f32::max);
+    let thr = (0.1 * peak).max(0.01);
+    final_audio[tentative.len()..].chunks(CHUNK).all(|c| rms(c) <= thr)
 }
 
 /// Silero v6 — o mesmo arquivo e a mesma regra do Praxis em Python (OnnxSileroVAD, que
@@ -66,6 +102,7 @@ pub struct SileroV6 {
     triggered: bool,
     temp_end: usize,
     current: usize,
+    last_p: f32,
 }
 
 const CONTEXT: usize = 64;
@@ -117,7 +154,7 @@ impl SileroV6 {
         let end_threshold = threshold - env_f32("PRAXIS_FOLGA_FIM", END_GAP);
         let silence_s = env_f32("PRAXIS_SILENCIO_S", SILENCE_S);
         let mut v = Self { session, h: vec![], c: vec![], ctx: vec![], threshold, end_threshold, silence_s,
-                           triggered: false, temp_end: 0, current: 0 };
+                           triggered: false, temp_end: 0, current: 0, last_p: 0.0 };
         v.reset();
         Ok(v)
     }
@@ -146,6 +183,7 @@ impl SpeechProbe for SileroV6 {
             Ok(p) => p,
             Err(_) => return Event::None,
         };
+        self.last_p = p;
         let min_silence = (SR as f32 * self.silence_s) as usize;
         if p >= self.threshold && self.temp_end != 0 {
             self.temp_end = 0;
@@ -175,6 +213,11 @@ impl SpeechProbe for SileroV6 {
         self.triggered = false;
         self.temp_end = 0;
         self.current = 0;
+        self.last_p = 0.0;
+    }
+
+    fn quiet(&self) -> bool {
+        self.triggered && self.last_p < self.threshold
     }
 }
 
@@ -241,6 +284,8 @@ pub struct Segmenter<P: SpeechProbe> {
     pos: usize,
     /// posição (em amostras) do fim de cada trecho entregue, na mesma ordem
     pub ends: Vec<usize>,
+    /// já foi adiantado o trecho em curso (até a fala voltar)
+    tentative_sent: bool,
 }
 
 impl<P: SpeechProbe> Segmenter<P> {
@@ -257,6 +302,7 @@ impl<P: SpeechProbe> Segmenter<P> {
             carry_age: 0,
             pos: 0,
             ends: vec![],
+            tentative_sent: false,
         }
     }
 
@@ -264,6 +310,7 @@ impl<P: SpeechProbe> Segmenter<P> {
         let mut all = std::mem::take(&mut self.carry);
         all.extend(chunks);
         self.carry_age = 0;
+        self.tentative_sent = false;
         if all.is_empty() {
             return;
         }
@@ -332,6 +379,24 @@ impl<P: SpeechProbe> Segmenter<P> {
             self.cut_long(&mut out);
         }
         out
+    }
+
+    /// Depois de `push`: o trecho em curso, se a fala parece ter acabado e ele ainda não foi
+    /// adiantado. O trecho final (quando o fim se confirmar) começa com este mesmo áudio.
+    pub fn tentative(&mut self) -> Option<Vec<f32>> {
+        if !self.speaking {
+            return None;
+        }
+        if !self.probe.quiet() {
+            self.tentative_sent = false; // a fala voltou: o adiantado não vale mais
+            return None;
+        }
+        let n = self.carry.len() + self.buf.len();
+        if self.tentative_sent || (n as f32) * CHUNK_S < MIN_SEG_S {
+            return None;
+        }
+        self.tentative_sent = true;
+        Some(self.carry.iter().chain(self.buf.iter()).flatten().copied().collect())
     }
 
     /// Fim do áudio: entrega o que sobrou.
@@ -403,5 +468,58 @@ mod tests {
         bl.extend(blocks(0.0, 1.2)); // silêncio longo: sai sozinho
         let out = run(&mut s, bl);
         assert_eq!(out.len(), 1);
+    }
+
+    /// Como o Silero: depois da fala, fica "quieto" alguns blocos antes de confirmar o fim.
+    struct Slow { speaking: bool, quiet_for: usize }
+    impl SpeechProbe for Slow {
+        fn feed(&mut self, c: &[f32]) -> Event {
+            let loud = c.iter().map(|x| x.abs()).sum::<f32>() / c.len() as f32 > 0.01;
+            if loud {
+                self.quiet_for = 0;
+                if !self.speaking {
+                    self.speaking = true;
+                    return Event::Start;
+                }
+            } else if self.speaking {
+                self.quiet_for += 1;
+                if self.quiet_for >= 6 {
+                    self.speaking = false;
+                    return Event::End;
+                }
+            }
+            Event::None
+        }
+        fn reset(&mut self) {
+            *self = Slow { speaking: false, quiet_for: 0 };
+        }
+        fn quiet(&self) -> bool {
+            self.speaking && self.quiet_for > 0
+        }
+    }
+
+    #[test]
+    fn trabalho_adiantado_bate_com_o_trecho_final() {
+        let mut s = Segmenter::new(Slow { speaking: false, quiet_for: 0 }, SegmenterConfig::default());
+        let (mut tentative, mut finals) = (vec![], vec![]);
+        for b in blocks(2.0, 1.0) {
+            finals.extend(s.push(&b));
+            tentative.extend(s.tentative());
+        }
+        assert_eq!(tentative.len(), 1, "adianta uma vez só");
+        assert_eq!(finals.len(), 1);
+        assert!(reuse_ok(&tentative[0], &finals[0]), "o final é o adiantado + o fim");
+        // se a fala volta, o adiantado não serve para o trecho final, que é maior
+        let mut s = Segmenter::new(Slow { speaking: false, quiet_for: 0 }, SegmenterConfig::default());
+        let (mut tentative, mut finals) = (vec![], vec![]);
+        let mut bl = blocks(1.5, 0.1);
+        bl.extend(blocks(1.5, 1.0));
+        for b in bl {
+            finals.extend(s.push(&b));
+            tentative.extend(s.tentative());
+        }
+        assert_eq!(finals.len(), 1);
+        assert!(!reuse_ok(&tentative[0], &finals[0]));
+        assert!(reuse_ok(tentative.last().unwrap(), &finals[0]));
     }
 }

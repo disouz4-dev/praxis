@@ -51,6 +51,8 @@ fn main() -> Result<()> {
             let lang = pos[3].as_str();
             let max_seg: f32 = args.iter().find_map(|a| a.strip_prefix("--max-seg=")).and_then(|v| v.parse().ok()).unwrap_or(6.0);
             let threshold: f32 = args.iter().find_map(|a| a.strip_prefix("--limiar=")).and_then(|v| v.parse().ok()).unwrap_or(vad::THRESHOLD);
+            let adiantado = args.iter().any(|a| a == "--adiantado");
+            let mut reuse_count = (0usize, 0usize);
             let manifest: Vec<serde_json::Value> =
                 serde_json::from_str(&std::fs::read_to_string(dir.join("manifest.json"))?)?;
             let (mut samples, mut asr_s, mut audio_s, mut nseg) = (vec![], 0f64, 0f64, 0usize);
@@ -68,8 +70,21 @@ fn main() -> Result<()> {
                     parts.extend(seg.flush());
                 } else {
                     let mut seg = vad::Segmenter::new(vad::SileroV6::load(pos[5], threshold)?, cfg);
-                    for c in &chunks { parts.extend(seg.push(c)); }
+                    // --adiantado: usa o áudio adiantado quando o produto o reaproveitaria
+                    let mut tent: Option<Vec<f32>> = None;
+                    let (mut reused, mut total) = (0usize, 0usize);
+                    for c in &chunks {
+                        for f in seg.push(c) {
+                            total += 1;
+                            match tent.take() {
+                                Some(t) if adiantado && vad::reuse_ok(&t, &f) => { reused += 1; parts.push(vad::with_tail_silence(&t)) }
+                                _ => parts.push(f),
+                            }
+                        }
+                        if let Some(t) = seg.tentative() { tent = Some(t); }
+                    }
                     parts.extend(seg.flush());
+                    if adiantado { reuse_count.0 += reused; reuse_count.1 += total; }
                 }
                 nseg += parts.len();
                 let t = Instant::now();
@@ -91,6 +106,9 @@ fn main() -> Result<()> {
                 "live_segments": nseg, "rtf_live": asr_s / audio_s.max(1e-9), "samples": samples}]});
             std::fs::write(pos[4], serde_json::to_string_pretty(&out)?)?;
             eprintln!("trechos por frase: {:.2}", nseg as f64 / manifest.len().max(1) as f64);
+            if adiantado {
+                eprintln!("trechos com trabalho adiantado reaproveitado: {} de {}", reuse_count.0, reuse_count.1);
+            }
         }
         // tts <pasta da voz> <frases.txt> <pasta de saída>  — um WAV por linha
         Some("tts") if pos.len() == 4 => {
