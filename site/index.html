@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis — Fale a sua língua. Seja ouvido em todas.</title>
+  <meta name="description" content="Tradução simultânea de voz, enquanto você fala, 100% no seu computador. Funciona no Discord, Meet, Zoom, WhatsApp e qualquer app de chamada. Código aberto.">
+  <meta property="og:title" content="Praxis — tradução simultânea de voz">
+  <meta property="og:description" content="Fale a sua língua. Seja ouvido em todas. Offline, privado e de código aberto.">
+  <meta property="og:image" content="media/logo.png">
+  <meta name="theme-color" content="#050608">
+  <link rel="icon" href="media/icone.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="progresso" aria-hidden="true"></div>
+
+  <nav class="nav">
+    <a class="marca" href="#topo"><img src="media/icone.png" alt=""><span>Praxis</span></a>
+    <div class="nav-links">
+      <a href="#simultaneo">Simultâneo</a>
+      <a href="#voz">Sua voz</a>
+      <a href="#demo">Aplicativo</a>
+      <a href="#como">Como funciona</a>
+      <a href="#baixar">Baixar</a>
+    </div>
+    <a class="botao botao-vidro pequeno" href="https://github.com/disouz4-dev/praxis" target="_blank" rel="noopener">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </nav>
+
+  <!-- ───────── Abertura ───────── -->
+  <header class="hero" id="topo">
+    <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="hero-texto">
+      <p class="sobretitulo entrada" style="--d:0.12s">Tradução simultânea de voz · 100% no seu computador</p>
+      <h1 class="entrada" style="--d:0.24s">Fale a sua língua.<br><span class="gradiente">Seja ouvido em todas.</span></h1>
+      <p class="subtitulo entrada" style="--d:0.36s">O Praxis traduz a sua fala <strong>enquanto você fala</strong> e entrega a tradução direto no Discord, Meet, Zoom ou WhatsApp. Sem nuvem, sem assinatura, sem esperar.</p>
+      <div class="acoes entrada" style="--d:0.48s">
+        <a class="botao botao-principal" href="#baixar">Baixar grátis</a>
+        <a class="botao botao-vidro" href="https://github.com/disouz4-dev/praxis" target="_blank" rel="noopener">Ver no GitHub →</a>
+      </div>
+    </div>
+
+    <div class="palco entrada" style="--d:0.60s" aria-label="Demonstração: português sendo traduzido para inglês em tempo real">
+      <div class="lado">
+        <span class="etiqueta"><b class="ponto vivo"></b>Você fala · Português</span>
+        <p class="legenda" id="leg-fonte"></p>
+      </div>
+      <canvas id="ondas" aria-hidden="true"></canvas>
+      <div class="lado direita">
+        <span class="etiqueta">Eles ouvem · English<b class="ponto"></b></span>
+        <p class="legenda destino" id="leg-destino"></p>
+      </div>
+    </div>
+    <a class="rolar" href="#apps" aria-label="Rolar para baixo"><span></span></a>
+  </header>
+
+  <!-- ───────── Apps ───────── -->
+  <section class="apps" id="apps">
+    <p class="revelar">Funciona com o app que você já usa</p>
+    <div class="faixa" aria-hidden="true">
+      <div class="faixa-trilho">
+        <span>Discord</span><span>Google Meet</span><span>Zoom</span><span>WhatsApp</span><span>Microsoft Teams</span><span>OBS Studio</span><span>Slack</span><span>Telegram</span><span>Skype</span><span>Jitsi</span>
+        <span>Discord</span><span>Google Meet</span><span>Zoom</span><span>WhatsApp</span><span>Microsoft Teams</span><span>OBS Studio</span><span>Slack</span><span>Telegram</span><span>Skype</span><span>Jitsi</span>
+      </div>
+    </div>
+    <p class="nota revelar">O Praxis cria um <strong>microfone virtual</strong>. Escolha “Praxis” no app de chamada, e o que sai dele é a sua voz já traduzida.</p>
+  </section>
+
+  <!-- ───────── Simultâneo ───────── -->
+  <section class="secao" id="simultaneo">
+    <div class="cabeca">
+      <p class="sobretitulo revelar">Simultâneo de verdade</p>
+      <h2 class="revelar">Não espera você<br>terminar a frase.</h2>
+      <p class="revelar">Como um intérprete de conferência: o Praxis relê o que você diz a cada 0,6 segundo, confirma as palavras e começa a falar a tradução enquanto você ainda está falando.</p>
+    </div>
+
+    <div class="linha-tempo revelar" id="linha-tempo">
+      <div class="trilha">
+        <span class="rotulo">Você</span>
+        <div class="faixa-fala" id="lt-fonte"></div>
+      </div>
+      <div class="trilha">
+        <span class="rotulo">Praxis</span>
+        <div class="faixa-fala destino" id="lt-destino"></div>
+      </div>
+      <div class="agulha" id="lt-agulha"></div>
+      <div class="lt-rodape">
+        <span><b class="tag tag-azul"></b>fala original</span>
+        <span><b class="tag tag-violeta"></b>tradução falada</span>
+        <span class="lt-dica">A tradução começa <strong>antes</strong> de você terminar.</span>
+      </div>
+    </div>
+
+    <div class="grade-3">
+      <article class="cartao brilho revelar">
+        <h3>Acordo local</h3>
+        <p>Uma palavra só é falada depois de aparecer igual em duas leituras seguidas. Rápido, sem voltar atrás.</p>
+      </article>
+      <article class="cartao brilho revelar">
+        <h3>Tradução que continua</h3>
+        <p>Cada pedaço novo continua a frase que já foi dita, com o contexto inteiro. A frase final sai tão boa quanto a tradução de uma vez só.</p>
+      </article>
+      <article class="cartao brilho revelar">
+        <h3>Ou por frase</h3>
+        <p>Prefere ouvir a frase completa? Um modo mais calmo traduz a cada pausa, com a mesma qualidade.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ───────── Voz ───────── -->
+  <section class="secao voz" id="voz">
+    <div class="voz-visual revelar" aria-hidden="true">
+      <div class="anel"></div><div class="anel"></div><div class="anel"></div>
+      <div class="barras" id="barras-voz"></div>
+    </div>
+    <div class="voz-texto">
+      <p class="sobretitulo revelar">Na sua voz <span class="selo">Em desenvolvimento</span></p>
+      <h2 class="revelar">Você, em outra língua.</h2>
+      <p class="revelar">A meta do Praxis é que a outra pessoa ouça a tradução com o <strong>seu timbre</strong>, não com uma voz de robô. Dois caminhos:</p>
+      <div class="modos revelar">
+        <div class="modo">
+          <span class="modo-num">10 s</span>
+          <div><h3>Clone instantâneo</h3><p>Grave dez segundos e pronto: a sua voz em qualquer idioma.</p></div>
+        </div>
+        <div class="modo">
+          <span class="modo-num">5 min</span>
+          <div><h3>Voz treinada</h3><p>Alguns minutos de gravação treinam um modelo só seu, ainda mais fiel.</p></div>
+        </div>
+      </div>
+      <p class="pequena revelar">Hoje o Praxis já fala com vozes naturais de alta qualidade (Kokoro e Supertonic). A voz clonada está sendo medida e integrada.</p>
+    </div>
+  </section>
+
+  <!-- ───────── Aplicativo ───────── -->
+  <section class="secao" id="demo">
+    <div class="cabeca centro">
+      <p class="sobretitulo revelar">O aplicativo</p>
+      <h2 class="revelar">Escolha os idiomas.<br>Aperte iniciar.</h2>
+      <p class="revelar">Essa é a tela real do Praxis, funcionando aqui com uma conversa de exemplo. Clique, troque idiomas, explore.</p>
+    </div>
+    <div class="janela revelar">
+      <div class="janela-barra"><i></i><i></i><i></i><span>Praxis</span></div>
+      <iframe id="demo-app" src="demo/" title="Demonstração do aplicativo Praxis" loading="lazy"></iframe>
+    </div>
+    <div class="chips revelar">
+      <span>Modo bilateral: a outra pessoa também é traduzida</span>
+      <span>Trava de eco quando não há fone</span>
+      <span>Interface em 14 idiomas</span>
+      <span>Atualiza sozinho</span>
+    </div>
+  </section>
+
+  <!-- ───────── Ouça ───────── -->
+  <section class="secao ouca">
+    <div class="cartao player revelar">
+      <div>
+        <p class="sobretitulo">Ouça</p>
+        <h3>Uma conversa real, traduzida nos dois sentidos.</h3>
+        <p class="pequena">Português ⇄ inglês, gravada direto da saída do Praxis num computador comum com placa de vídeo de entrada.</p>
+      </div>
+      <div class="player-controles">
+        <button class="tocar" id="tocar" aria-label="Tocar">
+          <svg class="i-tocar" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg class="i-pausa" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+        </button>
+        <div class="onda-player" id="onda-player"></div>
+        <span class="tempo" id="tempo">0:00</span>
+      </div>
+      <audio id="audio" src="media/conversa.m4a" preload="metadata"></audio>
+    </div>
+  </section>
+
+  <!-- ───────── Como funciona ───────── -->
+  <section class="secao" id="como">
+    <div class="cabeca">
+      <p class="sobretitulo revelar">Como funciona</p>
+      <h2 class="revelar">Quatro passos.<br>Menos de um segundo.</h2>
+    </div>
+    <div class="fluxo">
+      <article class="passo cartao brilho revelar">
+        <span class="passo-n">01</span>
+        <svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12z"/></svg>
+        <h3>Ouve</h3><p>Detecta quando você está falando e ignora o resto.</p><code>Silero VAD</code>
+      </article>
+      <article class="passo cartao brilho revelar">
+        <span class="passo-n">02</span>
+        <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h10v2H4zm0 5h16v2H4z"/></svg>
+        <h3>Entende</h3><p>Transforma a fala em texto, escolhendo o melhor modelo para o seu idioma.</p><code>Whisper · Parakeet</code>
+      </article>
+      <article class="passo cartao brilho revelar">
+        <span class="passo-n">03</span>
+        <svg viewBox="0 0 24 24"><path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z"/></svg>
+        <h3>Traduz</h3><p>Traduz continuando a frase que já foi dita, com o contexto todo.</p><code>NLLB-200</code>
+      </article>
+      <article class="passo cartao brilho revelar">
+        <span class="passo-n">04</span>
+        <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+        <h3>Fala</h3><p>Uma voz natural fala a tradução no microfone virtual, já no app de chamada.</p><code>Kokoro · Supertonic</code>
+      </article>
+    </div>
+  </section>
+
+  <!-- ───────── Números ───────── -->
+  <section class="secao numeros">
+    <div class="grade-4">
+      <div class="numero revelar"><span class="valor" data-ate="2" data-suf="%">0%</span><p>de palavras erradas no reconhecimento em inglês, espanhol e alemão</p></div>
+      <div class="numero revelar"><span class="valor" data-ate="1" data-pre="~" data-suf=" s">~0 s</span><p>de atraso típico entre a sua fala e a tradução</p></div>
+      <div class="numero revelar"><span class="valor" data-ate="100" data-suf="%">0%</span><p>offline: nada vai para a internet, tudo roda no seu computador</p></div>
+      <div class="numero revelar"><span class="valor" data-ate="16">0</span><p>idiomas, de português e inglês a japonês e árabe</p></div>
+    </div>
+    <p class="pequena centro revelar">Medido com fala real de centenas de pessoas (Google FLEURS). <a href="https://github.com/disouz4-dev/praxis/blob/feat/multiplatform-qa/docs/RESUMO_TESTES.md" target="_blank" rel="noopener">Veja os testes →</a></p>
+  </section>
+
+  <!-- ───────── Privacidade ───────── -->
+  <section class="secao privacidade">
+    <div class="cadeado revelar" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 1a5 5 0 0 0-5 5v4H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm-3 5a3 3 0 0 1 6 0v4H9V6zm3 8a2 2 0 0 1 1 3.73V20h-2v-2.27A2 2 0 0 1 12 14z"/></svg>
+    </div>
+    <h2 class="revelar">A sua conversa<br><span class="gradiente">é só sua.</span></h2>
+    <p class="revelar">Nenhum servidor, nenhuma conta, nenhuma gravação guardada. Depois de instalado, o Praxis funciona até sem internet. A placa de vídeo acelera tudo quando existe; sem ela, o processador dá conta.</p>
+  </section>
+
+  <!-- ───────── Baixar ───────── -->
+  <section class="secao" id="baixar">
+    <div class="cabeca centro">
+      <p class="sobretitulo revelar">Baixar</p>
+      <h2 class="revelar">Grátis. Para sempre.</h2>
+      <p class="revelar">O instalador busca sempre a versão mais recente. Depois disso, o Praxis se atualiza sozinho.</p>
+    </div>
+    <div class="grade-3 baixar">
+      <article class="cartao brilho plataforma revelar">
+        <h3>Linux</h3>
+        <p class="pequena">Debian, Ubuntu, Mint e derivados</p>
+        <a class="botao botao-principal largo" href="https://github.com/disouz4-dev/praxis/releases/latest" target="_blank" rel="noopener">Baixar .deb</a>
+        <p class="ou">ou pelo terminal</p>
+        <div class="comando"><code>curl -fsSL https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.sh | bash</code><button class="copiar" aria-label="Copiar">Copiar</button></div>
+      </article>
+      <article class="cartao brilho plataforma revelar">
+        <h3>Windows</h3>
+        <p class="pequena">Windows 10 e 11, 64 bits</p>
+        <a class="botao botao-principal largo" href="https://github.com/disouz4-dev/praxis/releases/latest" target="_blank" rel="noopener">Baixar instalador</a>
+        <p class="ou">ou pelo PowerShell</p>
+        <div class="comando"><code>irm https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.ps1 | iex</code><button class="copiar" aria-label="Copiar">Copiar</button></div>
+      </article>
+      <article class="cartao plataforma em-breve revelar">
+        <h3>macOS</h3>
+        <p class="pequena">Apple Silicon e Intel</p>
+        <span class="botao botao-vidro largo inativo">Em breve</span>
+        <p class="ou">Acompanhe no GitHub</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ───────── Código aberto ───────── -->
+  <section class="secao aberto">
+    <div class="cartao aberto-cartao revelar">
+      <div>
+        <p class="sobretitulo">Código aberto</p>
+        <h2>Feito às claras.</h2>
+        <p>Motor em Rust, aplicativo em Tauri, licença MIT. Leia o código, rode os testes, contribua.</p>
+        <div class="pilha"><span>Rust</span><span>Tauri 2</span><span>CTranslate2</span><span>ONNX Runtime</span><span>CUDA</span></div>
+      </div>
+      <a class="botao botao-principal" href="https://github.com/disouz4-dev/praxis" target="_blank" rel="noopener">github.com/disouz4-dev/praxis</a>
+    </div>
+  </section>
+
+  <footer class="rodape">
+    <img src="media/logo.png" alt="Praxis" class="rodape-logo">
+    <p>Uma mensagem. Todas as línguas.</p>
+    <p class="pequena"><a href="https://github.com/disouz4-dev/praxis" target="_blank" rel="noopener">GitHub</a> · <a href="https://github.com/disouz4-dev/praxis/releases" target="_blank" rel="noopener">Versões</a> · <a href="https://github.com/disouz4-dev/praxis/blob/main/LICENSE" target="_blank" rel="noopener">Licença MIT</a></p>
+  </footer>
+
+  <script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="pt-BR" data-tema="escuro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Praxis — demonstração</title>
+  <!-- a interface real do aplicativo, com uma conversa de exemplo no lugar do motor -->
+  <base href="ui/">
+  <link rel="stylesheet" href="style.css">
+  <style>html,body{background:#0f1115}</style>
+</head>
+<body>
+<script>
+const ouvintes = [];
+const emitir = (payload) => ouvintes.forEach((f) => f({ payload }));
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+let motorLigado = false;
+const conversa = [
+  ["out", "Oi, tudo bem? Obrigado por entrar na chamada.", "Hi, how are you? Thanks for joining the call."],
+  ["in", "Happy to be here. Can you hear me well?", "Feliz de estar aqui. Você me ouve bem?"],
+  ["out", "Perfeitamente. Vamos falar do lançamento da próxima semana.", "Perfectly. Let's talk about next week's launch."],
+  ["in", "Sure. The new version is ready for testing.", "Claro. A versão nova está pronta para testes."],
+  ["out", "Ótimo, eu mando o relatório ainda hoje.", "Great, I'll send the report later today."],
+];
+const idiomas = ["pt", "en", "es", "fr", "de", "it", "ja", "zh", "ru", "nl", "pl", "uk", "tr", "ar"]
+  .map((c) => ({ codigo: c, liberado: true, motivo: "", tem_voz: true, modelo: "large-v3-turbo", erro: 0.02 }));
+window.__TAURI__ = {
+  core: {
+    invoke: async (cmd) => {
+      switch (cmd) {
+        case "estado_inicial":
+          return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
+                   idioma_do_sistema: "pt", rodando: false,
+                   config: { src: "pt", tgt: "en", bilateral: true, headphones: true, monitor: false } };
+        case "verificar_atualizacao": return { atual: "0.3.3", nova: null };
+        case "modo_qa": return false;
+        case "iniciar":
+          motorLigado = true;
+          (async () => {
+            for (const [pct, msg] of [[10, "Preparando os modelos…"], [60, "Carregando o reconhecimento de fala…"], [100, "Traduzindo"]]) {
+              emitir({ e: "progress", pct, msg }); await esperar(380);
+            }
+            emitir({ e: "virtual_mic", mic: "Praxis_Microfone", peer: "Praxis_Entrada" });
+            emitir({ e: "ready" });
+            for (let i = 0; motorLigado; i = (i + 1) % conversa.length) {
+              const [dir, fala, trad] = conversa[i];
+              await esperar(1300); if (!motorLigado) break;
+              emitir({ e: "engine", ev: { e: "transcript", dir, text: fala } });
+              await esperar(650); if (!motorLigado) break;
+              emitir({ e: "engine", ev: { e: "translation", dir, text: trad } });
+            }
+          })();
+          return null;
+        case "parar": motorLigado = false; setTimeout(() => emitir({ e: "stopped" }), 150); return null;
+        default: return null;
+      }
+    },
+  },
+  event: { listen: async (_n, f) => { ouvintes.push(f); return () => {}; } },
+};
+fetch("index.html").then((r) => r.text()).then((html) => {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  document.body.innerHTML = doc.body.innerHTML.replace(/<script[^>]*><\/script>/g, "");
+  const s = document.createElement("script");
+  s.src = "app.js";
+  document.body.appendChild(s);
+  // a página principal pede "iniciar" quando a demonstração aparece na tela
+  window.addEventListener("message", (m) => {
+    const b = document.getElementById("iniciar");
+    if (m.data === "iniciar" && b && !motorLigado) b.click();
+  });
+});
+</script>
+</body>
+</html>
