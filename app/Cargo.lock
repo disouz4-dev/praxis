@@ -3562,7 +3562,7 @@ dependencies = [
 
 [[package]]
 name = "praxis-desktop"
-version = "0.3.0"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "dirs 7.0.0",
@@ -3576,7 +3576,7 @@ dependencies = [
 
 [[package]]
 name = "praxis-engine"
-version = "0.3.0"
+version = "0.3.4"
 dependencies = [
  "anyhow",
  "bzip2 0.6.1",
