@@ -55,6 +55,13 @@ pub trait SpeechProbe {
     }
 }
 
+/// A frase parece completa (termina com ponto final, interrogação, exclamação…)? Usado para
+/// não partir uma frase quando a pessoa pausa no meio dela.
+pub fn sentence_complete(text: &str) -> bool {
+    let t = text.trim_end().trim_end_matches(['"', '\'', '»', ')', '”', '’', '」', '』']);
+    t.is_empty() || t.ends_with(['.', '?', '!', '…', '。', '？', '！', '؟', '।'])
+}
+
 /// Silêncio posto no fim do áudio adiantado antes de reconhecer: o Whisper erra a última
 /// palavra quando o áudio termina seco (o trecho final sempre termina com silêncio).
 pub const TENTATIVE_PAD_S: f32 = 0.3;
@@ -383,6 +390,20 @@ impl<P: SpeechProbe> Segmenter<P> {
         out
     }
 
+    /// O áudio do trecho em curso até agora (para a tradução simultânea reler enquanto a
+    /// pessoa ainda fala).
+    pub fn current(&self) -> Option<Vec<f32>> {
+        if !self.speaking {
+            return None;
+        }
+        Some(self.carry.iter().chain(self.buf.iter()).flatten().copied().collect())
+    }
+
+    /// Há fala em curso (o trecho atual ainda não terminou)?
+    pub fn speaking(&self) -> bool {
+        self.speaking
+    }
+
     /// Amostras entregues até agora (relógio do áudio).
     pub fn position(&self) -> usize {
         self.pos
@@ -503,6 +524,15 @@ mod tests {
         fn quiet(&self) -> bool {
             self.speaking && self.quiet_for > 0
         }
+    }
+
+    #[test]
+    fn frase_completa_ou_interrompida() {
+        assert!(sentence_complete("Berlim não fica perto do mar."));
+        assert!(sentence_complete("Você vem?\""));
+        assert!(sentence_complete("你好。"));
+        assert!(!sentence_complete("de que os interesses de nossos atletas"));
+        assert!(!sentence_complete("As you can see on the map above,"));
     }
 
     #[test]

@@ -109,6 +109,31 @@ impl Nllb {
     }
 }
 
+impl Nllb {
+    /// Tradução da frase até aqui OBRIGADA a começar pelas palavras já faladas (`spoken`): o
+    /// NLLB continua a partir delas. É o que permite falar a tradução enquanto a pessoa ainda
+    /// fala, sem a qualidade cair como cai ao traduzir pedaços soltos. Devolve todas as
+    /// palavras (as já faladas + as novas).
+    pub fn continue_from(&self, text: &str, spoken: &[String], src: &str, tgt: &str) -> Result<Vec<String>> {
+        let (s, t) = (
+            nllb_code(src).ok_or_else(|| anyhow!("idioma {src} sem código NLLB"))?,
+            nllb_code(tgt).ok_or_else(|| anyhow!("idioma {tgt} sem código NLLB"))?,
+        );
+        let mut source = vec![s.to_string()];
+        source.extend(self.sp.encode(text.trim()).map_err(|e| anyhow!("{e}"))?.into_iter().map(|p| p.piece));
+        source.push("</s>".to_string());
+        let mut prefix = vec![t.to_string()];
+        if !spoken.is_empty() {
+            prefix.extend(self.sp.encode(&spoken.join(" ")).map_err(|e| anyhow!("{e}"))?.into_iter().map(|p| p.piece));
+        }
+        let opts = TranslationOptions { beam_size: nllb_beam(), replace_unknowns: true, ..Default::default() };
+        let res = self.tr.translate_batch_with_target_prefix(&vec![source], &vec![prefix], &opts, None)?;
+        let hyp: Vec<String> = res.into_iter().next().and_then(|r| r.output().cloned()).unwrap_or_default()
+            .into_iter().filter(|x| x != t).collect();
+        Ok(decode(&self.sp, &hyp)?.split_whitespace().map(String::from).collect())
+    }
+}
+
 /// Um par do Argos (pacote extraído: model/, sentencepiece.model, metadata.json).
 pub struct ArgosPair {
     tr: Translator,

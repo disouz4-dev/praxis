@@ -170,7 +170,7 @@ fn main() -> Result<()> {
             let (atx, arx) = std::sync::mpsc::channel();
             let (etx, erx) = std::sync::mpsc::channel();
             let shared = pipeline::Shared::new();
-            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false };
+            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             let cfg = vad::SegmenterConfig { max_seg_s: max_seg, ..Default::default() };
             let handles = pipeline::spawn_direction(arx, asr, translator, voice, Arc::new(FakeSpeaker), dir, cfg,
                                                      pos[2].to_string(), shared.clone(), etx)?;
@@ -234,6 +234,29 @@ fn main() -> Result<()> {
             if !cols[0].is_empty() {
                 let m: Vec<f32> = cols.iter_mut().map(|c| pct(c, 0.5)).collect();
                 eprintln!("  mediana: silêncio {:.0} | reconhecer {:.0} | traduzir {:.0} | voz {:.0} | fila {:.0} ms", m[0], m[1], m[2], m[3], m[4]);
+            }
+            // tradução simultânea: início da fala do trecho → 1º som, e fim da fala → último som
+            {
+                let mut last_play = std::collections::HashMap::new();
+                let mut starts = std::collections::HashMap::new();
+                for e in &evs {
+                    if let pipeline::Event::Play { id, start_s, .. } = e { last_play.insert(*id, *start_s); }
+                    if let pipeline::Event::Segment { id, speech_end_s, .. } = e { starts.entry(*id).or_insert(*speech_end_s); }
+                }
+                let mut antes: Vec<f32> = vec![];
+                let mut fim: Vec<f32> = vec![];
+                for (id, end) in &ends {
+                    if let (Some(f), Some(l)) = (first_play.get(id), last_play.get(id)) {
+                        antes.push(end - f);   // > 0: a tradução começou a tocar antes da fala acabar
+                        fim.push(l - end);
+                    }
+                }
+                if !antes.is_empty() {
+                    let fala_antes = antes.iter().filter(|x| **x > 0.0).count();
+                    eprintln!("simultânea: em {fala_antes} de {} trechos a tradução começou ANTES da pessoa terminar (mediana {:.1} s antes); \
+                              último pedaço depois do fim da fala: mediana {:.2} s, máx. {:.2} s",
+                              antes.len(), pct(&mut antes.clone(), 0.5), pct(&mut fim.clone(), 0.5), fim.iter().cloned().fold(0.0, f32::max));
+                }
             }
             let mut lats: Vec<(f32, f32)> = first_play.iter().filter_map(|(id, p)| ends.get(id).map(|e| (*e, (p - e) * 1000.0))).collect();
             lats.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
@@ -307,7 +330,7 @@ fn main() -> Result<()> {
             let (mtx, mrx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(opt("--mic"), mtx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
             let dir_out = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(),
-                to_speaker: ouvir, echo_gate: ouvir && !fones };
+                to_speaker: ouvir, echo_gate: ouvir && !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, voice_out,
                 Arc::new(devices::Speakers(outs, Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
             // volta (bilateral): a outra pessoa → tradução → meu fone/caixa de som
@@ -316,7 +339,7 @@ fn main() -> Result<()> {
                 let (ptx, prx) = std::sync::mpsc::channel();
                 handles.push(devices::spawn_capture(vm.peer_capture.clone(), ptx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
                 let dir_in = pipeline::Direction { name: "in".into(), src: tgt.clone(), tgt: src.clone(),
-                    to_speaker: true, echo_gate: !fones };
+                    to_speaker: true, echo_gate: !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
                 // a trava de eco da ida também precisa saber quando a volta toca no alto-falante
                 handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, voice_in,
                     Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?], Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_in, cfg,

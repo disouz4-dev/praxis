@@ -141,6 +141,10 @@ pub struct SessionConfig {
     /// modo bilateral (a outra pessoa também é traduzida)
     #[serde(default)]
     pub bilateral: bool,
+    /// tradução simultânea (fala enquanto a pessoa ainda fala) — a premissa do Praxis; falso =
+    /// espera o fim de cada trecho
+    #[serde(default = "sim")]
+    pub simultaneous: bool,
     /// estou de fone: sem trava de eco
     #[serde(default)]
     pub headphones: bool,
@@ -156,6 +160,10 @@ pub struct SessionConfig {
 
 fn auto() -> String {
     "auto".into()
+}
+
+fn sim() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -297,7 +305,7 @@ impl Session {
         let (mtx, mrx) = std::sync::mpsc::channel();
         handles.push(devices::spawn_capture(cfg.mic.clone(), mtx, stop_capture.clone())?);
         let out_dir = Direction { name: "out".into(), src: cfg.src.clone(), tgt: cfg.tgt.clone(),
-            to_speaker: cfg.monitor, echo_gate: cfg.monitor && !cfg.headphones };
+            to_speaker: cfg.monitor, echo_gate: cfg.monitor && !cfg.headphones, simultaneous: cfg.simultaneous };
         handles.extend(pipeline::spawn_direction(mrx, asr.clone(), make_tr(tr_out, &cfg.src, &cfg.tgt)?, voice_out,
             Arc::new(Speakers(outs, stop_capture.clone())), out_dir, seg, silero.clone(), shared.clone(), ptx.clone())?);
 
@@ -307,7 +315,7 @@ impl Session {
             let (itx, irx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(vm.peer_capture.clone(), itx, stop_capture.clone())?);
             let in_dir = Direction { name: "in".into(), src: cfg.tgt.clone(), tgt: cfg.src.clone(),
-                to_speaker: true, echo_gate: !cfg.headphones };
+                to_speaker: true, echo_gate: !cfg.headphones, simultaneous: cfg.simultaneous };
             let seg_in = SegmenterConfig { max_seg_s: max_segment_s(&model_in, gpu), ..Default::default() };
             handles.extend(pipeline::spawn_direction(irx, asr_in, make_tr(tr_in, &cfg.tgt, &cfg.src)?, voice_in,
                 Arc::new(Speakers(vec![OutputDevice::open(cfg.output.clone())?], stop_capture.clone())), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);

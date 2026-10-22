@@ -33,11 +33,20 @@ pub fn speech_length_scale(backlog_s: f32) -> f32 {
 
 pub trait Translate: Send + Sync {
     fn translate(&self, text: &str, src: &str, tgt: &str) -> Result<String>;
+    /// Tradução da frase até aqui começando pelas palavras já faladas (tradução simultânea).
+    /// Padrão: traduz tudo de novo e confia que o começo se repete.
+    fn continue_from(&self, text: &str, spoken: &[String], src: &str, tgt: &str) -> Result<Vec<String>> {
+        let _ = spoken;
+        Ok(self.translate(text, src, tgt)?.split_whitespace().map(String::from).collect())
+    }
 }
 
 impl Translate for mt::Nllb {
     fn translate(&self, text: &str, src: &str, tgt: &str) -> Result<String> {
         mt::Nllb::translate(self, text, src, tgt)
+    }
+    fn continue_from(&self, text: &str, spoken: &[String], src: &str, tgt: &str) -> Result<Vec<String>> {
+        mt::Nllb::continue_from(self, text, spoken, src, tgt)
     }
 }
 
@@ -96,6 +105,9 @@ pub struct Direction {
     /// a tradução toca num alto-falante (eco possível)
     pub to_speaker: bool,
     pub echo_gate: bool,
+    /// tradução simultânea: fala a tradução enquanto a pessoa ainda fala (a premissa do
+    /// Praxis); falso = espera o fim de cada trecho
+    pub simultaneous: bool,
 }
 
 /// Fim da fala dentro do trecho: último bloco com volume (as bordas são silêncio).
@@ -111,7 +123,39 @@ fn voiced_end(audio: &[f32]) -> usize {
 /// trecho final (o fim se confirmou).
 enum Job {
     Tentative(Vec<f32>),
+    /// o trecho em curso até agora (tradução simultânea: relido a cada ~1 s enquanto se fala)
+    Partial(usize, Vec<f32>),
     Final(usize, Vec<f32>),
+}
+
+/// Tradução simultânea: a cada quanto tempo de fala o trecho em curso é relido, quantas
+/// palavras confirmadas novas pedem tradução e quantas das últimas traduzidas esperam (ainda
+/// podem mudar quando a frase continuar).
+/// Medido no lab2 (conversa pt→en): 0,6 s / 3 / 2 começa a falar ~0,8 s antes do fim da fala
+/// em 7 de 13 trechos, com o último pedaço ~1,5 s depois; segurar só 1 palavra errava mais.
+const PARTIAL_EVERY_S: f32 = 0.6;
+const LIVE_MIN_NEW_WORDS: usize = 3;
+const LIVE_HOLD_BACK: usize = 2;
+
+/// Ajuste para medições: PRAXIS_RELEITURA_S, PRAXIS_PALAVRAS_MIN e PRAXIS_SEGURAR substituem
+/// os três valores acima.
+fn live_param<T: std::str::FromStr>(name: &str, default: T) -> T {
+    std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+}
+
+/// Palavra comparável (sem maiúsculas nem pontuação), para o acordo entre duas leituras.
+fn norm_word(w: &str) -> String {
+    w.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect()
+}
+
+/// Estado da tradução simultânea do trecho em curso.
+#[derive(Default)]
+struct Live {
+    id: usize,
+    previous: Vec<String>,  // última leitura do trecho
+    committed: Vec<String>, // palavras confirmadas (iguais em duas leituras seguidas)
+    src_spoken: usize,      // quantas palavras confirmadas já foram traduzidas e faladas
+    tgt_spoken: Vec<String>, // a tradução já falada
 }
 
 /// Resultado de um trecho: texto, tradução e a voz do 1º pedaço já pronta.
@@ -148,6 +192,7 @@ pub fn spawn_direction(
         handles.push(std::thread::spawn(move || {
             let mut seg = Segmenter::new(probe, seg_cfg);
             let mut id = 0usize;
+            let mut since_partial = 0usize;
             while !shared.stop.load(Ordering::Relaxed) {
                 let mut chunk = match audio_rx.recv_timeout(Duration::from_millis(200)) {
                     Ok(c) => c,
@@ -169,9 +214,19 @@ pub fn spawn_direction(
                     let _ = events.send(Event::Segment { dir: dir.name.clone(), id, speech_end_s: speech_end, emitted_s: shared.now_s() });
                     let _ = seg_tx.send(Job::Final(id, audio));
                     id += 1;
+                    since_partial = 0;
                 }
-                // a fala parece ter acabado: adianta o trabalho enquanto o fim é confirmado
-                if let Some(audio) = seg.tentative() {
+                if dir.simultaneous {
+                    // tradução simultânea: o trecho em curso vai para releitura a cada ~1 s de fala
+                    since_partial += 1;
+                    if since_partial as f32 * crate::vad::CHUNK_S >= live_param("PRAXIS_RELEITURA_S", PARTIAL_EVERY_S) {
+                        if let Some(audio) = seg.current().filter(|a| a.len() >= SR) {
+                            let _ = seg_tx.send(Job::Partial(id, audio));
+                        }
+                        since_partial = 0;
+                    }
+                } else if let Some(audio) = seg.tentative() {
+                    // a fala parece ter acabado: adianta o trabalho enquanto o fim é confirmado
                     let _ = seg_tx.send(Job::Tentative(audio));
                 }
             }
@@ -205,17 +260,124 @@ pub fn spawn_direction(
             };
             // trabalho adiantado do trecho em curso: (áudio, resultado)
             let mut spec: Option<(Vec<f32>, Result<Option<Done>>)> = None;
+            let mut live = Live::default();
+            let mut queue: std::collections::VecDeque<Job> = Default::default();
+            let speak = |id: usize, src_words: &[String], tgt_words: &[String]| {
+                if tgt_words.is_empty() {
+                    return;
+                }
+                let (src_txt, tgt_txt) = (src_words.join(" "), tgt_words.join(" "));
+                let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: src_txt });
+                let _ = events.send(Event::Translation { dir: dir.name.clone(), text: tgt_txt.clone() });
+                let scale = speech_length_scale(*backlog.lock().unwrap());
+                match voice.synthesize(&tgt_txt, scale) {
+                    Ok(pcm) if !pcm.is_empty() => {
+                        *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
+                        let _ = play_tx.send((id, pcm, voice.sample_rate));
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        let _ = events.send(Event::Error { msg: format!("síntese de voz: {e:#}") });
+                    }
+                }
+            };
             while !shared.stop.load(Ordering::Relaxed) {
-                let (id, audio) = match seg_rx.recv_timeout(Duration::from_millis(200)) {
-                    Ok(Job::Tentative(audio)) => {
+                // o que chegou enquanto o trabalho anterior rodava vai para a fila
+                while let Ok(j) = seg_rx.try_recv() {
+                    queue.push_back(j);
+                }
+                let job = match queue.pop_front() {
+                    Some(j) => j,
+                    None => match seg_rx.recv_timeout(Duration::from_millis(200)) {
+                        Ok(j) => j,
+                        Err(RecvTimeoutError::Timeout) => continue,
+                        Err(RecvTimeoutError::Disconnected) => break,
+                    },
+                };
+                let (id, audio) = match job {
+                    Job::Tentative(audio) => {
                         let r = work(&crate::vad::with_tail_silence(&audio));
                         spec = Some((audio, r));
                         continue;
                     }
-                    Ok(Job::Final(id, audio)) => (id, audio),
-                    Err(RecvTimeoutError::Timeout) => continue,
-                    Err(RecvTimeoutError::Disconnected) => break,
+                    Job::Partial(id, audio) => {
+                        // releitura velha (já há outra mais nova ou o fim do trecho na fila): pula
+                        if queue.iter().any(|j| matches!(j, Job::Partial(..) | Job::Final(..))) {
+                            continue;
+                        }
+                        if live.id != id {
+                            live = Live { id, ..Default::default() };
+                        }
+                        let words: Vec<String> = match asr.transcribe(&audio, &dir.src) {
+                            Ok(t) => t.text.split_whitespace().map(String::from).collect(),
+                            Err(e) => {
+                                let _ = events.send(Event::Error { msg: format!("{e:#}") });
+                                continue;
+                            }
+                        };
+                        // acordo local: confirma o começo igual nesta leitura e na anterior
+                        let agree = words.iter().zip(&live.previous).take_while(|(a, b)| norm_word(a) == norm_word(b)).count();
+                        if agree > live.committed.len() {
+                            live.committed = words[..agree].to_vec();
+                        }
+                        live.previous = words;
+                        let new_src = live.committed.len().saturating_sub(live.src_spoken);
+                        let pause = live.committed.last().map(|w| w.ends_with([',', '.', ';', ':', '?', '!'])).unwrap_or(false);
+                        if new_src >= live_param("PRAXIS_PALAVRAS_MIN", LIVE_MIN_NEW_WORDS) || (new_src > 0 && pause) {
+                            let all = match translator.continue_from(&live.committed.join(" "), &live.tgt_spoken, &dir.src, &dir.tgt) {
+                                Ok(w) => w,
+                                Err(e) => {
+                                    let _ = events.send(Event::Error { msg: format!("{e:#}") });
+                                    continue;
+                                }
+                            };
+                            let mut new_tgt: Vec<String> = all.get(live.tgt_spoken.len()..).unwrap_or(&[]).to_vec();
+                            let sentence_end = live.committed.last().map(|w| crate::vad::sentence_complete(w)).unwrap_or(false);
+                            if !sentence_end {
+                                // as últimas palavras traduzidas ainda podem mudar: esperam
+                                new_tgt.truncate(new_tgt.len().saturating_sub(live_param("PRAXIS_SEGURAR", LIVE_HOLD_BACK)));
+                            }
+                            if !new_tgt.is_empty() {
+                                let src_part = live.committed[live.src_spoken..].to_vec();
+                                speak(id, &src_part, &new_tgt);
+                                live.src_spoken = live.committed.len();
+                                live.tgt_spoken.extend(new_tgt);
+                            }
+                        }
+                        continue;
+                    }
+                    Job::Final(id, audio) => (id, audio),
                 };
+                if dir.simultaneous {
+                    // fim do trecho: o que faltou traduzir, continuando o que já foi falado
+                    let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "transcrito".into(), at_s: shared.now_s() });
+                    let spoken = if live.id == id { std::mem::take(&mut live.tgt_spoken) } else { vec![] };
+                    let src_done = if live.id == id { live.src_spoken } else { 0 };
+                    live = Live { id: id + 1, ..Default::default() };
+                    let words: Vec<String> = match asr.transcribe(&audio, &dir.src) {
+                        Ok(t) => t.text.split_whitespace().map(String::from).collect(),
+                        Err(e) => {
+                            let _ = events.send(Event::Error { msg: format!("{e:#}") });
+                            continue;
+                        }
+                    };
+                    if words.is_empty() {
+                        continue;
+                    }
+                    match translator.continue_from(&words.join(" "), &spoken, &dir.src, &dir.tgt) {
+                        Ok(all) => {
+                            let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "traduzido".into(), at_s: shared.now_s() });
+                            let rest: Vec<String> = all.get(spoken.len()..).unwrap_or(&[]).to_vec();
+                            let src_rest: Vec<String> = words.get(src_done.min(words.len())..).unwrap_or(&[]).to_vec();
+                            speak(id, &src_rest, &rest);
+                            let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
+                        }
+                        Err(e) => {
+                            let _ = events.send(Event::Error { msg: format!("{e:#}") });
+                        }
+                    }
+                    continue;
+                }
                 // o fim se confirmou: reaproveita o adiantado se o trecho é o mesmo
                 let r = match spec.take() {
                     Some((t, r)) if crate::vad::reuse_ok(&t, &audio) => r,
