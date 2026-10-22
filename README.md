@@ -123,11 +123,18 @@ Por enquanto, a versão anterior em Python: `scripts/instalar-python.sh`.
 
 ### Requisitos
 
-| | Linux | Windows | macOS |
-|---|---|---|---|
-| Sistema | Debian, Ubuntu e derivados (64 bits) | Windows 10/11 (64 bits) | em preparação |
-| Microfone virtual | criado automaticamente (PulseAudio/PipeWire) | VB-Audio Virtual Cable (instalado pelo `install.ps1`) | — |
-| Placa de vídeo | NVIDIA (opcional, recomendada) | NVIDIA (opcional) | — |
+Medidos com a tradução simultânea de fala real (Ryzen 7 5700X + RTX 3050; máquina virtual Windows 11 sem placa de vídeo):
+
+| | Mínimo (sem placa de vídeo) | Recomendado (com placa de vídeo) |
+|---|---|---|
+| Processador | 4 núcleos, 64 bits (com 2 a tradução fica para trás) | 6 núcleos ou mais |
+| Memória | 8 GB (o Praxis usa ~1,3 GB) | 16 GB |
+| Placa de vídeo | — | NVIDIA com 6 GB ou mais (bilateral usou até 5,5 GB); 8 GB para a voz clonada |
+| Espaço | ~1,5 GB por par de idiomas | ~5 GB |
+| Idiomas | português, inglês, espanhol, alemão e italiano | os 16, com o menor erro |
+| Sistema | Windows 10 (2004+) ou 11, 64 bits · Debian, Ubuntu, Mint e derivados | igual |
+
+Microfone virtual: no Linux o Praxis cria sozinho; no Windows o `install.ps1` instala o VB-Audio Virtual Cable e o renomeia para **Praxis Mic**. Placas AMD/Intel e o macOS ainda não foram testados.
 
 ---
 
