@@ -132,7 +132,8 @@ curl -fsSL https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.sh 
 irm https://raw.githubusercontent.com/disouz4-dev/praxis/main/install.ps1 | iex
 ```
 
-_(o instalador do Windows está em preparação)_
+Instala também o microfone virtual (VB-Audio Virtual Cable). Ou baixe o `Praxis_*_x64-setup.exe` da [página de versões](https://github.com/disouz4-dev/praxis/releases/latest).
+
 
 ### macOS
 
