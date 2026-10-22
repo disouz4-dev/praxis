@@ -280,6 +280,12 @@ fn main() -> Result<()> {
                 "drain_s": drain, "keeps_up": keeps_up, "segments": ends.len()});
             std::fs::write(pos[9], serde_json::to_string_pretty(&out)?)?;
         }
+        // tom médio de uma gravação 16 kHz (a mesma conta que escolhe a voz grave ou aguda)
+        Some("tom") if pos.len() == 2 => {
+            let x = audio::read_wav_16k_mono(pos[1].as_ref())?;
+            let tom = audio::tom_medio(&x, 16_000);
+            println!("{}", serde_json::json!({"tom_hz": tom, "masculina": tom.map(|t| t < 165.0), "segundos": x.len() as f32 / 16_000.0}));
+        }
         // apps tocando som agora (bilateral: de qual app vem a outra pessoa)
         Some("apps") => {
             println!("{}", serde_json::to_string_pretty(&praxis_engine::app_audio::list())?);
