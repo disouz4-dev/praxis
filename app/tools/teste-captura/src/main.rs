@@ -23,6 +23,10 @@ fn main() -> anyhow::Result<()> {
     {
         let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
         let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+        // 3º argumento: volume do app no mixer do Windows antes de gravar (0 a 1)
+        if let Some(v) = a.get(3) {
+            println!("volume {v}: {} sessões", app_audio::set_app_volume(&a[1], v.parse()?));
+        }
         let h = app_audio::spawn_capture(a[1].clone(), tx, stop.clone())?;
         let fim = std::time::Instant::now() + std::time::Duration::from_secs_f32(a[2].parse()?);
         let mut n = 0usize;
