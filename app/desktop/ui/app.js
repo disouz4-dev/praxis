@@ -80,6 +80,7 @@ function verificarIdiomas() {
   const bi = $("bilateral").checked;
   // o "motivo" vem do motor como está; só a moldura do aviso é traduzida
   const aviso = () => s === d ? t("warn_same_lang")
+    : !(ESTADO.voz && ESTADO.voz.existe) ? t("warn_need_voice")
     : !info(s).liberado ? info(s).motivo
     : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
     : bi && ESTADO.sistema === "windows" && !$("peer_app").value ? t("warn_peer_app")
@@ -207,6 +208,68 @@ function mostrarNivel(n) {
   document.querySelectorAll(".medidor i").forEach((b) => (b.style.transform = `scaleX(${n.toFixed(3)})`));
 }
 
+// ── Voz do usuário (obrigatória: a tradução sai na voz dele) ─────────────────
+let gravando = false;
+function textoLeitura() {
+  const tx = I18N.textos_voz || {};
+  return tx[$("src").value] || tx[cfg.ui_lang] || tx.en || "";
+}
+
+function montarGravador(c, comExplicacao) {
+  const g = document.createElement("div"); g.className = "gravador";
+  g.innerHTML = '<p class="grav-explica"></p><p class="grav-rotulo"></p><blockquote class="texto-leitura"></blockquote>' +
+    '<div class="grav-linha"><button type="button" class="gravar"></button><span class="grav-tempo">0:00</span></div>' +
+    '<div class="medidor grande voz"><i></i></div><p class="grav-resultado" role="status" aria-live="polite"></p>';
+  g.querySelector(".grav-explica").textContent = comExplicacao ? t("tutvoz_body") : "";
+  g.querySelector(".grav-explica").hidden = !comExplicacao;
+  g.querySelector(".grav-rotulo").textContent = t("rec_read");
+  g.querySelector(".texto-leitura").textContent = textoLeitura();
+  const botao = g.querySelector(".gravar");
+  const rotulo = () => { botao.textContent = t(gravando ? "btn_rec_stop" : "btn_rec_start"); botao.classList.toggle("ativo", gravando); };
+  rotulo();
+  botao.onclick = async () => {
+    const res = g.querySelector(".grav-resultado");
+    if (!gravando) {
+      if (testandoMic) await testarMicrofone(false);
+      try { await invoke("gravar_voz", { nome: $("mic").value || null }); }
+      catch (e) { res.textContent = String(e); return; }
+      gravando = true; res.textContent = ""; rotulo();
+      return;
+    }
+    gravando = false; rotulo();
+    let r;
+    try { r = await invoke("parar_gravacao_voz"); } catch (e) { res.textContent = String(e); return; }
+    const seg = (r.fala || 0).toLocaleString(cfg.ui_lang, { maximumFractionDigits: 0 });
+    res.textContent = tf(r.ok ? "rec_saved" : "rec_short", { s: seg });
+    res.className = "grav-resultado " + (r.ok ? "ok" : "aviso");
+    try { ESTADO.voz = await invoke("estado_voz"); } catch { /* fica o estado anterior */ }
+    atualizarVoz();
+  };
+  c.append(g);
+}
+
+async function cancelarGravacao() {
+  if (!gravando) return;
+  gravando = false;
+  try { await invoke("parar_gravacao_voz"); ESTADO.voz = await invoke("estado_voz"); } catch { /* nada a salvar */ }
+  atualizarVoz();
+}
+
+function atualizarVoz() {
+  const v = ESTADO.voz || {};
+  vivo("voz_estado", () => v.existe ? tf("voice_ok", { s: Math.round(v.segundos || 0) }) : t("voice_missing"));
+  $("voz_estado").className = "voz-estado " + (v.existe ? "ok" : "falta");
+  vivo("voz_gravar_btn", () => t(v.existe ? "btn_rerecord_voice" : "btn_record_voice"));
+  // no tutorial, o passo da voz só segue depois de gravar
+  if ($("tutorial").open && PASSOS[passoAtual]?.k === "tutvoz") $("tut_seguir").disabled = !v.existe;
+  verificarIdiomas();
+}
+
+function abrirGravador() {
+  const c = $("grav_conteudo"); c.replaceChildren(); montarGravador(c, true);
+  $("gravador").showModal();
+}
+
 // ── Tutorial ─────────────────────────────────────────────────────────────────
 // Obrigatório na primeira vez (com "Pular tutorial"); de novo em ⓘ Sobre. Os campos dos
 // passos são cópias ligadas aos de verdade: mudar aqui muda na tela principal.
@@ -247,6 +310,7 @@ const PASSOS = [
       c.append(copiaCaixa("headphones", "tut3_fone"));
       c.querySelector("select").addEventListener("change", () => testarMicrofone(true));
     }, entrar: () => testarMicrofone(true), sair: () => testarMicrofone(false) },
+  { k: "tutvoz", montar: (c) => montarGravador(c, false), sair: () => cancelarGravacao() },
   { k: "tut4", montar: (c) => { const p = document.createElement("p"); p.className = "praxis-mic grande"; p.innerHTML = "<b>Praxis Mic</b>"; c.append(p); } },
   { k: "tut5", montar: (c) => {
       const f = document.createElement("div"); f.className = "modo";
@@ -276,6 +340,7 @@ function mostrarPasso(i) {
   $("tut_voltar").hidden = i === 0;
   $("tut_seguir").textContent = t(i === PASSOS.length - 1 ? "tut_done" : i === 0 ? "tut_start" : "tut_next");
   $("tut_pular").hidden = i === PASSOS.length - 1;
+  $("tut_seguir").disabled = p.k === "tutvoz" && !(ESTADO.voz && ESTADO.voz.existe);
   p.entrar?.();
   $("tut_seguir").focus();
 }
@@ -483,6 +548,16 @@ async function main() {
   // Esc não fecha o tutorial (ele é obrigatório na primeira vez): use "Pular tutorial"
   $("tutorial").addEventListener("cancel", (ev) => ev.preventDefault());
   $("sobre_tutorial").onclick = abrirTutorial;
+  $("voz_gravar_btn").onclick = abrirGravador;
+  $("grav_fechar").onclick = async () => { await cancelarGravacao(); $("gravador").close(); };
+  $("gravador").addEventListener("cancel", (ev) => { ev.preventDefault(); $("grav_fechar").click(); });
+  await listen("gravacao_voz", (ev) => {
+    const { nivel, segundos } = ev.payload;
+    document.querySelectorAll(".medidor.voz i").forEach((b) => (b.style.transform = `scaleX(${nivel.toFixed(3)})`));
+    const m = Math.floor(segundos / 60), sg = Math.floor(segundos % 60);
+    document.querySelectorAll(".grav-tempo").forEach((e) => (e.textContent = `${m}:${String(sg).padStart(2, "0")}`));
+  });
+  atualizarVoz();
   $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;
   $("sobre_abrir").onclick = abrirSobre;
   $("sobre_fechar").onclick = () => $("sobre").close();

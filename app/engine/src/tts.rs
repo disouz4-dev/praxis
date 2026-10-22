@@ -14,14 +14,19 @@ use sherpa_onnx::{
 };
 
 /// Voz do Kokoro v1.0 para cada idioma: (número da voz no voices.bin, idioma da pronúncia)
-pub const KOKORO_VOICES: &[(&str, i32, &str)] = &[
-    ("pt", 42, "pt-br"), // pf_dora
-    ("en", 3, "en-us"),  // af_heart
-    ("es", 28, "es"),    // ef_dora
-    ("fr", 30, "fr"),    // ff_siwis
-    ("it", 35, "it"),    // if_sara
-    ("zh", 47, "zh"),    // zf_xiaoxiao
+/// (idioma, voz feminina, voz masculina, código): números das vozes no pacote do Kokoro.
+/// O francês não tem voz masculina no Kokoro: fica a feminina.
+pub const KOKORO_VOICES: &[(&str, i32, i32, &str)] = &[
+    ("pt", 42, 43, "pt-br"), // pf_dora / pm_alex
+    ("en", 3, 16, "en-us"),  // af_heart / am_michael
+    ("es", 28, 29, "es"),    // ef_dora / em_alex
+    ("fr", 30, 30, "fr"),    // ff_siwis
+    ("it", 35, 36, "it"),    // if_sara / im_nicola
+    ("zh", 47, 50, "zh"),    // zf_xiaoxiao / zm_yunxi
 ];
+
+/// Supertonic 3: vozes 0–4 femininas (160–190 Hz medidos), 5–9 masculinas (94–128 Hz)
+pub const SUPERTONIC_SID: (i32, i32) = (0, 6);
 
 /// Idiomas do Supertonic 3 entre os do Praxis (não fala chinês)
 pub const SUPERTONIC_LANGS: &[&str] =
@@ -34,7 +39,7 @@ pub const SUPERTONIC_STEPS: i32 = 5;
 enum Kind {
     Piper,
     Kokoro { sid: i32 },
-    Supertonic { lang: String },
+    Supertonic { lang: String, sid: i32 },
 }
 
 pub struct Voice {
@@ -97,6 +102,12 @@ impl Voice {
     /// onnxruntime acompanha o Praxis (medido: 0,39 s para 4,4 s de fala, contra ~1 s no
     /// processador). O Supertonic fica no processador: na placa ele não ganhou.
     pub fn load_on(dir: &Path, lang: &str, threads: i32, gpu: bool) -> Result<Self> {
+        Self::load_voz(dir, lang, threads, gpu, false)
+    }
+
+    /// Como `load_on`, escolhendo a voz masculina (`masculina`) ou a feminina do pacote — a do
+    /// mesmo tipo da voz do usuário, medida na gravação dele.
+    pub fn load_voz(dir: &Path, lang: &str, threads: i32, gpu: bool, masculina: bool) -> Result<Self> {
         let s = |p: &Path| Some(p.to_string_lossy().to_string());
         let mut model = OfflineTtsModelConfig { num_threads: threads, ..Default::default() };
         if gpu && dir.join("voices.bin").exists() && cuda_provider_available() {
@@ -104,7 +115,7 @@ impl Voice {
         }
         let mut config = OfflineTtsConfig { max_num_sentences: 1, ..Default::default() };
         let kind = if dir.join("voices.bin").exists() {
-            let (_, sid, code) = KOKORO_VOICES.iter().find(|(l, _, _)| *l == lang)
+            let (_, fem, masc, code) = KOKORO_VOICES.iter().find(|(l, _, _, _)| *l == lang)
                 .ok_or_else(|| anyhow!("o Kokoro não fala {lang}"))?;
             let d = dir.display();
             model.kokoro = OfflineTtsKokoroModelConfig {
@@ -125,7 +136,7 @@ impl Voice {
             if lang == "zh" {
                 config.rule_fsts = Some(format!("{d}/phone-zh.fst,{d}/date-zh.fst,{d}/number-zh.fst"));
             }
-            Kind::Kokoro { sid: *sid }
+            Kind::Kokoro { sid: if masculina { *masc } else { *fem } }
         } else if dir.join("tts.json").exists() {
             model.supertonic = OfflineTtsSupertonicModelConfig {
                 duration_predictor: Some(file_with(dir, "duration_predictor", ".onnx")?),
@@ -136,7 +147,7 @@ impl Voice {
                 unicode_indexer: s(&dir.join("unicode_indexer.bin")),
                 voice_style: s(&dir.join("voice.bin")),
             };
-            Kind::Supertonic { lang: lang.to_string() }
+            Kind::Supertonic { lang: lang.to_string(), sid: if masculina { SUPERTONIC_SID.1 } else { SUPERTONIC_SID.0 } }
         } else {
             model.vits = OfflineTtsVitsModelConfig {
                 model: Some(file_with(dir, "", ".onnx")?),
@@ -162,7 +173,8 @@ impl Voice {
         match &self.kind {
             Kind::Piper => {}
             Kind::Kokoro { sid } => cfg.sid = *sid,
-            Kind::Supertonic { lang } => {
+            Kind::Supertonic { lang, sid } => {
+                cfg.sid = *sid;
                 cfg.num_steps = SUPERTONIC_STEPS;
                 cfg.extra = Some(HashMap::from([("lang".to_string(), serde_json::json!(lang))]));
             }

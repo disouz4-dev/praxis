@@ -19,6 +19,30 @@ struct App {
     gpu: Mutex<Option<bool>>,
     /// teste do microfone em andamento (o sinal de parar)
     teste_mic: Mutex<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>>,
+    /// gravação da voz do usuário em andamento: (sinal de parar, amostras a 16 kHz)
+    gravacao: Mutex<Option<(std::sync::Arc<std::sync::atomic::AtomicBool>, std::sync::Arc<Mutex<Vec<f32>>>)>>,
+}
+
+/// A gravação da voz do usuário (obrigatória: amostra da voz clonada).
+fn voz_path() -> PathBuf {
+    dirs::data_dir().unwrap_or_else(std::env::temp_dir).join("Praxis").join("voz").join("minha_voz.wav")
+}
+
+/// Segundos com fala (blocos de 32 ms acima do silêncio) e tom médio de uma gravação.
+fn medir_voz(x: &[f32]) -> (f32, Option<f32>) {
+    let fala = x.chunks(512).filter(|b| (b.iter().map(|v| v * v).sum::<f32>() / b.len() as f32).sqrt() > 0.012).count();
+    (fala as f32 * 512.0 / 16_000.0, praxis_engine::audio::tom_medio(x, 16_000))
+}
+
+fn estado_da_voz() -> Value {
+    let p = voz_path();
+    match praxis_engine::audio::read_wav_16k_mono(&p) {
+        Ok(x) => {
+            let (fala, tom) = medir_voz(&x);
+            json!({"existe": true, "segundos": (fala * 10.0).round() / 10.0, "tom": tom, "caminho": p})
+        }
+        Err(_) => json!({"existe": false}),
+    }
 }
 
 fn config_path() -> PathBuf {
@@ -55,6 +79,7 @@ fn estado_inicial(app: State<App>) -> Value {
         "rodando": app.session.lock().unwrap().is_some(),
         "sistema": std::env::consts::OS,
         "versao": env!("CARGO_PKG_VERSION"),
+        "voz": estado_da_voz(),
         "apps": praxis_engine::app_audio::list(),
     })
 }
@@ -209,6 +234,64 @@ fn painel_lateral(handle: tauri::AppHandle, aberto: bool) -> Result<(), String> 
     Ok(())
 }
 
+/// Grava a voz do usuário (lendo o texto do tutorial): manda volume e tempo para a janela
+/// ("gravacao_voz") até `parar_gravacao_voz` ou 90 segundos.
+#[tauri::command]
+fn gravar_voz(handle: tauri::AppHandle, nome: Option<String>) -> Result<(), String> {
+    parar_teste_microfone(handle.clone());
+    let stop = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let buf = std::sync::Arc::new(Mutex::new(Vec::<f32>::new()));
+    let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
+    devices::spawn_capture(nome.filter(|n| !n.is_empty()), tx, stop.clone()).map_err(|e| format!("{e:#}"))?;
+    *handle.state::<App>().gravacao.lock().unwrap() = Some((stop.clone(), buf.clone()));
+    std::thread::spawn(move || {
+        let mut ultimo = std::time::Instant::now();
+        let mut pico = 0f32;
+        while let Ok(bloco) = rx.recv() {
+            let rms = (bloco.iter().map(|x| x * x).sum::<f32>() / bloco.len().max(1) as f32).sqrt();
+            pico = pico.max(rms);
+            let total = {
+                let mut b = buf.lock().unwrap();
+                b.extend_from_slice(&bloco);
+                b.len() as f32 / 16_000.0
+            };
+            if ultimo.elapsed().as_millis() >= 80 {
+                let _ = handle.emit("gravacao_voz", json!({"nivel": (pico * 8.0).min(1.0), "segundos": total}));
+                pico = 0.0;
+                ultimo = std::time::Instant::now();
+            }
+            if total > 90.0 {
+                stop.store(true, std::sync::atomic::Ordering::Relaxed);
+            }
+        }
+    });
+    Ok(())
+}
+
+/// Termina a gravação. Guarda só se tiver pelo menos 10 s de fala (senão a anterior continua).
+#[tauri::command]
+fn parar_gravacao_voz(handle: tauri::AppHandle) -> Result<Value, String> {
+    let Some((stop, buf)) = handle.state::<App>().gravacao.lock().unwrap().take() else {
+        return Err("nenhuma gravação em andamento".into());
+    };
+    stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    std::thread::sleep(std::time::Duration::from_millis(250));
+    let x = std::mem::take(&mut *buf.lock().unwrap());
+    let (fala, tom) = medir_voz(&x);
+    let ok = fala >= 10.0;
+    if ok {
+        let p = voz_path();
+        std::fs::create_dir_all(p.parent().unwrap()).map_err(|e| e.to_string())?;
+        praxis_engine::audio::write_wav16(&p, &x, 16_000).map_err(|e| format!("{e:#}"))?;
+    }
+    Ok(json!({"ok": ok, "fala": (fala * 10.0).round() / 10.0, "total": x.len() as f32 / 16_000.0, "tom": tom}))
+}
+
+#[tauri::command]
+fn estado_voz() -> Value {
+    estado_da_voz()
+}
+
 #[tauri::command]
 fn parar_teste_microfone(handle: tauri::AppHandle) {
     if let Some(stop) = handle.state::<App>().teste_mic.lock().unwrap().take() {
@@ -217,8 +300,13 @@ fn parar_teste_microfone(handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn iniciar(handle: tauri::AppHandle, config: SessionConfig) -> Result<(), String> {
+fn iniciar(handle: tauri::AppHandle, mut config: SessionConfig) -> Result<(), String> {
     parar_teste_microfone(handle.clone());
+    // a voz do usuário é obrigatória (amostra da voz clonada)
+    if !voz_path().exists() {
+        return Err("grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")".into());
+    }
+    config.minha_voz = Some(voz_path().to_string_lossy().to_string());
     if handle.state::<App>().session.lock().unwrap().is_some() {
         return Err("o Praxis já está traduzindo".into());
     }
@@ -279,7 +367,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

@@ -157,6 +157,10 @@ pub struct SessionConfig {
     /// sozinho); vazio = o usuário manda a saída do app para o "Praxis Speaker"
     #[serde(default)]
     pub peer_app: Option<String>,
+    /// gravação da voz do usuário (obrigatória; amostra da voz clonada). Enquanto a clonagem
+    /// não entra, serve para escolher a voz pronta do mesmo tipo (grave ou aguda).
+    #[serde(default)]
+    pub minha_voz: Option<String>,
     /// bilateral: a outra pessoa ganha voz traduzida (falso = só legenda: ouço a voz original
     /// e leio a tradução, por exemplo para treinar o idioma)
     #[serde(default = "sim")]
@@ -304,7 +308,13 @@ impl Session {
         progress(85, "Carregando a voz…");
         // o Kokoro precisa de mais núcleos (só é usado no processador para o chinês)
         let voice_threads = |dir: &Path| if dir.join("voices.bin").exists() && !gpu { 4 } else { 2 };
-        let voice_out = Arc::new(Voice::load_on(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu)?);
+        // a voz da MINHA tradução é do mesmo tipo da minha voz (grave: masculina), medida na gravação
+        let masculina = cfg.minha_voz.as_ref()
+            .and_then(|p| crate::audio::read_wav_16k_mono(p.as_ref()).ok())
+            .and_then(|x| crate::audio::tom_medio(&x, 16_000))
+            .map(|tom| tom < 165.0)
+            .unwrap_or(false);
+        let voice_out = Arc::new(Voice::load_voz(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu, masculina)?);
         let shared = Shared::new();
         let stop_capture = Arc::new(AtomicBool::new(false));
         let (ptx, prx) = std::sync::mpsc::channel::<pipeline::Event>();

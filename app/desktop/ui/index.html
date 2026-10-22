@@ -52,6 +52,11 @@
           <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
         </li>
         <li>
+          <p class="campo-titulo" data-t="lbl_your_voice"></p>
+          <p id="voz_estado" class="voz-estado"></p>
+          <button id="voz_gravar_btn" class="secundario" type="button"></button>
+        </li>
+        <li>
           <p class="campo-titulo" data-t="lbl_call_app_mic"></p>
           <p class="praxis-mic"><b>Praxis Mic</b></p>
         </li>
@@ -137,6 +142,13 @@
       <button id="tut_voltar" class="secundario" type="button" data-t="tut_back"></button>
       <button id="tut_seguir" class="pequeno" type="button" data-t="tut_next"></button>
     </div>
+  </dialog>
+
+  <!-- gravação da voz do usuário (obrigatória): amostra da voz clonada -->
+  <dialog id="gravador" aria-labelledby="grav_titulo">
+    <h2 id="grav_titulo" data-t="tutvoz_title"></h2>
+    <div id="grav_conteudo"></div>
+    <div class="botoes"><button id="grav_fechar" class="secundario" type="button" data-t="btn_close"></button></div>
   </dialog>
 
   <dialog id="sobre">

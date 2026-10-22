@@ -13,7 +13,7 @@
 <script>
 const ouvintes = {};
 const emitir = (payload, nome = "praxis") => (ouvintes[nome] || []).forEach((f) => f({ payload }));
-let testeMic = null;
+let testeMic = null, gravacao = null, vozGravada = !location.search.includes("tutorial");
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 let motorLigado = false;
 const conversa = [
@@ -31,7 +31,7 @@ window.__TAURI__ = {
       switch (cmd) {
         case "estado_inicial":
           return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
-                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.5", apps: [{ id: "discord", name: "Discord" }],
+                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: !location.search.includes("tutorial"), segundos: 31 }, apps: [{ id: "discord", name: "Discord" }],
                    config: { src: "pt", tgt: "en", bilateral: false, headphones: true, monitor: false, tutorial_feito: !location.search.includes("tutorial") } };
         case "verificar_atualizacao": await esperar(600); return { atual: "0.3.5", nova: null, pode_atualizar: true };
         case "abrir_link": window.open(args?.url, "_blank"); return null;
@@ -41,6 +41,13 @@ window.__TAURI__ = {
           testeMic = setInterval(() => { fase += 0.35; emitir({ nivel: Math.max(0, 0.15 + 0.55 * Math.abs(Math.sin(fase) * Math.cos(fase * 0.37))) }, "nivel_mic"); }, 90);
           return null;
         }
+        case "gravar_voz": {
+          clearInterval(gravacao); let t0 = Date.now(), fase = 0;
+          gravacao = setInterval(() => { fase += 0.4; emitir({ nivel: 0.2 + 0.5 * Math.abs(Math.sin(fase)), segundos: (Date.now() - t0) / 1000 }, "gravacao_voz"); }, 90);
+          return null;
+        }
+        case "parar_gravacao_voz": clearInterval(gravacao); vozGravada = true; return { ok: true, fala: 31, total: 34 };
+        case "estado_voz": return { existe: vozGravada, segundos: 31 };
         case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;

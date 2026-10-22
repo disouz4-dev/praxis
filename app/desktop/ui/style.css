@@ -248,3 +248,25 @@ body.rodando #painel_fechar { visibility: hidden; }
   body.monitorando main { display: block; }
   body.monitorando.rodando #config { display: none; }
 }
+
+/* voz do usuário */
+.voz-estado { margin: 0 0 8px; font-size: 13.5px; }
+.voz-estado.ok { color: #86efac; }
+.voz-estado.falta { color: var(--aviso); }
+dialog#gravador { width: min(500px, 92vw); border: 1px solid var(--borda); border-radius: 16px; background: var(--cartao); color: var(--texto); padding: 18px 20px 16px; }
+dialog#gravador::backdrop { background: rgba(6, 8, 12, .78); }
+dialog#gravador h2 { font-size: 20px; color: var(--texto); margin: 0 0 8px; }
+dialog#gravador .botoes { display: flex; justify-content: flex-end; margin-top: 12px; }
+.gravador .grav-explica { color: var(--suave); font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
+.gravador .grav-rotulo { font-size: 13px; font-weight: 600; margin: 4px 0 6px; }
+.texto-leitura { margin: 0 0 12px; padding: 12px 14px; border-left: 3px solid var(--eu); background: var(--campo);
+  border-radius: 8px; font-size: 15px; line-height: 1.6; max-height: 34vh; overflow-y: auto; }
+.grav-linha { display: flex; align-items: center; gap: 12px; }
+button.gravar { border: 0; border-radius: 999px; padding: 9px 18px; background: #dc2626; color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+  transition: transform .12s ease-out, background-color .15s; }
+button.gravar:active { transform: scale(.97); }
+button.gravar.ativo { background: #7f1d1d; box-shadow: 0 0 0 3px rgba(220, 38, 38, .35); }
+.grav-tempo { font-variant-numeric: tabular-nums; color: var(--suave); }
+.grav-resultado { margin: 6px 0 0; font-size: 13.5px; }
+.grav-resultado.ok { color: #86efac; }
+.grav-resultado.aviso { color: var(--aviso); }

@@ -123,7 +123,7 @@ pub enum VoiceChoice {
 /// placa de vídeo (no processador leva ~1 s para a 1ª frase), menos no chinês, que o Supertonic
 /// não fala. O Piper só para idioma que nenhum dos dois fale: hoje, nenhum.
 pub fn voice_choice(lang: &str, gpu: bool) -> Option<VoiceChoice> {
-    let kokoro = crate::tts::KOKORO_VOICES.iter().any(|(l, _, _)| *l == lang);
+    let kokoro = crate::tts::KOKORO_VOICES.iter().any(|(l, _, _, _)| *l == lang);
     if kokoro && (gpu || lang == "zh") {
         Some(VoiceChoice::Kokoro)
     } else if crate::tts::SUPERTONIC_LANGS.contains(&lang) {
