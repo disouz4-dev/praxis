@@ -23,7 +23,9 @@ use crate::tts::PiperVoice;
 use crate::vad::{Segmenter, SegmenterConfig, SileroV6, SR};
 
 /// (atraso de reprodução ≤ s, length_scale): a voz acelera quando a tradução se acumula.
-pub const RATE_STEPS: [(f32, f32); 4] = [(1.5, 1.0), (4.0, 0.87), (8.0, 0.77), (f32::INFINITY, 0.7)];
+/// Medido (22/10/2026, Supertonic, pedaços do modo simultâneo): acelerar 1,15× não perde
+/// palavras, mas 1,43× fez a voz comer 55% delas — a aceleração para em 1,15×.
+pub const RATE_STEPS: [(f32, f32); 3] = [(1.5, 1.0), (4.0, 0.93), (f32::INFINITY, 0.87)];
 /// Folga da trava de eco depois que o alto-falante para.
 pub const ECHO_TAIL_S: f32 = 0.35;
 
@@ -140,6 +142,9 @@ enum Job {
 const PARTIAL_EVERY_S: f32 = 0.6;
 const LIVE_MIN_NEW_WORDS: usize = 3;
 const LIVE_HOLD_BACK: usize = 2;
+/// Menor pedaço falado no modo simultâneo (palavras da tradução), fora o fim da frase. Medido:
+/// a voz come 11–15% das palavras em pedaços de 4 e 1,4–5,5% em pedaços de 6.
+const LIVE_MIN_SPOKEN: usize = 6;
 
 /// Ajuste para medições: PRAXIS_RELEITURA_S, PRAXIS_PALAVRAS_MIN e PRAXIS_SEGURAR substituem
 /// os três valores acima.
@@ -344,7 +349,9 @@ pub fn spawn_direction(
                                 // as últimas palavras traduzidas ainda podem mudar: esperam
                                 new_tgt.truncate(new_tgt.len().saturating_sub(live_param("PRAXIS_SEGURAR", LIVE_HOLD_BACK)));
                             }
-                            if !new_tgt.is_empty() {
+                            // pedaço curto demais (a voz come palavras): espera juntar mais
+                            let curto = !sentence_end && new_tgt.len() < live_param("PRAXIS_FALA_MIN", LIVE_MIN_SPOKEN);
+                            if !new_tgt.is_empty() && !curto {
                                 let src_part = live.committed[live.src_spoken..].to_vec();
                                 speak(id, &src_part, &new_tgt);
                                 live.src_spoken = live.committed.len();
@@ -461,8 +468,9 @@ mod tests {
     #[test]
     fn velocidade_adaptativa_como_no_python() {
         assert_eq!(speech_length_scale(0.5), 1.0);
-        assert_eq!(speech_length_scale(3.0), 0.87);
-        assert_eq!(speech_length_scale(6.0), 0.77);
-        assert_eq!(speech_length_scale(30.0), 0.7);
+        assert_eq!(speech_length_scale(3.0), 0.93);
+        assert_eq!(speech_length_scale(6.0), 0.87);
+        // nunca mais rápido que 1,15× (acelerar mais faz a voz comer palavras)
+        assert_eq!(speech_length_scale(30.0), 0.87);
     }
 }

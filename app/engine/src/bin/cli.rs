@@ -112,7 +112,11 @@ fn main() -> Result<()> {
         }
         // tts <pasta da voz> <frases.txt> <pasta de saída>  — um WAV por linha
         Some("tts") if pos.len() == 4 => {
-            let v = tts::PiperVoice::load(pos[1].as_ref(), 4)?;
+            // teste da voz: PRAXIS_TTS_IDIOMA, PRAXIS_TTS_MASCULINA=1, PRAXIS_TTS_ESCALA (velocidade)
+            let lang = std::env::var("PRAXIS_TTS_IDIOMA").unwrap_or_else(|_| "en".into());
+            let masc = std::env::var("PRAXIS_TTS_MASCULINA").map(|v| v == "1").unwrap_or(false);
+            let escala: f32 = std::env::var("PRAXIS_TTS_ESCALA").ok().and_then(|v| v.parse().ok()).unwrap_or(1.0);
+            let v = tts::Voice::load_voz(pos[1].as_ref(), &lang, 4, false, masc)?;
             let out = PathBuf::from(pos[3]);
             std::fs::create_dir_all(&out)?;
             let lines: Vec<String> = std::fs::read_to_string(pos[2])?.lines().map(String::from).collect();
@@ -120,7 +124,7 @@ fn main() -> Result<()> {
             let (mut synth_s, mut audio_s) = (0f64, 0f64);
             for (i, l) in lines.iter().enumerate() {
                 let t = Instant::now();
-                let a = v.synthesize(l, 1.0)?;
+                let a = v.synthesize(l, escala)?;
                 synth_s += t.elapsed().as_secs_f64();
                 audio_s += a.len() as f64 / v.sample_rate as f64;
                 let spec = hound::WavSpec { channels: 1, sample_rate: v.sample_rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };

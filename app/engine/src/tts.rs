@@ -175,7 +175,7 @@ impl Voice {
             Kind::Kokoro { sid } => cfg.sid = *sid,
             Kind::Supertonic { lang, sid } => {
                 cfg.sid = *sid;
-                cfg.num_steps = SUPERTONIC_STEPS;
+                cfg.num_steps = std::env::var("PRAXIS_SUPERTONIC_PASSOS").ok().and_then(|v| v.parse().ok()).unwrap_or(SUPERTONIC_STEPS);
                 cfg.extra = Some(HashMap::from([("lang".to_string(), serde_json::json!(lang))]));
             }
         }
