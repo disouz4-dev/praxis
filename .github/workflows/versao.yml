@@ -1,8 +1,9 @@
 name: Publicar versão
 
-# Ao criar uma etiqueta de versão (ex.: v0.3.1): compila o Praxis, monta o .deb, publica
-# na página de versões e atualiza o repositório apt (GitHub Pages), assinado com a chave
-# do Praxis — é por ele que as instalações recebem a versão nova.
+# Ao criar uma etiqueta de versão (ex.: v0.3.1): compila o Praxis, monta o .deb e o instalador
+# do Windows, publica na página de versões e atualiza o repositório apt, assinado com a chave
+# do Praxis — é por ele que as instalações recebem a versão nova. O repositório apt fica numa
+# versão fixa e marcada como prévia ("apt"), na própria página de versões: sem GitHub Pages.
 on:
   push:
     tags: ["v*"]
@@ -10,8 +11,6 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 concurrency:
   group: publicar-versao
@@ -50,8 +49,18 @@ jobs:
         run: |
           scripts/empacotar-linux.sh
           scripts/empacotar-deb.sh
-      - name: Repositório apt assinado
+      - name: Publicar na página de versões
+        if: startsWith(github.ref, 'refs/tags/v')
         env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+            gh release create "$GITHUB_REF_NAME" --title "Praxis ${GITHUB_REF_NAME}" --notes-file ../.github/notas-da-versao.md || true
+          gh release upload "$GITHUB_REF_NAME" target/dist/praxis_*_amd64.deb --clobber
+      - name: Repositório apt assinado (versão fixa "apt" da página de versões)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
           CHAVE: ${{ secrets.APT_GPG_PRIVATE_KEY }}
           SENHA: ${{ secrets.APT_GPG_PASSPHRASE }}
         run: |
@@ -61,29 +70,19 @@ jobs:
           R=target/dist/apt
           mkdir -p "$R"
           cp target/dist/praxis_*_amd64.deb "$R/"
-          cp pacotes/praxis.asc "$R/praxis.asc"
-          (cd "$R" && dpkg-scanpackages --multiversion . /dev/null > Packages && gzip -9k Packages \
+          (cd "$R" && dpkg-scanpackages --multiversion . /dev/null | sed 's|^Filename: \./|Filename: |' > Packages \
+            && gzip -9k Packages \
             && apt-ftparchive -o APT::FTPArchive::Release::Origin=Praxis \
                  -o APT::FTPArchive::Release::Label=Praxis release . > Release)
           gpg --batch --yes --pinentry-mode loopback --passphrase "$SENHA" -abs -o "$R/Release.gpg" "$R/Release"
           gpg --batch --yes --pinentry-mode loopback --passphrase "$SENHA" --clearsign -o "$R/InRelease" "$R/Release"
           rm -rf "$GNUPGHOME"
-          mkdir -p target/site && mv "$R" target/site/apt
-          cat > target/site/index.html <<'EOF'
-          <!doctype html><meta charset="utf-8"><title>Praxis</title>
-          <p>Repositório apt do <a href="https://github.com/disouz4-dev/praxis">Praxis</a>.
-          Instale pelo .deb da página de versões: ele registra este repositório.</p>
-          EOF
-      - name: Publicar na página de versões
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
-            gh release create "$GITHUB_REF_NAME" --title "Praxis ${GITHUB_REF_NAME}" --notes-file ../.github/notas-da-versao.md || true
-          gh release upload "$GITHUB_REF_NAME" target/dist/praxis_*_amd64.deb --clobber
-      - uses: actions/upload-pages-artifact@v3
-        with: { path: app/target/site }
+          cp pacotes/praxis.asc "$R/praxis.asc"
+          gh release view apt >/dev/null 2>&1 || gh release create apt --prerelease --title "Repositório apt (atualizações automáticas)" \
+            --notes "Uso interno: é daqui que o Praxis instalado pelo .deb recebe as versões novas. Para instalar, use a versão mais recente."
+          # o .deb antigo sai do repositório (o apt só precisa da versão atual)
+          for a in $(gh release view apt --json assets --jq '.assets[].name' | grep '_amd64\.deb$'); do gh release delete-asset apt "$a" -y; done
+          gh release upload apt "$R"/* --clobber
 
   windows:
     name: Instalador .exe (Windows)
@@ -136,14 +135,3 @@ jobs:
           gh release view $env:GITHUB_REF_NAME 2>$null
           if ($LASTEXITCODE -ne 0) { gh release create $env:GITHUB_REF_NAME --title "Praxis $env:GITHUB_REF_NAME" --notes-file ../.github/notas-da-versao.md }
           gh release upload $env:GITHUB_REF_NAME (Get-ChildItem target/release/bundle/nsis/*-setup.exe).FullName --clobber
-
-  pages:
-    name: Repositório apt (GitHub Pages)
-    needs: deb
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.publicar.outputs.page_url }}
-    steps:
-      - id: publicar
-        uses: actions/deploy-pages@v4

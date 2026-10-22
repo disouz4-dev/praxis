@@ -35,11 +35,11 @@ EOF
 cp scripts/deb-placa.sh "$D/opt/praxis/praxis-placa"
 cp scripts/deb-atualizar.sh "$D/opt/praxis/praxis-atualizar"
 chmod 755 "$D/opt/praxis/praxis-placa" "$D/opt/praxis/praxis-atualizar"
-# repositório apt do Praxis (GitHub Pages, assinado): as versões novas chegam pela
+# repositório apt do Praxis (versão fixa "apt" da página de versões, assinado): as versões novas chegam pela
 # atualização normal do sistema; a chave pública confere a assinatura
 mkdir -p "$D/usr/share/keyrings" "$D/etc/apt/sources.list.d"
 cp pacotes/praxis-archive-keyring.gpg "$D/usr/share/keyrings/praxis-archive-keyring.gpg"
-echo "deb [arch=amd64 signed-by=/usr/share/keyrings/praxis-archive-keyring.gpg] https://disouz4-dev.github.io/praxis/apt ./" \
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/praxis-archive-keyring.gpg] https://github.com/disouz4-dev/praxis/releases/download/apt ./" \
     > "$D/etc/apt/sources.list.d/praxis.list"
 echo /etc/apt/sources.list.d/praxis.list > "$D/DEBIAN/conffiles"
 SIZE=$(du -sk "$D/opt" | cut -f1)

@@ -7,10 +7,11 @@
 **[🇧🇷 Português](README.md)** · [🇺🇸 English](docs/README.en.md) · [🇪🇸 Español](docs/README.es.md) · [🇫🇷 Français](docs/README.fr.md) · [🇩🇪 Deutsch](docs/README.de.md) · [🇮🇹 Italiano](docs/README.it.md) · [🇷🇺 Русский](docs/README.ru.md) · [🇨🇳 中文](docs/README.zh.md) · [🇳🇱 Nederlands](docs/README.nl.md) · [🇵🇱 Polski](docs/README.pl.md) · [🇺🇦 Українська](docs/README.uk.md) · [🇹🇷 Türkçe](docs/README.tr.md) · [🇸🇦 العربية](docs/README.ar.md) · [🇮🇳 हिन्दी](docs/README.hi.md)
 
 [![Linux](https://img.shields.io/badge/Linux-PulseAudio%2FPipeWire-informational?logo=linux)](https://github.com/disouz4-dev/praxis)
-[![macOS](https://img.shields.io/badge/macOS-BlackHole-informational?logo=apple)](https://github.com/disouz4-dev/praxis)
+[![macOS](https://img.shields.io/badge/macOS-em%20breve-lightgrey?logo=apple)](https://github.com/disouz4-dev/praxis)
 [![Windows](https://img.shields.io/badge/Windows-VB--Cable-informational?logo=windows)](https://github.com/disouz4-dev/praxis)
-[![CI](https://github.com/disouz4-dev/praxis/actions/workflows/ci.yml/badge.svg)](https://github.com/disouz4-dev/praxis/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python)](https://github.com/disouz4-dev/praxis)
+[![Motor em Rust](https://github.com/disouz4-dev/praxis/actions/workflows/rust.yml/badge.svg)](https://github.com/disouz4-dev/praxis/actions/workflows/rust.yml)
+[![Rust](https://img.shields.io/badge/Rust-motor-orange?logo=rust)](app/engine)
+[![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?logo=tauri)](app/desktop)
 [![License](https://img.shields.io/badge/Licença-MIT-green)](LICENSE)
 [![Offline](https://img.shields.io/badge/100%25-offline-success)](https://github.com/disouz4-dev/praxis)
 
@@ -52,57 +53,33 @@ Eliminar barreiras linguísticas para que ideias, conhecimento e relacionamentos
 
 ## Como funciona
 
-O Praxis cria um **microfone virtual** no sistema operacional. Você fala no seu idioma; a voz sai já traduzida — pronta para ser selecionada no Discord, WhatsApp, Google Meet, OBS ou qualquer outro app.
+O Praxis faz **tradução simultânea**: enquanto você fala, a tradução já vai sendo falada para a outra pessoa, como um intérprete — sem esperar você terminar o raciocínio. A meta é que ela ouça a tradução **na sua própria voz, clonada**.
+
+Ele cria um **microfone virtual** no sistema: você escolhe esse microfone no Discord, WhatsApp, Google Meet, Zoom, OBS ou qualquer outro app, e o que sai dele é a sua fala já traduzida. No modo **bilateral**, a voz da outra pessoa (que chega pelo app de chamada) também é traduzida para você.
 
 ```
-Microfone real  →  VAD  →  Whisper ASR  →  Argos Translate  →  Piper TTS
-                                                                      ↓
-                                                          Microfone virtual
-                                              Linux: Praxis_Microfone · macOS: BlackHole · Windows: VB-Cable
-                                                                      ↓
-                                                          Discord / Meet / Zoom / OBS
+microfone ─► detector de fala ─► reconhecimento em fluxo ─► tradução incremental ─► voz ─► microfone virtual ─► app de chamada
+              (Silero)            (Whisper / Parakeet)       (NLLB, continua o        (Kokoro / Supertonic;
+                                  relê a cada 0,6 s e         que já foi falado)       voz clonada em construção)
+                                  confirma as palavras
 ```
 
-Tudo roda **100% local**, sem internet, sem nuvem, sem enviar nada para fora da sua máquina.
+Tudo roda **no seu computador**, sem internet depois da instalação e sem enviar nada para fora.
 
----
+### Tecnologia
 
-## Modos de ativação
+| Parte | O que usa |
+|---|---|
+| Aplicativo | **Rust** + **Tauri 2** (janela em HTML/CSS/JavaScript), leve: ~30 MB de pacote |
+| Motor | Rust (`app/engine`): áudio pelo **cpal**, modelos pelo **CTranslate2** (ct2rs), **sherpa-onnx** e **onnxruntime** |
+| Detector de fala | **Silero VAD v6** |
+| Reconhecimento | **Whisper large-v3 / large-v3-turbo** (com placa de vídeo) e **Parakeet** da NVIDIA (ultra, v2 para inglês, japonês) — o melhor medido para cada idioma |
+| Tradução | **NLLB-200** (Meta, 600M) com continuação da frase já falada; **Argos Translate** como reserva |
+| Voz | **Kokoro** e **Supertonic 3**; voz clonada da própria pessoa em construção |
+| Placa de vídeo | NVIDIA pelo CUDA quando existe (o motor principal); processador quando não |
+| Instalação | `.deb` (Linux) e instalador `.exe` (Windows), com **atualização automática** |
 
-| Modo | Descrição |
-|------|-----------|
-| **VAD automático** | O Silero VAD detecta quando você está falando e abre automaticamente |
-| **Gate threshold** | Só ativa acima de um limiar de volume — configurável arrastando a barra abaixo do medidor |
-| **Push-to-Talk** | Você mantém um botão pressionado (teclado ou mouse) para transmitir |
-
----
-
-## Idiomas suportados
-
-### Idioma de saída (com voz Piper disponível)
-
-| Idioma | Código | Vozes disponíveis |
-|--------|--------|-------------------|
-| Português | `pt` | Faber, Cadu (BR) · Tugão (PT) |
-| English | `en` | Lessac, Ryan (US) · Alan, Alba (GB) |
-| Español | `es` | Sharvard (ES) · ALD (MX) |
-| Français | `fr` | Siwis, Gilles |
-| Deutsch | `de` | Thorsten, Karlsson, MLS |
-| Italiano | `it` | Paola, Riccardo |
-| Русский | `ru` | Dmitri, Irina |
-| 中文 | `zh` | Huayan |
-| Nederlands | `nl` | MLS |
-| Polski | `pl` | Gosia |
-| Українська | `uk` | Lada |
-| Türkçe | `tr` | DFKI |
-| العربية | `ar` | Kareem |
-| हिन्दी | `hi` | Rohan |
-
-### Idioma de entrada (reconhecido pelo Whisper)
-
-Português · English · Español · Français · Deutsch · Italiano · 日本語 · 中文 · 한국어 · Русский · العربية · हिन्दी · Nederlands · Polski · Українська · Türkçe — e dezenas de outros idiomas suportados pelo Whisper.
-
-> Tradução entre idiomas não-ingleses usa **pivot automático via inglês** (ex: pt→it vai pt→en→it).
+A versão anterior, em Python (`praxis.py`), continua no repositório como bancada de testes e medições (`benchmarks/`).
 
 ---
 
@@ -141,98 +118,49 @@ Por enquanto, a versão anterior em Python: `scripts/instalar-python.sh`.
 
 ### Requisitos
 
-| | Linux | macOS | Windows |
+| | Linux | Windows | macOS |
 |---|---|---|---|
-| Python | 3.10+ | 3.10+ (Homebrew) | 3.10+ (python.org) |
-| Microfone virtual | criado automaticamente (PulseAudio/PipeWire) | [BlackHole 2ch](https://existential.audio/blackhole/) — instalado pelo `install.sh` | [VB-Audio Virtual Cable](https://vb-audio.com/Cable/) |
-| Modo bilateral | automático | + BlackHole 16ch | + VB-Cable A+B |
-| GPU (automático) | NVIDIA CUDA · AMD/Intel via Vulkan¹ | Apple Silicon via MLX · Intel: CPU² | NVIDIA CUDA · AMD/Intel via Vulkan¹ |
-
-¹ opt-in: `PRAXIS_GPU=vulkan ./install.sh` (compila o whisper.cpp; requer Vulkan SDK). ² Medido: em Macs Intel+AMD o whisper.cpp/Metal transcreve errado e é mais lento que a CPU. A clonagem (OmniVoice) usa CUDA ou MPS. Force um backend com `--device cpu|cuda|mlx|whispercpp` ou `PRAXIS_DEVICE`.
-
-Diagnóstico rápido: `python praxis.py --check` (dependências + áudio) e `python praxis.py --list-devices`.
+| Sistema | Debian, Ubuntu e derivados (64 bits) | Windows 10/11 (64 bits) | em preparação |
+| Microfone virtual | criado automaticamente (PulseAudio/PipeWire) | VB-Audio Virtual Cable (instalado pelo `install.ps1`) | — |
+| Placa de vídeo | NVIDIA (opcional, recomendada) | NVIDIA (opcional) | — |
 
 ---
 
 ## Uso
 
-```bash
-praxis
-```
-
-Na janela de configuração, selecione:
-1. **Modo** de ativação (VAD / Gate / PTT)
-2. **Microfone** de entrada
-3. **Idioma** de origem e destino
-4. **Voz** de saída (baixe vozes adicionais com o botão ⬇ Baixar)
-5. Clique em **✦ Iniciar**
-
-No app de chamada, selecione o microfone virtual: **Praxis_Microfone** (Linux), **BlackHole 2ch** (macOS) ou **CABLE Output** (Windows).
+Abra o **Praxis** pelo menu de aplicativos, escolha os dois idiomas e clique em **Iniciar**. Na primeira vez ele baixa os modelos para os seus idiomas. No app de chamada, escolha o microfone **Praxis_Microfone** (Linux) ou **CABLE Output** (Windows).
 
 ---
 
-## Pipeline técnico
+## Qualidade e testes
 
-| Etapa | Ferramenta | Detalhes |
-|-------|-----------|----------|
-| Segmentação de fala | **Silero VAD (ONNX)** | Corte por silêncio (200 ms) ou no ponto mais silencioso após 6s; 250 ms de pre-roll |
-| Transcrição | **faster-whisper** | Modelo automático: `large-v3-turbo` com placa de vídeo, `small` no processador (medido em 16 idiomas); filtro de alucinações |
-| Tradução | **Argos Translate** (CTranslate2) | 100% offline; pivot via inglês; baixa pares no primeiro uso |
-| Síntese de voz | **Piper TTS** | Modelos `.onnx` leves; síntese por sentença em paralelo |
-| Saída de áudio | **PulseAudio** (Linux) · **PortAudio** (macOS/Windows) | Injeção no microfone virtual |
+Medido com fala real de várias pessoas (Google FLEURS), descontando diferença de escrita e de número:
 
----
+| | Com placa de vídeo | Sem placa de vídeo |
+|---|---:|---:|
+| Português | 2,2% de palavras erradas | 2,9% |
+| Inglês | 2,0% | 2,0% |
+| Espanhol | 1,6% | 2,0% |
+| Alemão | 2,0% | 2,7% |
+| Italiano | 1,7% | 1,8% |
 
-## Testes e qualidade
+Detalhes: [`docs/RESUMO_TESTES.md`](docs/RESUMO_TESTES.md). Antes de cada versão roda a [lista de verificação completa](docs/QA_LISTA.md), com uma conversa bilateral de 5 minutos no equipamento real.
 
 ```bash
-pip install -r requirements-dev.txt && pip install --no-deps argostranslate
-pytest                                   # unidade + smoke + GUI (rápido, sem modelos)
-python benchmarks/fetch_speech_corpus.py # áudios reais (LibriSpeech/MLS, CC BY 4.0)
-pytest -m slow                           # qualidade da transcrição (WER) + latência
-python benchmarks/run_benchmarks.py asr --models small --langs pt en es
-python benchmarks/run_benchmarks.py latency --model small
+cd app && scripts/cargo-linux.sh test -p praxis-engine --lib    # testes do motor (Linux)
 ```
-
-O CI roda em Linux, macOS e Windows a cada push. Resultados e relatório de QA: [`benchmarks/results/`](benchmarks/results/) · [`docs/QA_REPORT.md`](docs/QA_REPORT.md).
-
----
-
-## Clonagem de voz (OmniVoice)
-
-A aba **"Clonar minha voz"** permite clonar qualquer voz em segundos — basta gravar ou importar um áudio de 5 a 15 segundos. Sem treino, sem espera.
-
-### Como usar
-
-1. Abra a aba **🎙 Clonar minha voz**
-2. Digite um nome para o perfil (ex: `Diego`)
-3. **Opção A — Gravar:** clique no botão de microfone e leia um texto genérico curto
-   **Opção B — Importar:** clique em "Importar áudio" e selecione qualquer WAV/MP3/OGG/OPUS/M4A/FLAC/AAC (incluindo áudios do WhatsApp)
-4. Clique em **Testar** para ouvir o resultado
-5. Clique em **Usar** para ativar a voz clonada como saída padrão
-
-### Tecnologia
-
-- **OmniVoice** (k2-fsa/OmniVoice) — clonagem zero-shot, sem necessidade de treino
-- **faster-whisper** — transcrição automática do áudio de referência
-- **ffmpeg** — conversão interna de formatos (qualquer formato → WAV 24 kHz)
-- Clone salvo em `voices/clones/` como `.wav` (referência) + `.json` (metadados)
-
-> O áudio de referência é cortado automaticamente para 15 segundos para melhor qualidade de clonagem.
 
 ---
 
 ## Roadmap
 
-- [x] Clonagem de voz zero-shot com OmniVoice (sem treino)
-- [x] Importação de áudio externo (WAV/MP3/OGG/OPUS/M4A e mais)
-- [ ] Tradução bidirecional completa (ouvir o interlocutor traduzido)
-- [ ] Tray icon e atalho global para pausar/retomar
-- [ ] Streaming speech-to-speech para latência menor ainda
-- [x] Multiplataforma: Linux, macOS e Windows
-- [x] Testes automatizados, CI e benchmarks de qualidade/latência com fala real
-- [ ] Empacotamento `.deb` / `.dmg` / `.msi`
-- [ ] Modo servidor LAN para apresentações e conferências
+- [x] Aplicativo leve em Rust + Tauri, Linux e Windows
+- [x] Tradução simultânea (fala a tradução enquanto a pessoa fala)
+- [x] Modo bilateral
+- [x] Instalação por `.deb` / `.exe` e atualização automática
+- [ ] **Voz clonada da própria pessoa** (rápida, com ~10 s de amostra; e treinada, com alguns minutos)
+- [ ] macOS
+- [ ] Modos "segurar uma tecla para falar" e por volume
 
 ---
 
