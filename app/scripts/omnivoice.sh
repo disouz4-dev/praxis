@@ -18,15 +18,25 @@ git -C "$SRC" submodule update -q --init --recursive
 git -C "$SRC" apply --whitespace=nowarn "$PWD/pacotes/omnivoice-praxis.patch"
 extra=()
 [ "$(uname)" = Darwin ] && extra+=(-DGGML_METAL=OFF)
-cmake -S "$SRC" -B "$SRC/build" -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON -DOMNIVOICE_SHARED=ON \
+# OMNIVOICE_CUDA=1: a versão para placas NVIDIA (CUDA 12; as bibliotecas da NVIDIA vêm na pasta
+# placa/ do Praxis), para as placas de uso pessoal: GeForce 16 e RTX 20 (75), RTX 30 (86), RTX 40 (89) e RTX 50 (120)
+if [ "${OMNIVOICE_CUDA:-0}" = 1 ]; then
+  B="$SRC/build-cuda"; NOME=libomnivoice-cuda.so
+  extra+=(-DGGML_CUDA=ON -DGGML_VULKAN=OFF "-DCMAKE_CUDA_ARCHITECTURES=${OMNIVOICE_CUDA_ARCH:-75;86;89;120}")
+else
+  B="$SRC/build"; NOME=libomnivoice.so
+  extra+=(-DGGML_VULKAN=ON)
+fi
+cmake -S "$SRC" -B "$B" -DCMAKE_BUILD_TYPE=Release -DOMNIVOICE_SHARED=ON \
   -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DGGML_NATIVE=OFF "${extra[@]}" ${OMNIVOICE_CMAKE:-}
-cmake --build "$SRC/build" --config Release --target omnivoice -j "$(getconf _NPROCESSORS_ONLN)"
+cmake --build "$B" --config Release --target omnivoice -j "$(getconf _NPROCESSORS_ONLN)"
 mkdir -p target/release/omnivoice
 if [ "$(uname)" = Darwin ]; then
-  cp "$SRC/build/libomnivoice.dylib" target/release/omnivoice/
+  cp "$B/libomnivoice.dylib" target/release/omnivoice/
   install_name_tool -add_rpath @loader_path target/release/omnivoice/libomnivoice.dylib 2>/dev/null || true
 else
-  cp "$SRC/build/libomnivoice.so" target/release/omnivoice/
-  patchelf --set-rpath '$ORIGIN' target/release/omnivoice/libomnivoice.so 2>/dev/null || true
+  cp "$B/libomnivoice.so" "target/release/omnivoice/$NOME"
+  # acha as bibliotecas da NVIDIA na pasta placa/ do Praxis (/opt/praxis/placa)
+  patchelf --set-rpath '$ORIGIN:$ORIGIN/../placa' "target/release/omnivoice/$NOME"
 fi
 ls -la target/release/omnivoice

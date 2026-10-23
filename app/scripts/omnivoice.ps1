@@ -17,12 +17,21 @@ git -C $src submodule update -q --init --recursive
 git -C $src apply --whitespace=nowarn (Resolve-Path "pacotes/omnivoice-praxis.patch")
 # OMNIVOICE_CMAKE traz várias opções separadas por espaço: cada uma vira um argumento
 $extra = @(); if ($env:OMNIVOICE_CMAKE) { $extra = $env:OMNIVOICE_CMAKE -split ' ' | Where-Object { $_ } }
-cmake -S $src -B "$src/build" -DCMAKE_BUILD_TYPE=Release -DGGML_VULKAN=ON -DOMNIVOICE_SHARED=ON `
+# OMNIVOICE_CUDA=1: a versão para placas NVIDIA (CUDA 12; as DLLs da NVIDIA ficam em placa\)
+if ($env:OMNIVOICE_CUDA -eq "1") {
+  $b = "$src/build-cuda"; $nome = "omnivoice-cuda.dll"
+  $arch = if ($env:OMNIVOICE_CUDA_ARCH) { $env:OMNIVOICE_CUDA_ARCH } else { "75;86;89;120" }
+  $extra += @("-DGGML_CUDA=ON", "-DGGML_VULKAN=OFF", "-DCMAKE_CUDA_ARCHITECTURES=$arch")
+} else {
+  $b = "$src/build"; $nome = "omnivoice.dll"
+  $extra += @("-DGGML_VULKAN=ON")
+}
+cmake -S $src -B $b -DCMAKE_BUILD_TYPE=Release -DOMNIVOICE_SHARED=ON `
   -DBUILD_SHARED_LIBS=OFF -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DGGML_NATIVE=OFF @extra
 if ($LASTEXITCODE -ne 0) { exit 1 }
-cmake --build "$src/build" --config Release --target omnivoice -j 4
+cmake --build $b --config Release --target omnivoice -j 4
 if ($LASTEXITCODE -ne 0) { exit 1 }
 New-Item -ItemType Directory -Force target/release/omnivoice | Out-Null
-$dll = Get-ChildItem "$src/build" -Recurse -Filter omnivoice.dll | Select-Object -First 1
-Copy-Item $dll.FullName target/release/omnivoice/
+$dll = Get-ChildItem $b -Recurse -Filter omnivoice.dll | Select-Object -First 1
+Copy-Item $dll.FullName "target/release/omnivoice/$nome"
 Get-ChildItem target/release/omnivoice

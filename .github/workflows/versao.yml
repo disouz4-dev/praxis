@@ -59,6 +59,17 @@ jobs:
           export CMAKE_PREFIX_PATH="$P" PATH="$PATH:$P/bin"
           OMNIVOICE_CMAKE="-DVulkan_INCLUDE_DIR=$P/include -DVulkan_LIBRARY=$P/lib/libvulkan.so -DVulkan_GLSLC_EXECUTABLE=$P/bin/glslc" \
             scripts/omnivoice.sh
+      - name: CUDA 12 para o OmniVoice nas placas NVIDIA (conda-forge)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: cuda
+          create-args: cuda-version=12.8 cuda-nvcc cuda-cudart-dev libcublas-dev
+          init-shell: none
+      - name: OmniVoice para NVIDIA (CUDA)
+        run: |
+          P="$MAMBA_ROOT_PREFIX/envs/cuda"
+          export PATH="$PATH:$MAMBA_ROOT_PREFIX/envs/vk/bin" CUDA_PATH="$P" CUDAToolkit_ROOT="$P"
+          OMNIVOICE_CUDA=1 OMNIVOICE_CMAKE="-DCMAKE_CUDA_COMPILER=$P/bin/nvcc" scripts/omnivoice.sh
       - name: Montar o .deb
         run: |
           scripts/empacotar-linux.sh

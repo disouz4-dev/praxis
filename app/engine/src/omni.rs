@@ -211,23 +211,51 @@ pub fn guardar_desempenho(store: &crate::models::ModelStore, dispositivo: &str, 
     let _ = std::fs::write(store.omnivoice_dir().join("desempenho.json"), v.to_string());
 }
 
-/// Nome da biblioteca ao lado do programa (ou PRAXIS_OMNIVOICE_LIB)
+/// Pasta do OmniVoice ao lado do programa
+fn pasta() -> std::path::PathBuf {
+    std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())).unwrap_or_default().join("omnivoice")
+}
+
+fn nome_lib(cuda: bool) -> &'static str {
+    match (cfg!(target_os = "windows"), cfg!(target_os = "macos"), cuda) {
+        (true, _, true) => "omnivoice-cuda.dll",
+        (true, _, false) => "omnivoice.dll",
+        (_, true, _) => "libomnivoice.dylib",
+        (_, _, true) => "libomnivoice-cuda.so",
+        _ => "libomnivoice.so",
+    }
+}
+
+/// Placa NVIDIA com a versão CUDA do OmniVoice instalada? Então ela: a biblioteca da própria
+/// NVIDIA é a mais rápida nela (RTX 3050: 15–20% mais rápido que o Vulkan, carga em 0,9 s × 3,2 s).
+fn usar_cuda() -> bool {
+    std::env::var("PRAXIS_OMNIVOICE_DISPOSITIVO").map(|d| d.starts_with("CUDA")).unwrap_or_else(|_| {
+        !cfg!(target_os = "macos") && pasta().join(nome_lib(true)).exists() && crate::session::has_nvidia_gpu()
+    })
+}
+
+/// A biblioteca do OmniVoice a carregar (ou PRAXIS_OMNIVOICE_LIB)
 pub fn caminho_biblioteca() -> std::path::PathBuf {
     if let Ok(p) = std::env::var("PRAXIS_OMNIVOICE_LIB") {
         return p.into();
     }
-    let nome = if cfg!(target_os = "windows") { "omnivoice.dll" } else if cfg!(target_os = "macos") { "libomnivoice.dylib" } else { "libomnivoice.so" };
-    let dir = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.to_path_buf())).unwrap_or_default();
-    dir.join("omnivoice").join(nome)
+    let cuda = pasta().join(nome_lib(true));
+    if usar_cuda() && cuda.exists() { cuda } else { pasta().join(nome_lib(false)) }
 }
 
-/// Placa preferida para o OmniVoice: Vulkan (AMD/Intel, e AMD no Mac pelo MoltenVK), Metal nos
-/// Macs com chip Apple, CUDA na NVIDIA. PRAXIS_OMNIVOICE_DISPOSITIVO escolhe outro.
+/// Placa para o OmniVoice: CUDA na NVIDIA, Metal nos Macs com chip Apple, Vulkan nas outras (AMD,
+/// Intel; AMD nos Macs Intel pelo MoltenVK). PRAXIS_OMNIVOICE_DISPOSITIVO escolhe outra.
 pub fn dispositivo_preferido() -> String {
     if let Ok(d) = std::env::var("PRAXIS_OMNIVOICE_DISPOSITIVO") {
         return d;
     }
-    if cfg!(all(target_os = "macos", target_arch = "aarch64")) { "MTL0".into() } else { "Vulkan0".into() }
+    if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+        "MTL0".into()
+    } else if usar_cuda() {
+        "CUDA0".into()
+    } else {
+        "Vulkan0".into()
+    }
 }
 
 impl OmniVoice {
@@ -241,6 +269,16 @@ impl OmniVoice {
         let icd = caminho_biblioteca().with_file_name("MoltenVK_icd.json");
         if icd.exists() && std::env::var_os("VK_ICD_FILENAMES").is_none() {
             unsafe { std::env::set_var("VK_ICD_FILENAMES", &icd) };
+        }
+        #[cfg(windows)]
+        if dispositivo.starts_with("CUDA") {
+            let placa = pasta().parent().map(|d| d.join("placa")).unwrap_or_default();
+            let path = std::env::var_os("PATH").unwrap_or_default();
+            let mut v = vec![placa];
+            v.extend(std::env::split_paths(&path));
+            if let Ok(novo) = std::env::join_paths(v) {
+                unsafe { std::env::set_var("PATH", novo) };
+            }
         }
         unsafe {
             let lib = libloading::Library::new(caminho_biblioteca())
