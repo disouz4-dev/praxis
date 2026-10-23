@@ -83,6 +83,7 @@ function verificarIdiomas() {
     : !(ESTADO.voz && ESTADO.voz.existe) ? t("warn_need_voice")
     : !ESTADO.voz.clonada ? t("warn_cloning")
     : $("voz_modelo").value === "leve" && !ESTADO.voz.clone_leve ? t("warn_cloning")
+    : $("voz_modelo").value === "auto" && !ESTADO.voz.clone_leve && !ESTADO.voz.omnivoice ? t("warn_cloning")
     : !info(s).liberado ? info(s).motivo
     : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
     : bi && ESTADO.sistema === "windows" && !$("peer_app").value ? t("warn_peer_app")
@@ -169,8 +170,10 @@ async function abrirPainel() {
 function montarVozes() {
   const v = ESTADO.voz || {};
   const opcoes = [];
-  if (v.omnivoice) opcoes.push(["omni", t("voice_model_omni")]);
+  if (v.omnivoice) opcoes.push(["auto", t("voice_model_auto")], ["omni", t("voice_model_omni")]);
   opcoes.push(["leve", t("voice_model_light")]);
+  // quem usava a voz fiel antes da escolha automática passa para a automática (uma vez)
+  if (!cfg.voz_auto_ok) { if (cfg.voz_modelo === "omni") cfg.voz_modelo = "auto"; cfg.voz_auto_ok = true; salvar(); }
   const atual = cfg.voz_modelo && opcoes.some(([k]) => k === cfg.voz_modelo) ? cfg.voz_modelo : opcoes[0][0];
   $("voz_modelo").replaceChildren(...opcoes.map(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; return o; }));
   $("voz_modelo").value = atual;
@@ -474,7 +477,7 @@ function coletar() {
     monitor: $("monitor").checked, headphones: $("headphones").checked,
     bilateral: $("bilateral").checked,
     model: $("model").value, translator: $("translator").value,
-    voz_modelo: $("voz_modelo").value, omnivoice: $("voz_modelo").value === "omni",
+    voz_modelo: $("voz_modelo").value, omnivoice: $("voz_modelo").value !== "leve",
     peer_app: $("peer_app").value || null,
     peer_app_nome: $("peer_app").selectedOptions[0]?.dataset.nome || null,
     peer_voice: !$("peer_legenda").checked,
@@ -545,6 +548,15 @@ function eventoDoMotor(e) {
         hw: t(e.gpu ? "hw_gpu" : "hw_cpu"),
         asr: e.model.startsWith("parakeet") ? "Parakeet" : "Whisper " + e.model, tr: e.translator }));
       break;
+    case "voz": {
+      const [tipo, n] = (e.motivo || "").split(":");
+      const placa = (HARDWARE?.placas || []).find((p) => !/Intel UHD|Intel\(R\) UHD|Iris/.test(p.nome))?.nome || t("hw_gpu_label");
+      const msg = e.qual === "leve"
+        ? (tipo === "placa" ? tf("voz_auto_leve", { placa, rtf: (+n).toLocaleString(cfg.ui_lang, { maximumFractionDigits: 1 }) }) : t("voz_leve_escolhida"))
+        : (tipo === "lenta" ? tf("voz_fiel_lenta", { placa }) : t("voz_fiel_rapida"));
+      fixo("voz_resumo", msg);
+      break;
+    }
     case "virtual_mic":
       $("microfone_virtual").hidden = false;
       vivo("microfone_virtual", () => tf("vmic_choose", { mic: e.mic }) + (e.peer ? tf("vmic_peer", { peer: e.peer }) : ""));

@@ -202,7 +202,12 @@
    "hw_reading": "Lendo o hardware…",
    "hw_error": "Não deu para ler o hardware: {e}",
    "sec_call": "Na chamada",
-   "hw_gpu_mem": "{u} de {t} GB ocupados"
+   "hw_gpu_mem": "{u} de {t} GB ocupados",
+   "voice_model_auto": "Minha voz clonada — automática (recomendada)",
+   "voz_auto_leve": "Usando a voz leve: a {placa} gera a voz fiel em {rtf} s por segundo de fala, lenta para tradução simultânea.",
+   "voz_leve_escolhida": "Usando a voz leve (escolhida por você).",
+   "voz_fiel_lenta": "Usando a voz fiel na {placa}: a tradução pode começar alguns segundos depois de você falar.",
+   "voz_fiel_rapida": "Usando a voz fiel na placa de vídeo (rápida o bastante para tradução simultânea)."
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -406,7 +411,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -610,7 +620,12 @@
    "hw_reading": "Leyendo el hardware…",
    "hw_error": "No se pudo leer el hardware: {e}",
    "sec_call": "En la llamada",
-   "hw_gpu_mem": "{u} de {t} GB en uso"
+   "hw_gpu_mem": "{u} de {t} GB en uso",
+   "voice_model_auto": "Mi voz clonada — automática (recomendada)",
+   "voz_auto_leve": "Usando la voz ligera: la {placa} genera la voz fiel en {rtf} s por segundo de habla, lenta para traducción simultánea.",
+   "voz_leve_escolhida": "Usando la voz ligera (elegida por ti).",
+   "voz_fiel_lenta": "Usando la voz fiel en la {placa}: la traducción puede empezar unos segundos después de que hables.",
+   "voz_fiel_rapida": "Usando la voz fiel en la tarjeta gráfica (rápida para traducción simultánea)."
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -814,7 +829,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -1018,7 +1038,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1222,7 +1247,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1426,7 +1456,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1630,7 +1665,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1834,7 +1874,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -2038,7 +2083,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -2242,7 +2292,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2446,7 +2501,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2650,7 +2710,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2854,7 +2919,12 @@
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
    "sec_call": "On the call",
-   "hw_gpu_mem": "{u} of {t} GB in use"
+   "hw_gpu_mem": "{u} of {t} GB in use",
+   "voice_model_auto": "My cloned voice — automatic (recommended)",
+   "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
+   "voz_leve_escolhida": "Using the light voice (your choice).",
+   "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
   }
  },
  "lang_names": {

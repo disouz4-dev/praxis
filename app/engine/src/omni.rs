@@ -193,6 +193,22 @@ unsafe impl Sync for OmniVoice {}
 /// gastam ~1 s de cálculo por segundo de fala.
 pub const PASSOS: i32 = 8;
 
+/// Acima disto (segundos de cálculo por segundo de fala, 8 passos) a placa não dá conta da
+/// tradução simultânea com a voz fiel. Medido: RTX 3050 ~0,2 (simultâneo); Radeon Pro 5500M
+/// ~0,8–1,0 (atraso de 5 s ou mais). Na escolha automática, acima disto vai a voz leve.
+pub const RTF_SIMULTANEO: f32 = 0.5;
+
+/// Desempenho medido desta placa com o OmniVoice (segundos de cálculo por segundo de fala)
+pub fn desempenho_guardado(store: &crate::models::ModelStore) -> Option<f32> {
+    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(store.omnivoice_dir().join("desempenho.json")).ok()?).ok()?;
+    (v["passos"].as_i64() == Some(PASSOS as i64)).then(|| v["rtf"].as_f64().map(|x| x as f32)).flatten()
+}
+
+pub fn guardar_desempenho(store: &crate::models::ModelStore, dispositivo: &str, rtf: f32) {
+    let v = serde_json::json!({"dispositivo": dispositivo, "passos": PASSOS, "rtf": rtf});
+    let _ = std::fs::write(store.omnivoice_dir().join("desempenho.json"), v.to_string());
+}
+
 /// Nome da biblioteca ao lado do programa (ou PRAXIS_OMNIVOICE_LIB)
 pub fn caminho_biblioteca() -> std::path::PathBuf {
     if let Ok(p) = std::env::var("PRAXIS_OMNIVOICE_LIB") {
@@ -309,6 +325,13 @@ impl OmniVoice {
         if let Ok(r) = self.codificar(audio_16k, texto) {
             *self.referencia.lock().unwrap() = Some(r);
         }
+    }
+
+    /// Mede a placa: segundos de cálculo por segundo de fala numa frase de teste em inglês.
+    pub fn medir(&self) -> Result<f32> {
+        let t = std::time::Instant::now();
+        let a = self.falar("Thank you for joining the call, let us start the meeting now.", "en")?;
+        Ok(t.elapsed().as_secs_f32() / (a.len() as f32 / 24_000.0).max(0.5))
     }
 
     /// Gera a fala de `texto` em `lang` (código ISO) na voz da referência, a 24 kHz.

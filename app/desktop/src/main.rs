@@ -445,8 +445,14 @@ fn iniciar(handle: tauri::AppHandle, mut config: SessionConfig) -> Result<(), St
         return Err("grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")".into());
     }
     // a tradução só sai na voz clonada (premissa do Praxis)
-    let leve = !(config.omnivoice && omni_pronto());
-    if leve && clone_em_dia().is_none() {
+    // a voz leve precisa do ajuste pronto; a fiel e a automática (que cai na fiel sem a leve)
+    // precisam do OmniVoice instalado
+    let modo = config.voz_modelo.clone().unwrap_or_else(|| "auto".into());
+    let pronta = match modo.as_str() {
+        "leve" => clone_em_dia().is_some(),
+        _ => omni_pronto() || clone_em_dia().is_some(),
+    };
+    if !pronta {
         return Err("a sua voz ainda está sendo clonada; espere terminar (passo \"Sua voz\")".into());
     }
     config.minha_voz = Some(voz_path().to_string_lossy().to_string());

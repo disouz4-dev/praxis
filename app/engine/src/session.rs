@@ -168,6 +168,9 @@ pub struct SessionConfig {
     /// usar o OmniVoice na placa de vídeo quando houver (o clone mais fiel)
     #[serde(default = "sim")]
     pub omnivoice: bool,
+    /// voz da tradução: "auto" (padrão), "omni" (fiel) ou "leve"
+    #[serde(default)]
+    pub voz_modelo: Option<String>,
     /// bilateral: a outra pessoa ganha voz traduzida (falso = só legenda: ouço a voz original
     /// e leio a tradução, por exemplo para treinar o idioma)
     #[serde(default = "sim")]
@@ -199,6 +202,8 @@ pub enum SessionEvent {
     Engine { ev: pipeline::Event },
     Stopped,
     Error { msg: String },
+    /// qual voz a tradução está usando ("fiel" OmniVoice ou "leve") e por quê
+    Voz { qual: String, motivo: String },
 }
 
 pub struct Session {
@@ -326,7 +331,18 @@ impl Session {
             .filter(|p| p.exists() && crate::tts::SUPERTONIC_LANGS.contains(&cfg.tgt.as_str()));
         // OmniVoice na placa de vídeo (Vulkan / Metal / CUDA): o clone mais fiel, com a referência
         // ao vivo. Sem biblioteca, sem placa ou com erro, segue o clone leve do processador.
-        let omni = if cfg.omnivoice && cfg.minha_voz.is_some() && crate::omni::caminho_biblioteca().exists() {
+        // Voz da tradução: "fiel" (OmniVoice na placa), "leve" (ajuste fino no processador) ou
+        // "auto" (a fiel só onde a placa dá conta de tradução simultânea; medido uma vez e guardado)
+        let modo = cfg.voz_modelo.clone().unwrap_or_else(|| if cfg.omnivoice { "omni".into() } else { "leve".into() });
+        let tem_leve = cfg.voz_clonada.as_ref().is_some_and(|p| Path::new(p).exists());
+        let medida = crate::omni::desempenho_guardado(store);
+        let tentar_omni = match modo.as_str() {
+            "leve" => false,
+            "omni" => true,
+            // auto: placa já medida como lenta e a voz leve existe → nem carrega o OmniVoice
+            _ => !(tem_leve && medida.is_some_and(|m| m > crate::omni::RTF_SIMULTANEO)),
+        };
+        let omni = if tentar_omni && cfg.minha_voz.is_some() && crate::omni::caminho_biblioteca().exists() {
             progress(87, "Carregando a sua voz clonada (OmniVoice)…");
             match (|| -> Result<Arc<crate::omni::OmniVoice>> {
                 let (m, c) = store.ensure_omnivoice(&dl)?;
@@ -335,9 +351,26 @@ impl Session {
                 let (a, b) = crate::omni::trecho_de_referencia(&x);
                 let texto = asr.transcribe(&x[a..b], &cfg.src)?.text;
                 o.definir_referencia(&x[a..b], &texto)?;
+                // mede a placa uma vez (frase de teste) e guarda
+                if medida.is_none() {
+                    progress(89, "Medindo a sua placa de vídeo…");
+                    if let Ok(rtf) = o.medir() {
+                        crate::omni::guardar_desempenho(store, &o.dispositivo, rtf);
+                    }
+                }
                 Ok(Arc::new(o))
             })() {
-                Ok(o) => Some(o),
+                Ok(o) => {
+                    let rtf = crate::omni::desempenho_guardado(store);
+                    let lenta = rtf.is_some_and(|r| r > crate::omni::RTF_SIMULTANEO);
+                    if modo == "auto" && lenta && tem_leve {
+                        emit(SessionEvent::Voz { qual: "leve".into(), motivo: format!("placa:{:.2}", rtf.unwrap_or(0.0)) });
+                        None
+                    } else {
+                        emit(SessionEvent::Voz { qual: "fiel".into(), motivo: if lenta { format!("lenta:{:.2}", rtf.unwrap_or(0.0)) } else { "rapida".into() } });
+                        Some(o)
+                    }
+                }
                 Err(e) => {
                     emit(SessionEvent::Error { msg: format!("OmniVoice indisponível, usando o clone leve: {e:#}") });
                     None
@@ -346,6 +379,11 @@ impl Session {
         } else {
             None
         };
+        if omni.is_none() && !tentar_omni && modo == "auto" {
+            emit(SessionEvent::Voz { qual: "leve".into(), motivo: format!("placa:{:.2}", medida.unwrap_or(0.0)) });
+        } else if omni.is_none() && modo == "leve" {
+            emit(SessionEvent::Voz { qual: "leve".into(), motivo: "escolhida".into() });
+        }
         let voice_out = Arc::new(match clone {
             _ if omni.is_some() => Voice::omni(omni.clone().unwrap(), &cfg.tgt),
             Some(vb) => {
