@@ -330,7 +330,7 @@ impl Session {
             progress(87, "Carregando a sua voz clonada (OmniVoice)…");
             match (|| -> Result<Arc<crate::omni::OmniVoice>> {
                 let (m, c) = store.ensure_omnivoice(&dl)?;
-                let o = crate::omni::OmniVoice::carregar(&m, &c, &crate::omni::dispositivo_preferido(), 8)?;
+                let o = crate::omni::OmniVoice::carregar(&m, &c, &crate::omni::dispositivo_preferido(), crate::omni::PASSOS)?;
                 let x = crate::audio::read_wav_16k_mono(cfg.minha_voz.as_ref().unwrap().as_ref())?;
                 let (a, b) = crate::omni::trecho_de_referencia(&x);
                 let texto = asr.transcribe(&x[a..b], &cfg.src)?.text;

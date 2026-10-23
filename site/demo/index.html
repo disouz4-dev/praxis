@@ -33,7 +33,7 @@ window.__TAURI__ = {
       switch (cmd) {
         case "estado_inicial":
           return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
-                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: vozGravada, segundos: vozSeg, clonada: vozClonada }, apps: [{ id: "discord", name: "Discord" }],
+                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: vozGravada, segundos: vozSeg, clonada: vozClonada, omnivoice: true }, apps: [{ id: "discord", name: "Discord" }],
                    config: { src: "pt", tgt: "en", bilateral: false, headphones: true, monitor: false, tutorial_feito: !location.search.includes("tutorial") } };
         case "verificar_atualizacao": await esperar(600); return { atual: "0.3.5", nova: null, pode_atualizar: true };
         case "abrir_link": window.open(args?.url, "_blank"); return null;
@@ -59,7 +59,7 @@ window.__TAURI__ = {
           gravT0 = null; if (fala >= 10) { vozGravada = true; vozSeg = fala; window.__TAURI__.core.invoke("clonar_voz"); }
           return { ok: fala >= 10, fala, total };
         }
-        case "estado_voz": return { existe: vozGravada, segundos: vozSeg, clonada: vozClonada };
+        case "estado_voz": return { existe: vozGravada, segundos: vozSeg, clonada: vozClonada, omnivoice: true };
         case "clonar_voz": {
           // como no app: a clonagem roda em segundo plano e avisa o progresso
           vozClonada = false; let f = 0;
@@ -67,6 +67,7 @@ window.__TAURI__ = {
           return null;
         }
         case "definir_monitor": return null;
+        case "uso_do_sistema": { const r = (a, b) => Math.round(a + Math.random() * (b - a)); return { cpu: motorLigado ? r(35, 60) : r(5, 15), cpu_praxis: motorLigado ? r(20, 40) : r(0, 3), memoria_praxis_mb: 1240, placas: [{ nome: "Placa de vídeo", uso: motorLigado ? r(40, 75) : r(0, 5) }] }; }
         case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;

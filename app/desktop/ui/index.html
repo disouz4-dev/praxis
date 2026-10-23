@@ -10,7 +10,9 @@
   <header>
     <img id="logo" src="logo.png" alt="Praxis">
     <p id="tagline" data-t="tagline"></p>
+    <div id="uso" class="uso" role="status" aria-label="Uso do computador"></div>
     <div class="topo">
+      <button id="config_abrir" class="icone" data-t-title="btn_settings" aria-label="Configurações">⚙</button>
       <button id="sobre_abrir" class="icone" data-t-title="btn_about" aria-label="Sobre">ⓘ</button>
       <button id="relatar" class="icone" data-t-title="btn_report" aria-label="Relatar problema">⚑</button>
       <select id="ui_lang" data-t-title="ttl_ui_lang"></select>
@@ -27,7 +29,8 @@
       <span id="erro_texto"></span>
       <button id="erro_relatar" class="pequeno" data-t="btn_send_report"></button>
     </div>
-    <section id="config">
+    <!-- tela principal: idiomas, voz e iniciar; a conversa logo abaixo -->
+    <section id="inicio">
       <!-- o que mais importa: quem fala o quê -->
       <div class="par">
         <label class="lado eu"><span data-t="lbl_you_speak"></span><select id="src"></select></label>
@@ -36,6 +39,40 @@
       </div>
       <p id="aviso_idioma" class="aviso" hidden></p>
 
+      <label class="campo voz-linha"><span data-t="lbl_voice_model"></span><select id="voz_modelo"></select></label>
+      <p id="voz_resumo" class="dica"></p>
+    </section>
+
+    <section id="painel">
+      <div class="painel-topo">
+        <h2 data-t="lbl_live"></h2>
+        <button id="painel_fechar" class="icone" type="button" data-t-title="ttl_close_panel" aria-label="Fechar o painel">✕</button>
+      </div>
+      <div class="cartao">
+        <div class="status"><span id="status_ponto"></span><span id="status_texto"></span></div>
+        <div id="barra"><div id="barra_cheia"></div></div>
+        <p id="baixando" class="dica"></p>
+        <p id="microfone_virtual" class="destaque" hidden></p>
+        <!-- monitoria: ouvir a própria tradução; liga e desliga durante a tradução -->
+        <div class="monitoria">
+          <button id="monitor_btn" class="interruptor" type="button" aria-pressed="false"></button>
+          <input type="checkbox" id="monitor" hidden>
+          <label id="saida_linha" class="campo" hidden><span data-t="lbl_monitor_out"></span><select id="output"></select></label>
+        </div>
+      </div>
+      <div class="cartao conversa" id="conversa" data-vazio=""></div>
+    </section>
+  </main>
+
+  <footer>
+    <button id="iniciar" class="principal" data-t="btn_start"></button>
+  </footer>
+
+  <!-- Configurações: tudo o que não é "falar agora" -->
+  <dialog id="configuracoes" aria-labelledby="config_titulo">
+    <div class="painel-topo"><h2 id="config_titulo" data-t="settings_title"></h2>
+      <button id="config_fechar" class="icone" type="button" data-t-title="btn_close" aria-label="Fechar">✕</button></div>
+    <section id="config">
       <ol class="passos">
         <li>
           <label class="campo"><span data-t="lbl_your_mic"></span>
@@ -104,30 +141,7 @@
       </details>
     </section>
 
-    <section id="painel" hidden>
-      <div class="painel-topo">
-        <h2 data-t="lbl_live"></h2>
-        <button id="painel_fechar" class="icone" type="button" data-t-title="ttl_close_panel" aria-label="Fechar o painel">✕</button>
-      </div>
-      <div class="cartao">
-        <div class="status"><span id="status_ponto"></span><span id="status_texto"></span></div>
-        <div id="barra"><div id="barra_cheia"></div></div>
-        <p id="baixando" class="dica"></p>
-        <p id="microfone_virtual" class="destaque" hidden></p>
-        <!-- monitoria: ouvir a própria tradução; liga e desliga durante a tradução -->
-        <div class="monitoria">
-          <button id="monitor_btn" class="interruptor" type="button" aria-pressed="false"></button>
-          <input type="checkbox" id="monitor" hidden>
-          <label id="saida_linha" class="campo" hidden><span data-t="lbl_monitor_out"></span><select id="output"></select></label>
-        </div>
-      </div>
-      <div class="cartao conversa" id="conversa"></div>
-    </section>
-  </main>
-
-  <footer>
-    <button id="iniciar" class="principal" data-t="btn_start"></button>
-  </footer>
+  </dialog>
 
   <!-- Tutorial da primeira vez (obrigatório, com "Pular tutorial"); de novo em ⓘ Sobre -->
   <dialog id="tutorial" aria-labelledby="tut_titulo">

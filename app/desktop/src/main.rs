@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 mod erros;
+mod uso;
 
 use praxis_engine::devices;
 use praxis_engine::models::ModelStore;
@@ -21,6 +22,8 @@ struct App {
     teste_mic: Mutex<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>>,
     /// gravação da voz do usuário em andamento: (sinal de parar, amostras a 16 kHz)
     gravacao: Mutex<Option<(std::sync::Arc<std::sync::atomic::AtomicBool>, std::sync::Arc<Mutex<Vec<f32>>>)>>,
+    /// monitor de uso (processador, memória, placa de vídeo)
+    uso: uso::Uso,
     /// clonagem da voz em andamento (o sinal de cancelar)
     clonagem: Mutex<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>>,
 }
@@ -121,6 +124,12 @@ fn iniciar_clonagem(handle: tauri::AppHandle) {
             *g = None;
         }
     });
+}
+
+/// Uso do processador, da memória e da placa de vídeo (monitor na tela).
+#[tauri::command]
+async fn uso_do_sistema(app: State<'_, App>) -> Result<Value, String> {
+    Ok(app.uso.ler())
 }
 
 /// Clona (ou refaz) a voz a partir da gravação atual.
@@ -485,7 +494,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, uso_do_sistema, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

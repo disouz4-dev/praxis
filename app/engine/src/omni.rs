@@ -172,6 +172,8 @@ pub struct OmniVoice {
     f: Funcs,
     ctx: Mutex<*mut c_void>,
     referencia: Mutex<Option<Referencia>>,
+    /// quando a referência ao vivo foi trocada (no máximo a cada 10 s: codificar leva ~1,5 s de placa)
+    trocada: Mutex<Option<std::time::Instant>>,
     /// referência da gravação (volta a ela quando não há trecho ao vivo)
     fixa: Mutex<Option<Referencia>>,
     pub passos: i32,
@@ -180,6 +182,11 @@ pub struct OmniVoice {
 
 unsafe impl Send for OmniVoice {}
 unsafe impl Sync for OmniVoice {}
+
+/// Passos de geração. Medido (23/10/2026, Radeon Pro 5500M pelo Vulkan, modelo de 8 bits): 8 passos
+/// 0,81 s por segundo de fala, 6 passos 0,63, 4 passos 0,44, com a frase reconhecida igual. O
+/// modelo de 4 bits sai quebrado nessa placa.
+pub const PASSOS: i32 = 4;
 
 /// Nome da biblioteca ao lado do programa (ou PRAXIS_OMNIVOICE_LIB)
 pub fn caminho_biblioteca() -> std::path::PathBuf {
@@ -204,6 +211,10 @@ impl OmniVoice {
     /// `modelo`: omnivoice-base-*.gguf; `codec`: omnivoice-tokenizer-*.gguf
     pub fn carregar(modelo: &Path, codec: &Path, dispositivo: &str, passos: i32) -> Result<Self> {
         // Mac: o Vulkan vai pelo MoltenVK que acompanha o Praxis (pasta omnivoice/)
+        // na placa de vídeo, 2 linhas no processador bastam (mais só disputam com o reconhecimento)
+        if !dispositivo.starts_with("CPU") && std::env::var_os("OMNIVOICE_THREADS").is_none() {
+            unsafe { std::env::set_var("OMNIVOICE_THREADS", "2") };
+        }
         let icd = caminho_biblioteca().with_file_name("MoltenVK_icd.json");
         if icd.exists() && std::env::var_os("VK_ICD_FILENAMES").is_none() {
             unsafe { std::env::set_var("VK_ICD_FILENAMES", &icd) };
@@ -237,7 +248,7 @@ impl OmniVoice {
             if ctx.is_null() {
                 bail!("OmniVoice não carregou: {}", CStr::from_ptr((f.last_error)()).to_string_lossy());
             }
-            Ok(Self { _lib: lib, f, ctx: Mutex::new(ctx), referencia: Mutex::new(None), fixa: Mutex::new(None), passos, dispositivo: dispositivo.into() })
+            Ok(Self { _lib: lib, f, ctx: Mutex::new(ctx), referencia: Mutex::new(None), trocada: Mutex::new(None), fixa: Mutex::new(None), passos, dispositivo: dispositivo.into() })
         }
     }
 
@@ -276,10 +287,17 @@ impl OmniVoice {
     /// Referência ao vivo: o trecho que o usuário acabou de falar (como o Praxis antigo). Trechos
     /// curtos demais ou sem texto mantêm a anterior.
     pub fn referencia_ao_vivo(&self, audio_16k: &[f32], texto: &str) {
+        if std::env::var("PRAXIS_REF_AO_VIVO").is_ok_and(|v| v == "0") {
+            return;
+        }
         let s = audio_16k.len() as f32 / 16_000.0;
         if !(2.5..=8.0).contains(&s) || texto.split_whitespace().count() < 4 {
             return;
         }
+        if self.trocada.lock().unwrap().is_some_and(|t| t.elapsed().as_secs() < 10) {
+            return;
+        }
+        *self.trocada.lock().unwrap() = Some(std::time::Instant::now());
         if let Ok(r) = self.codificar(audio_16k, texto) {
             *self.referencia.lock().unwrap() = Some(r);
         }
@@ -287,6 +305,12 @@ impl OmniVoice {
 
     /// Gera a fala de `texto` em `lang` (código ISO) na voz da referência, a 24 kHz.
     pub fn falar(&self, texto: &str, lang: &str) -> Result<Vec<f32>> {
+        self.falar_escala(texto, lang, 1.0)
+    }
+
+    /// Como `falar`, com `escala` < 1 falando mais rápido: a duração vem do ritmo da referência
+    /// (quadros por letra, como a estimativa do próprio OmniVoice) vezes a escala.
+    pub fn falar_escala(&self, texto: &str, lang: &str, escala: f32) -> Result<Vec<f32>> {
         let r = self.referencia.lock().unwrap().clone().or_else(|| self.fixa.lock().unwrap().clone())
             .ok_or_else(|| anyhow!("OmniVoice sem referência de voz"))?;
         let t = CString::new(texto)?;
@@ -301,6 +325,11 @@ impl OmniVoice {
             p.ref_audio_tokens = r.codigos.as_ptr();
             p.ref_t = r.t;
             p.ref_text = r.texto.as_ptr();
+            if escala < 0.99 {
+                let letras = |t: &str| t.chars().filter(|c| c.is_alphanumeric()).count().max(1) as f32;
+                let por_letra = r.t as f32 / letras(&r.texto.to_string_lossy());
+                p.t_override = ((por_letra * letras(texto) * escala).round() as c_int).max(8);
+            }
             let mut out: OvAudio = std::mem::zeroed();
             let st = (self.f.synthesize)(*ctx, &p, &mut out);
             if st != 0 || out.samples.is_null() {

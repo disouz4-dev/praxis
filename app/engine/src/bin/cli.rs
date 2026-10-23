@@ -131,16 +131,24 @@ fn main() -> Result<()> {
             eprintln!("robô pronto: ouvindo o \"Praxis Mic\", falando no \"Praxis Speaker\" ({modelo}, {lingua})");
             let mut pedaco: Vec<f32> = vec![];
             let mut ultimo = Instant::now();
+            // transcrição do pedaço atual (refeita só quando chega fala nova)
+            let mut lido: Option<String> = None;
             loop {
                 match rx.recv_timeout(std::time::Duration::from_millis(100)) {
-                    Ok(c) => { for t in seg.push(&c) { pedaco.extend(t); ultimo = Instant::now(); } }
+                    Ok(c) => { for t in seg.push(&c) { pedaco.extend(t); ultimo = Instant::now(); lido = None; } }
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
                     Err(_) => break,
                 }
-                // a tradução chega em pedaços: espera 1,2 s sem fala nova para responder
-                if pedaco.is_empty() || ultimo.elapsed().as_secs_f32() < 1.2 { continue; }
-                let ouvido = asr.transcribe(&pedaco, &lingua)?.text;
+                // a tradução chega em pedaços, com pausas entre eles: só responde com a frase
+                // terminada (. ? !) e 1,2 s de silêncio, ou depois de 4 s de silêncio de qualquer jeito
+                let calado = ultimo.elapsed().as_secs_f32();
+                if pedaco.is_empty() || calado < 1.2 { continue; }
+                if lido.is_none() { lido = Some(asr.transcribe(&pedaco, &lingua)?.text); }
+                let ouvido = lido.clone().unwrap_or_default();
+                let terminou = ouvido.trim_end().ends_with(['.', '?', '!']);
+                if !terminou && calado < 4.0 { continue; }
                 pedaco.clear();
+                lido = None;
                 if ouvido.split_whitespace().count() < 2 { continue; }
                 eprintln!("\n🗣  ouvi: {ouvido}");
                 conversa.push(serde_json::json!({"role": "user", "content": ouvido}));
@@ -248,10 +256,24 @@ fn main() -> Result<()> {
                     Arc::new(pipeline::ArgosRoute(route))
                 }
             };
-            // a voz fala o idioma de destino; o Kokoro precisa de 4 núcleos
+            // a voz fala o idioma de destino; o Kokoro precisa de 4 núcleos.
+            // PRAXIS_OMNI_DIR (modelos GGUF) + PRAXIS_OMNI_GRAVACAO (a voz, no idioma de origem): OmniVoice
             let vdir = PathBuf::from(pos[8]);
             let vthreads = if vdir.join("voices.bin").exists() { 4 } else { 2 };
-            let voice = Arc::new(tts::Voice::load_on(&vdir, &tgt, vthreads, gpu)?);
+            let voice = Arc::new(match (std::env::var("PRAXIS_OMNI_DIR"), std::env::var("PRAXIS_OMNI_GRAVACAO")) {
+                (Ok(d), Ok(g)) => {
+                    let d = PathBuf::from(d);
+                    let passos = std::env::var("PRAXIS_PASSOS").ok().and_then(|v| v.parse().ok()).unwrap_or(8);
+                    let o = praxis_engine::omni::OmniVoice::carregar(&d.join("omnivoice-base-Q8_0.gguf"), &d.join("omnivoice-tokenizer-F32.gguf"),
+                                                                     &praxis_engine::omni::dispositivo_preferido(), passos)?;
+                    let x = audio::read_wav_16k_mono(g.as_ref())?;
+                    let (a, b) = praxis_engine::omni::trecho_de_referencia(&x);
+                    let texto = asr.transcribe(&x[a..b], &std::env::var("PRAXIS_OMNI_IDIOMA").unwrap_or_else(|_| "pt".into()))?.text;
+                    o.definir_referencia(&x[a..b], &texto)?;
+                    tts::Voice::omni(Arc::new(o), &tgt)
+                }
+                _ => tts::Voice::load_on(&vdir, &tgt, vthreads, gpu)?,
+            });
             eprintln!("voz na placa de vídeo: {}", gpu && vdir.join("voices.bin").exists() && tts::cuda_provider_available());
             // aquecimento (como o teste do Python)
             asr.transcribe(&vec![0.0; 16_000], &src)?;

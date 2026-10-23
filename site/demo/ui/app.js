@@ -159,14 +159,35 @@ function aplicarMonitor() {
   if (rodando) invoke("definir_monitor", { ligado: on }).catch(() => {});
 }
 
-// Painel lateral da tradução ao vivo: a janela se alarga e a conversa aparece à direita
-async function abrirPainel(aberto) {
-  document.body.classList.toggle("monitorando", aberto);
-  $("painel").hidden = !aberto;
-  // o botão Começar/Parar vai para debaixo da conversa (não se estica pela janela larga)
-  (aberto ? $("painel") : document.querySelector("footer")).append($("iniciar"));
-  document.querySelector("footer").hidden = aberto;
-  try { await invoke("painel_lateral", { aberto }); } catch { /* janela já do tamanho certo */ }
+// A conversa fica sempre na tela principal (logo abaixo dos idiomas e da voz)
+async function abrirPainel() {
+  $("painel").hidden = false;
+}
+
+// Voz da tradução: o clone fiel na placa de vídeo (OmniVoice) quando há, ou o clone leve
+function montarVozes() {
+  const v = ESTADO.voz || {};
+  const opcoes = [];
+  if (v.omnivoice) opcoes.push(["omni", t("voice_model_omni")]);
+  opcoes.push(["leve", t("voice_model_light")]);
+  const atual = cfg.voz_modelo && opcoes.some(([k]) => k === cfg.voz_modelo) ? cfg.voz_modelo : opcoes[0][0];
+  $("voz_modelo").replaceChildren(...opcoes.map(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; return o; }));
+  $("voz_modelo").value = atual;
+  vivo("voz_resumo", () => !v.existe ? t("voice_missing_main") : "");
+}
+
+// Monitor de uso no topo: processador do computador, só o Praxis e cada placa de vídeo
+async function atualizarUso() {
+  let u;
+  try { u = await invoke("uso_do_sistema"); } catch { return; }
+  const chip = (rotulo, pct, titulo) => {
+    const b = document.createElement("span"); b.className = "chip" + (pct >= 85 ? " alto" : pct >= 60 ? " medio" : "");
+    b.title = titulo; b.innerHTML = `<b></b> <i></i>`; b.querySelector("b").textContent = rotulo; b.querySelector("i").textContent = `${Math.round(pct)}%`;
+    return b;
+  };
+  const itens = [chip(t("usage_cpu"), u.cpu, t("usage_cpu_hint")), chip("Praxis", u.cpu_praxis, tf("usage_praxis_hint", { mb: u.memoria_praxis_mb }))];
+  for (const g of u.placas || []) itens.push(chip(g.nome, g.uso, t("usage_gpu_hint")));
+  $("uso").replaceChildren(...itens);
 }
 
 // "Quem é traduzido?": Só eu / Nós dois liga o modo bilateral (a caixa escondida #bilateral)
@@ -279,6 +300,7 @@ async function ouvirClonagem() {
 
 function atualizarVoz() {
   const v = ESTADO.voz || {};
+  if ($("voz_modelo")) montarVozes();
   vivo("voz_estado", () => !v.existe ? t("voice_missing")
     : v.clonada ? tf("voice_cloned", { s: Math.round(v.segundos || 0) })
     : CLONAGEM.erro ? tf("voice_clone_error", { e: CLONAGEM.erro })
@@ -392,6 +414,7 @@ function coletar() {
     monitor: $("monitor").checked, headphones: $("headphones").checked,
     bilateral: $("bilateral").checked,
     model: $("model").value, translator: $("translator").value,
+    voz_modelo: $("voz_modelo").value, omnivoice: $("voz_modelo").value === "omni",
     peer_app: $("peer_app").value || null,
     peer_app_nome: $("peer_app").selectedOptions[0]?.dataset.nome || null,
     peer_voice: !$("peer_legenda").checked,
@@ -479,7 +502,7 @@ function eventoDoMotor(e) {
       aplicarTextos(); statusT("st_stopped");
       // as configurações voltam a responder; o painel fica aberto com a conversa (✕ fecha)
       $("config").inert = false; $("config").hidden = false; $("barra").hidden = true; document.body.classList.remove("rodando");
-      $("output").disabled = false;
+      $("output").disabled = false; $("voz_modelo").disabled = false;
       break;
   }
 }
@@ -500,7 +523,9 @@ async function iniciarOuParar() {
   if (testandoMic) await testarMicrofone(false);
   await salvar();
   rodando = true;
-  $("config").inert = true; $("barra").hidden = false; document.body.classList.add("rodando"); abrirPainel(true);
+  $("config").inert = true; $("barra").hidden = false; document.body.classList.add("rodando"); abrirPainel();
+  $("configuracoes").open && $("configuracoes").close();
+  $("voz_modelo").disabled = true;
   $("output").disabled = true; // a saída da monitoria é aberta ao começar; troca só parando
   $("conversa").replaceChildren(); ultimoBalao = null; $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
   $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
@@ -562,7 +587,12 @@ async function main() {
   $("monitor_btn").onclick = () => { $("monitor").checked = !$("monitor").checked; $("monitor").dispatchEvent(new Event("change")); };
   $("monitor").addEventListener("change", aplicarMonitor);
   aplicarMonitor();
-  $("painel_fechar").onclick = () => { if (!rodando) abrirPainel(false); };
+  $("config_abrir").onclick = () => $("configuracoes").showModal();
+  $("config_fechar").onclick = () => $("configuracoes").close();
+  $("voz_modelo").addEventListener("change", () => { cfg.voz_modelo = $("voz_modelo").value; salvar(); });
+  montarVozes();
+  $("conversa").dataset.vazio = t("chat_empty");
+  atualizarUso(); setInterval(atualizarUso, 2000);
   $("modo_eu").onchange = () => escolherModo(false);
   $("modo_dois").onchange = () => escolherModo(true);
   $("bilateral").addEventListener("change", aplicarModo);

@@ -214,8 +214,7 @@ impl Voice {
     /// Sintetiza `text`; `length_scale` < 1 fala mais rápido (velocidade adaptativa do Praxis).
     pub fn synthesize(&self, text: &str, length_scale: f32) -> Result<Vec<f32>> {
         if let Kind::Omni { omni, lang } = &self.kind {
-            let _ = length_scale; // o OmniVoice estima a duração pela própria fala de referência
-            return Ok(trim_silence(&omni.falar(text, lang)?, self.sample_rate));
+            return Ok(trim_silence(&omni.falar_escala(text, lang, length_scale)?, self.sample_rate));
         }
         let mut cfg = GenerationConfig { speed: 1.0 / length_scale.max(0.1), ..Default::default() };
         match &self.kind {

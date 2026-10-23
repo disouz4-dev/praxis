@@ -262,6 +262,42 @@ pub fn spawn_direction(
         }));
     }
 
+    // 2b. voz da tradução simultânea, numa tarefa própria: com uma voz lenta (OmniVoice, ~2–3 s
+    // por pedaço) o reconhecimento parava esperando por ela e o atraso chegava a 12 s (medido
+    // 23/10/2026). O que se acumula enquanto uma frase é gerada sai junto numa chamada só (o
+    // custo fixo de cada chamada do OmniVoice é alto).
+    let (say_tx, say_rx) = channel::<(usize, String)>();
+    if let Some(voice) = voice.clone() {
+        let (shared, events, dir, backlog, play_tx) = (shared.clone(), events.clone(), dir.clone(), backlog.clone(), play_tx.clone());
+        handles.push(std::thread::spawn(move || {
+            while !shared.stop.load(Ordering::Relaxed) {
+                let (id, mut texto) = match say_rx.recv_timeout(Duration::from_millis(200)) {
+                    Ok(x) => x,
+                    Err(RecvTimeoutError::Timeout) => continue,
+                    Err(RecvTimeoutError::Disconnected) => break,
+                };
+                let mut ult = id;
+                while let Ok((i, t)) = say_rx.try_recv() {
+                    texto.push(' ');
+                    texto.push_str(&t);
+                    ult = i;
+                }
+                let scale = speech_length_scale(*backlog.lock().unwrap());
+                match voice.synthesize(&texto, scale) {
+                    Ok(pcm) if !pcm.is_empty() => {
+                        let _ = events.send(Event::Stage { dir: dir.name.clone(), id: ult, stage: "voz".into(), at_s: shared.now_s() });
+                        *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
+                        let _ = play_tx.send((id, pcm, voice.sample_rate));
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        let _ = events.send(Event::Error { msg: format!("síntese de voz: {e:#}") });
+                    }
+                }
+            }
+        }));
+    }
+
     // 2. reconhecimento + tradução + voz
     {
         let (shared, events, dir, backlog) = (shared.clone(), events.clone(), dir.clone(), backlog.clone());
@@ -295,17 +331,9 @@ pub fn spawn_direction(
                 let (src_txt, tgt_txt) = (src_words.join(" "), tgt_words.join(" "));
                 let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: src_txt });
                 let _ = events.send(Event::Translation { dir: dir.name.clone(), text: tgt_txt.clone() });
-                let Some(voice) = &voice else { return };
-                let scale = speech_length_scale(*backlog.lock().unwrap());
-                match voice.synthesize(&tgt_txt, scale) {
-                    Ok(pcm) if !pcm.is_empty() => {
-                        *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
-                        let _ = play_tx.send((id, pcm, voice.sample_rate));
-                    }
-                    Ok(_) => {}
-                    Err(e) => {
-                        let _ = events.send(Event::Error { msg: format!("síntese de voz: {e:#}") });
-                    }
+                // a voz é gerada na tarefa 2b: o reconhecimento da fala seguinte não espera por ela
+                if voice.is_some() {
+                    let _ = say_tx.send((id, tgt_txt));
                 }
             };
             while !shared.stop.load(Ordering::Relaxed) {
@@ -418,7 +446,6 @@ pub fn spawn_direction(
                                 eprintln!("[fim {id}] lido: {:?}\n  já dito ({src_done} palavras): {:?}\n  tradução inteira: {:?}\n  resto: {:?}", words, spoken, all, rest);
                             }
                             speak(id, &src_rest, &rest);
-                            let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
                         }
                         Err(e) => {
                             let _ = events.send(Event::Error { msg: format!("{e:#}") });

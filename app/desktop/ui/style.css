@@ -278,3 +278,21 @@ button.gravar.ativo { background: #7f1d1d; box-shadow: 0 0 0 3px rgba(220, 38, 3
 
 /* clonagem da voz em andamento */
 .voz-estado.clonando { color: var(--aviso); }
+
+/* tela principal: idiomas + voz + conversa; o resto em Configurações */
+header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.uso { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 auto; justify-content: flex-end; font-size: 11.5px; }
+.uso .chip { background: var(--campo); border: 1px solid var(--borda); border-radius: 999px; padding: 2px 8px; color: var(--suave); white-space: nowrap; }
+.uso .chip b { font-weight: 500; color: var(--texto); }
+.uso .chip i { font-style: normal; font-variant-numeric: tabular-nums; }
+.uso .chip.medio i { color: var(--aviso); }
+.uso .chip.alto i { color: var(--erro); }
+#inicio { display: grid; gap: 10px; margin-bottom: 12px; }
+#inicio .voz-linha { margin: 0; }
+#painel .painel-topo #painel_fechar { display: none; }
+#painel .conversa { min-height: 220px; height: calc(100vh - 420px); }
+#painel .conversa:empty::before { content: attr(data-vazio); color: var(--suave); font-size: 13px; }
+dialog#configuracoes { width: min(560px, 94vw); max-height: 88vh; overflow: auto; border: 1px solid var(--borda); border-radius: 14px;
+  background: var(--cartao); color: var(--texto); padding: 18px; }
+dialog#configuracoes::backdrop { background: rgba(0, 0, 0, .6); }
+dialog#configuracoes #config { margin: 0; }

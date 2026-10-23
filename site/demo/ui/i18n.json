@@ -177,7 +177,18 @@
    "voice_cloned": "Voz clonada a partir de {s} s de fala. A tradução sai na sua voz.",
    "warn_cloning": "A sua voz ainda está sendo clonada. Espere terminar para começar.",
    "voice_clone_error": "A clonagem falhou: {e}",
-   "btn_clone_again": "Clonar de novo"
+   "btn_clone_again": "Clonar de novo",
+   "btn_settings": "Configurações",
+   "settings_title": "Configurações",
+   "lbl_voice_model": "Voz da tradução",
+   "voice_model_omni": "Minha voz clonada — fiel (placa de vídeo)",
+   "voice_model_light": "Minha voz clonada — leve (processador)",
+   "voice_missing_main": "Grave a sua voz em ⚙ Configurações para começar.",
+   "usage_cpu": "Processador",
+   "usage_cpu_hint": "Uso do processador do computador inteiro",
+   "usage_praxis_hint": "Quanto do processador o Praxis usa ({mb} MB de memória)",
+   "usage_gpu_hint": "Uso da placa de vídeo",
+   "chat_empty": "A conversa aparece aqui."
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -356,7 +367,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -535,7 +557,18 @@
    "voice_cloned": "Voz clonada a partir de {s} s de habla. La traducción sale con tu voz.",
    "warn_cloning": "Tu voz todavía se está clonando. Espera a que termine para empezar.",
    "voice_clone_error": "La clonación falló: {e}",
-   "btn_clone_again": "Clonar de nuevo"
+   "btn_clone_again": "Clonar de nuevo",
+   "btn_settings": "Configuración",
+   "settings_title": "Configuración",
+   "lbl_voice_model": "Voz de la traducción",
+   "voice_model_omni": "Mi voz clonada — fiel (tarjeta gráfica)",
+   "voice_model_light": "Mi voz clonada — ligera (procesador)",
+   "voice_missing_main": "Graba tu voz en ⚙ Configuración para empezar.",
+   "usage_cpu": "Procesador",
+   "usage_cpu_hint": "Uso del procesador de todo el equipo",
+   "usage_praxis_hint": "Cuánto procesador usa Praxis ({mb} MB de memoria)",
+   "usage_gpu_hint": "Uso de la tarjeta gráfica",
+   "chat_empty": "La conversación aparece aquí."
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -714,7 +747,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -893,7 +937,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1072,7 +1127,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1251,7 +1317,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1430,7 +1507,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1609,7 +1697,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1788,7 +1887,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -1967,7 +2077,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2146,7 +2267,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2325,7 +2457,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2504,7 +2647,18 @@
    "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
    "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
    "voice_clone_error": "Cloning failed: {e}",
-   "btn_clone_again": "Clone again"
+   "btn_clone_again": "Clone again",
+   "btn_settings": "Settings",
+   "settings_title": "Settings",
+   "lbl_voice_model": "Translation voice",
+   "voice_model_omni": "My cloned voice — faithful (graphics card)",
+   "voice_model_light": "My cloned voice — light (processor)",
+   "voice_missing_main": "Record your voice in ⚙ Settings to start.",
+   "usage_cpu": "Processor",
+   "usage_cpu_hint": "Processor use of the whole computer",
+   "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
+   "usage_gpu_hint": "Graphics card use",
+   "chat_empty": "The conversation shows up here."
   }
  },
  "lang_names": {
