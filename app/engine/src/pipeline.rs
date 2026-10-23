@@ -397,6 +397,11 @@ pub fn spawn_direction(
                     if words.is_empty() {
                         continue;
                     }
+                    // OmniVoice: o trecho que a pessoa acabou de falar vira a referência da voz
+                    // (entonação e timbre do momento, como o Praxis antigo)
+                    if let Some(o) = voice.as_ref().and_then(|v| v.omnivoice()) {
+                        o.referencia_ao_vivo(&audio, &words.join(" "));
+                    }
                     match translator.continue_from(&words.join(" "), &spoken, &dir.src, &dir.tgt) {
                         Ok(all) => {
                             let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "traduzido".into(), at_s: shared.now_s() });

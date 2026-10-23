@@ -275,3 +275,6 @@ button.gravar.ativo { background: #7f1d1d; box-shadow: 0 0 0 3px rgba(220, 38, 3
 /* monitoria no painel ao vivo */
 .monitoria { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
 .monitoria .campo { flex: 1 1 200px; margin: 0; }
+
+/* clonagem da voz em andamento */
+.voz-estado.clonando { color: var(--aviso); }

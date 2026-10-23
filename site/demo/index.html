@@ -14,7 +14,7 @@
 const ouvintes = {};
 const emitir = (payload, nome = "praxis") => (ouvintes[nome] || []).forEach((f) => f({ payload }));
 let testeMic = null, gravacao = null, vozGravada = !location.search.includes("tutorial") && !location.search.includes("semvoz");
-let vozSeg = 31, gravT0 = null;
+let vozSeg = 31, gravT0 = null, vozClonada = vozGravada;
 const gravSeg = () => (Date.now() - gravT0) / 1000 * (location.search.includes("rapido") ? 20 : 1);
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
 let motorLigado = false;
@@ -33,7 +33,7 @@ window.__TAURI__ = {
       switch (cmd) {
         case "estado_inicial":
           return { placa_de_video: true, entradas: ["Microfone USB"], saidas: ["Fone de ouvido"], idiomas,
-                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: vozGravada, segundos: vozSeg }, apps: [{ id: "discord", name: "Discord" }],
+                   idioma_do_sistema: "pt", rodando: false, sistema: "linux", versao: "0.3.7", voz: { existe: vozGravada, segundos: vozSeg, clonada: vozClonada }, apps: [{ id: "discord", name: "Discord" }],
                    config: { src: "pt", tgt: "en", bilateral: false, headphones: true, monitor: false, tutorial_feito: !location.search.includes("tutorial") } };
         case "verificar_atualizacao": await esperar(600); return { atual: "0.3.5", nova: null, pode_atualizar: true };
         case "abrir_link": window.open(args?.url, "_blank"); return null;
@@ -56,17 +56,23 @@ window.__TAURI__ = {
         case "parar_gravacao_voz": {
           if (gravT0 === null) throw "nenhuma gravação em andamento";
           clearInterval(gravacao); const total = Math.min(gravSeg(), 92), fala = Math.round(total * 0.85);
-          gravT0 = null; if (fala >= 10) { vozGravada = true; vozSeg = fala; }
+          gravT0 = null; if (fala >= 10) { vozGravada = true; vozSeg = fala; window.__TAURI__.core.invoke("clonar_voz"); }
           return { ok: fala >= 10, fala, total };
         }
-        case "estado_voz": return { existe: vozGravada, segundos: vozSeg };
+        case "estado_voz": return { existe: vozGravada, segundos: vozSeg, clonada: vozClonada };
+        case "clonar_voz": {
+          // como no app: a clonagem roda em segundo plano e avisa o progresso
+          vozClonada = false; let f = 0;
+          const tk = setInterval(() => { f += 0.1; if (f >= 1) { clearInterval(tk); vozClonada = true; emitir({ fim: true, semelhanca: 0.86 }, "clonagem"); } else emitir({ fracao: f, texto: "Aprendendo a sua voz…" }, "clonagem"); }, location.search.includes("rapido") ? 60 : 400);
+          return null;
+        }
         case "definir_monitor": return null;
         case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;
         case "apps_com_som": return [{ id: "discord", name: "Discord" }];
         case "iniciar":
-          if (!vozGravada) throw "grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")";
+          if (!vozClonada) throw "a sua voz ainda está sendo clonada"; if (!vozGravada) throw "grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")";
           motorLigado = true;
           (async () => {
             for (const [pct, msg] of [[10, "Preparando os modelos…"], [60, "Carregando o reconhecimento de fala…"], [100, "Traduzindo"]]) {

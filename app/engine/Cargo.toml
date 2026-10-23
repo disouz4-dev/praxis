@@ -14,6 +14,8 @@ path = "src/bin/cli.rs"
 
 [dependencies]
 anyhow = "1"
+# OmniVoice (omnivoice.cpp, MIT): carregado na hora, só quando há placa de vídeo
+libloading = "0.9"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 hound = "3.5"
@@ -61,6 +63,8 @@ ct2rs = { version = "0.10", default-features = false, features = ["whisper", "se
 # do Python (no Intel com a MKL, que não existe compilável para macOS) — mesma velocidade.
 # Prepare com scripts/ct2-do-pacote-oficial.sh e compile com scripts/build-macos.sh
 [target.'cfg(target_os = "macos")'.dependencies]
+# CoreML: a placa de vídeo do Mac (AMD nos Intel, a da Apple nos M1+) pelo Metal
+ort = { version = "=2.0.0-rc.15", default-features = false, features = ["load-dynamic", "std", "api-24", "coreml"] }
 ct2rs = { version = "0.10", default-features = false, features = ["whisper", "sentencepiece", "system"] }
 
 # Linux ARM (sem pacote oficial do CTranslate2): compila com ruy (otimizado para ARM)

@@ -161,6 +161,13 @@ pub struct SessionConfig {
     /// não entra, serve para escolher a voz pronta do mesmo tipo (grave ou aguda).
     #[serde(default)]
     pub minha_voz: Option<String>,
+    /// a voz clonada do usuário (voice.bin do Supertonic, feito pela clonagem do Praxis): a
+    /// minha tradução sai nela nos idiomas que o Supertonic fala
+    #[serde(default)]
+    pub voz_clonada: Option<String>,
+    /// usar o OmniVoice na placa de vídeo quando houver (o clone mais fiel)
+    #[serde(default = "sim")]
+    pub omnivoice: bool,
     /// bilateral: a outra pessoa ganha voz traduzida (falso = só legenda: ouço a voz original
     /// e leio a tradução, por exemplo para treinar o idioma)
     #[serde(default = "sim")]
@@ -315,7 +322,38 @@ impl Session {
             .and_then(|x| crate::audio::tom_medio(&x, 16_000))
             .map(|tom| tom < 165.0)
             .unwrap_or(false);
-        let voice_out = Arc::new(Voice::load_voz(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu, masculina)?);
+        let clone = cfg.voz_clonada.as_ref().map(PathBuf::from)
+            .filter(|p| p.exists() && crate::tts::SUPERTONIC_LANGS.contains(&cfg.tgt.as_str()));
+        // OmniVoice na placa de vídeo (Vulkan / Metal / CUDA): o clone mais fiel, com a referência
+        // ao vivo. Sem biblioteca, sem placa ou com erro, segue o clone leve do processador.
+        let omni = if cfg.omnivoice && cfg.minha_voz.is_some() && crate::omni::caminho_biblioteca().exists() {
+            progress(87, "Carregando a sua voz clonada (OmniVoice)…");
+            match (|| -> Result<Arc<crate::omni::OmniVoice>> {
+                let (m, c) = store.ensure_omnivoice(&dl)?;
+                let o = crate::omni::OmniVoice::carregar(&m, &c, &crate::omni::dispositivo_preferido(), 8)?;
+                let x = crate::audio::read_wav_16k_mono(cfg.minha_voz.as_ref().unwrap().as_ref())?;
+                let (a, b) = crate::omni::trecho_de_referencia(&x);
+                let texto = asr.transcribe(&x[a..b], &cfg.src)?.text;
+                o.definir_referencia(&x[a..b], &texto)?;
+                Ok(Arc::new(o))
+            })() {
+                Ok(o) => Some(o),
+                Err(e) => {
+                    emit(SessionEvent::Error { msg: format!("OmniVoice indisponível, usando o clone leve: {e:#}") });
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        let voice_out = Arc::new(match clone {
+            _ if omni.is_some() => Voice::omni(omni.clone().unwrap(), &cfg.tgt),
+            Some(vb) => {
+                let pacote = store.ensure_supertonic(&dl)?;
+                Voice::load_clone(&pacote, &vb, &cfg.tgt, 2)?
+            }
+            None => Voice::load_voz(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu, masculina)?,
+        });
         let shared = Shared::new();
         let stop_capture = Arc::new(AtomicBool::new(false));
         let (ptx, prx) = std::sync::mpsc::channel::<pipeline::Event>();

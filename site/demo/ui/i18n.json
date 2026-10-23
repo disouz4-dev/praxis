@@ -172,7 +172,12 @@
    "rec_saved": "Pronto: {s} s de fala gravados.",
    "warn_need_voice": "Grave a sua voz antes de começar (passo \"Sua voz\").",
    "tutvoz_title": "Grave a sua voz",
-   "tutvoz_body": "O Praxis fala a tradução na sua voz. Aperte Gravar, leia o texto abaixo em voz alta e aperte Parar no fim (uns 30 segundos)."
+   "tutvoz_body": "O Praxis fala a tradução na sua voz. Aperte Gravar, leia o texto abaixo em voz alta e aperte Parar no fim (uns 30 segundos).",
+   "voice_cloning": "Clonando a sua voz… {p}% — pode continuar o tutorial.",
+   "voice_cloned": "Voz clonada a partir de {s} s de fala. A tradução sai na sua voz.",
+   "warn_cloning": "A sua voz ainda está sendo clonada. Espere terminar para começar.",
+   "voice_clone_error": "A clonagem falhou: {e}",
+   "btn_clone_again": "Clonar de novo"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -346,7 +351,12 @@
    "rec_saved": "Done: {s} s of speech recorded.",
    "warn_need_voice": "Record your voice before starting (\"Your voice\" step).",
    "tutvoz_title": "Record your voice",
-   "tutvoz_body": "Praxis speaks the translation in your voice. Press Record, read the text below aloud and press Stop at the end (about 30 seconds)."
+   "tutvoz_body": "Praxis speaks the translation in your voice. Press Record, read the text below aloud and press Stop at the end (about 30 seconds).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -520,7 +530,12 @@
    "rec_saved": "Listo: {s} s de habla grabados.",
    "warn_need_voice": "Graba tu voz antes de empezar (paso \"Tu voz\").",
    "tutvoz_title": "Graba tu voz",
-   "tutvoz_body": "Praxis dice la traducción con tu voz. Pulsa Grabar, lee el texto en voz alta y pulsa Detener al final (unos 30 segundos)."
+   "tutvoz_body": "Praxis dice la traducción con tu voz. Pulsa Grabar, lee el texto en voz alta y pulsa Detener al final (unos 30 segundos).",
+   "voice_cloning": "Clonando tu voz… {p}% — puedes continuar.",
+   "voice_cloned": "Voz clonada a partir de {s} s de habla. La traducción sale con tu voz.",
+   "warn_cloning": "Tu voz todavía se está clonando. Espera a que termine para empezar.",
+   "voice_clone_error": "La clonación falló: {e}",
+   "btn_clone_again": "Clonar de nuevo"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -694,7 +709,12 @@
    "rec_saved": "C'est fait : {s} s de parole enregistrées.",
    "warn_need_voice": "Enregistrez votre voix avant de commencer (étape « Votre voix »).",
    "tutvoz_title": "Enregistrez votre voix",
-   "tutvoz_body": "Praxis prononce la traduction avec votre voix. Appuyez sur Enregistrer, lisez le texte à voix haute et appuyez sur Arrêter à la fin (environ 30 secondes)."
+   "tutvoz_body": "Praxis prononce la traduction avec votre voix. Appuyez sur Enregistrer, lisez le texte à voix haute et appuyez sur Arrêter à la fin (environ 30 secondes).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -868,7 +888,12 @@
    "rec_saved": "Fertig: {s} s Sprache aufgenommen.",
    "warn_need_voice": "Nehmen Sie vor dem Start Ihre Stimme auf (Schritt „Ihre Stimme“).",
    "tutvoz_title": "Nehmen Sie Ihre Stimme auf",
-   "tutvoz_body": "Praxis spricht die Übersetzung mit Ihrer Stimme. Drücken Sie Aufnehmen, lesen Sie den Text laut vor und drücken Sie am Ende Stopp (etwa 30 Sekunden)."
+   "tutvoz_body": "Praxis spricht die Übersetzung mit Ihrer Stimme. Drücken Sie Aufnehmen, lesen Sie den Text laut vor und drücken Sie am Ende Stopp (etwa 30 Sekunden).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1042,7 +1067,12 @@
    "rec_saved": "Fatto: {s} s di parlato registrati.",
    "warn_need_voice": "Registra la tua voce prima di iniziare (passo \"La tua voce\").",
    "tutvoz_title": "Registra la tua voce",
-   "tutvoz_body": "Praxis pronuncia la traduzione con la tua voce. Premi Registra, leggi il testo ad alta voce e premi Ferma alla fine (circa 30 secondi)."
+   "tutvoz_body": "Praxis pronuncia la traduzione con la tua voce. Premi Registra, leggi il testo ad alta voce e premi Ferma alla fine (circa 30 secondi).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1216,7 +1246,12 @@
    "rec_saved": "Готово: записано {s} с речи.",
    "warn_need_voice": "Запишите голос перед началом (шаг «Ваш голос»).",
    "tutvoz_title": "Запишите свой голос",
-   "tutvoz_body": "Praxis произносит перевод вашим голосом. Нажмите «Записать», прочитайте текст вслух и нажмите «Стоп» в конце (около 30 секунд)."
+   "tutvoz_body": "Praxis произносит перевод вашим голосом. Нажмите «Записать», прочитайте текст вслух и нажмите «Стоп» в конце (около 30 секунд).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1390,7 +1425,12 @@
    "rec_saved": "完成：已录 {s} 秒语音。",
    "warn_need_voice": "开始前请先录下你的声音（“你的声音”步骤）。",
    "tutvoz_title": "录下你的声音",
-   "tutvoz_body": "Praxis 会用你的声音说出译文。点击“录音”，朗读下面的文字，读完后点击“停止”（约 30 秒）。"
+   "tutvoz_body": "Praxis 会用你的声音说出译文。点击“录音”，朗读下面的文字，读完后点击“停止”（约 30 秒）。",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1564,7 +1604,12 @@
    "rec_saved": "Klaar: {s} s spraak opgenomen.",
    "warn_need_voice": "Neem je stem op voordat je begint (stap \"Jouw stem\").",
    "tutvoz_title": "Neem je stem op",
-   "tutvoz_body": "Praxis spreekt de vertaling uit met jouw stem. Druk op Opnemen, lees de tekst hardop voor en druk aan het eind op Stoppen (ongeveer 30 seconden)."
+   "tutvoz_body": "Praxis spreekt de vertaling uit met jouw stem. Druk op Opnemen, lees de tekst hardop voor en druk aan het eind op Stoppen (ongeveer 30 seconden).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1738,7 +1783,12 @@
    "rec_saved": "Gotowe: nagrano {s} s mowy.",
    "warn_need_voice": "Nagraj głos przed rozpoczęciem (krok „Twój głos”).",
    "tutvoz_title": "Nagraj swój głos",
-   "tutvoz_body": "Praxis wypowiada tłumaczenie twoim głosem. Naciśnij Nagrywaj, przeczytaj tekst na głos i na końcu naciśnij Zatrzymaj (około 30 sekund)."
+   "tutvoz_body": "Praxis wypowiada tłumaczenie twoim głosem. Naciśnij Nagrywaj, przeczytaj tekst na głos i na końcu naciśnij Zatrzymaj (około 30 sekund).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -1912,7 +1962,12 @@
    "rec_saved": "Готово: записано {s} с мовлення.",
    "warn_need_voice": "Запишіть голос перед початком (крок «Ваш голос»).",
    "tutvoz_title": "Запишіть свій голос",
-   "tutvoz_body": "Praxis вимовляє переклад вашим голосом. Натисніть «Записати», прочитайте текст уголос і натисніть «Стоп» наприкінці (близько 30 секунд)."
+   "tutvoz_body": "Praxis вимовляє переклад вашим голосом. Натисніть «Записати», прочитайте текст уголос і натисніть «Стоп» наприкінці (близько 30 секунд).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2086,7 +2141,12 @@
    "rec_saved": "Tamam: {s} sn konuşma kaydedildi.",
    "warn_need_voice": "Başlamadan önce sesinizi kaydedin (\"Sesiniz\" adımı).",
    "tutvoz_title": "Sesinizi kaydedin",
-   "tutvoz_body": "Praxis çeviriyi sizin sesinizle söyler. Kaydet'e basın, aşağıdaki metni sesli okuyun ve sonunda Durdur'a basın (yaklaşık 30 saniye)."
+   "tutvoz_body": "Praxis çeviriyi sizin sesinizle söyler. Kaydet'e basın, aşağıdaki metni sesli okuyun ve sonunda Durdur'a basın (yaklaşık 30 saniye).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2260,7 +2320,12 @@
    "rec_saved": "تم: سُجّلت {s} ث من الكلام.",
    "warn_need_voice": "سجّل صوتك قبل البدء (خطوة \"صوتك\").",
    "tutvoz_title": "سجّل صوتك",
-   "tutvoz_body": "ينطق Praxis الترجمة بصوتك. اضغط تسجيل، واقرأ النص أدناه بصوت عالٍ، ثم اضغط إيقاف في النهاية (نحو 30 ثانية)."
+   "tutvoz_body": "ينطق Praxis الترجمة بصوتك. اضغط تسجيل، واقرأ النص أدناه بصوت عالٍ، ثم اضغط إيقاف في النهاية (نحو 30 ثانية).",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2434,7 +2499,12 @@
    "rec_saved": "हो गया: {s} से. बोलना रिकॉर्ड हुआ।",
    "warn_need_voice": "शुरू करने से पहले अपनी आवाज़ रिकॉर्ड करें (\"आपकी आवाज़\" चरण)।",
    "tutvoz_title": "अपनी आवाज़ रिकॉर्ड करें",
-   "tutvoz_body": "Praxis अनुवाद आपकी आवाज़ में बोलता है। रिकॉर्ड दबाएँ, नीचे का पाठ ज़ोर से पढ़ें और अंत में रोकें दबाएँ (लगभग 30 सेकंड)।"
+   "tutvoz_body": "Praxis अनुवाद आपकी आवाज़ में बोलता है। रिकॉर्ड दबाएँ, नीचे का पाठ ज़ोर से पढ़ें और अंत में रोकें दबाएँ (लगभग 30 सेकंड)।",
+   "voice_cloning": "Cloning your voice… {p}% — you can keep going.",
+   "voice_cloned": "Voice cloned from {s} s of speech. The translation comes out in your voice.",
+   "warn_cloning": "Your voice is still being cloned. Wait for it to finish to start.",
+   "voice_clone_error": "Cloning failed: {e}",
+   "btn_clone_again": "Clone again"
   }
  },
  "lang_names": {

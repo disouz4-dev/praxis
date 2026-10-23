@@ -21,6 +21,8 @@ struct App {
     teste_mic: Mutex<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>>,
     /// gravação da voz do usuário em andamento: (sinal de parar, amostras a 16 kHz)
     gravacao: Mutex<Option<(std::sync::Arc<std::sync::atomic::AtomicBool>, std::sync::Arc<Mutex<Vec<f32>>>)>>,
+    /// clonagem da voz em andamento (o sinal de cancelar)
+    clonagem: Mutex<Option<std::sync::Arc<std::sync::atomic::AtomicBool>>>,
 }
 
 /// A gravação da voz do usuário (obrigatória: amostra da voz clonada).
@@ -34,16 +36,101 @@ fn medir_voz(x: &[f32]) -> (f32, Option<f32>) {
     (fala as f32 * 512.0 / 16_000.0, praxis_engine::audio::tom_medio(x, 16_000))
 }
 
+/// A voz clonada (voice.bin do Supertonic) e o registro de qual gravação a gerou.
+fn clone_path() -> PathBuf {
+    voz_path().with_file_name("minha_voz_clonada.bin")
+}
+fn clone_info_path() -> PathBuf {
+    voz_path().with_file_name("minha_voz_clonada.json")
+}
+
+/// O OmniVoice (clone na placa de vídeo) está instalado? Com ele, a gravação já é o clone: não
+/// há ajuste a esperar.
+fn omni_pronto() -> bool {
+    praxis_engine::omni::caminho_biblioteca().exists()
+        && ModelStore::default_location().is_ok_and(|s| {
+            let d = s.omnivoice_dir();
+            d.join(praxis_engine::models::OMNI_MODELO).exists() && d.join(praxis_engine::models::OMNI_CODEC).exists()
+        })
+}
+
+/// A voz clonada existe e foi feita a partir da gravação atual?
+fn clone_em_dia() -> Option<praxis_engine::clone::Clone> {
+    let info: praxis_engine::clone::Clone = serde_json::from_str(&std::fs::read_to_string(clone_info_path()).ok()?).ok()?;
+    let sha = praxis_engine::models::sha256_arquivo(&voz_path()).ok()?;
+    (clone_path().exists() && info.gravacao_sha256 == sha).then_some(info)
+}
+
 fn estado_da_voz() -> Value {
     let p = voz_path();
     match praxis_engine::audio::read_wav_16k_mono(&p) {
         Ok(x) => {
             let (fala, tom) = medir_voz(&x);
+            let clone = clone_em_dia();
             // só vale como voz gravada com 10 s de fala (a mesma regra de quando grava)
-            json!({"existe": fala >= 10.0, "segundos": (fala * 10.0).round() / 10.0, "tom": tom, "caminho": p})
+            let omni = omni_pronto();
+            json!({"existe": fala >= 10.0, "segundos": (fala * 10.0).round() / 10.0, "tom": tom, "caminho": p,
+                   "clonada": omni || clone.is_some(), "omnivoice": omni, "semelhanca": clone.map(|c| c.semelhanca)})
         }
-        Err(_) => json!({"existe": false}),
+        Err(_) => json!({"existe": false, "clonada": false}),
     }
+}
+
+/// Clona a voz da gravação atual em segundo plano (evento "clonagem": fração, texto, fim, erro).
+/// Uma clonagem anterior em andamento é cancelada.
+fn iniciar_clonagem(handle: tauri::AppHandle) {
+    // com o OmniVoice a gravação já é o clone; o ajuste no processador só roubaria tempo
+    if omni_pronto() {
+        let _ = handle.emit("clonagem", json!({"fim": true, "omnivoice": true}));
+        return;
+    }
+    let parar = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    if let Some(antiga) = handle.state::<App>().clonagem.lock().unwrap().replace(parar.clone()) {
+        antiga.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    std::thread::spawn(move || {
+        let emitir = |v: Value| { let _ = handle.emit("clonagem", v); };
+        let r = (|| -> anyhow::Result<praxis_engine::clone::Clone> {
+            let store = ModelStore::default_location()?;
+            let baixando = |o: &str, a: u64, t: u64| {
+                let f = if t > 0 { a as f32 / t as f32 } else { 0.0 };
+                emitir(json!({"fracao": 0.0, "texto": format!("Baixando {o}… {:.0}%", f * 100.0)}));
+            };
+            let pacote = store.ensure_supertonic(&baixando)?;
+            let medidor = store.ensure_speaker_model(&baixando)?;
+            let gravacao = praxis_engine::audio::read_wav_16k_mono(&voz_path())?;
+            let sha = praxis_engine::models::sha256_arquivo(&voz_path())?;
+            let threads = std::thread::available_parallelism().map(|n| n.get().min(4)).unwrap_or(4) as i32;
+            let mut c = praxis_engine::clone::clonar(&gravacao, &pacote, &medidor, &clone_path(), praxis_engine::clone::RODADAS,
+                threads, &|f, t| emitir(json!({"fracao": f, "texto": t})), &parar)?;
+            c.gravacao_sha256 = sha;
+            std::fs::write(clone_info_path(), serde_json::to_string_pretty(&c)?)?;
+            Ok(c)
+        })();
+        match r {
+            Ok(c) => emitir(json!({"fim": true, "semelhanca": c.semelhanca, "pronta": c.semelhanca_pronta, "segundos": c.segundos})),
+            Err(e) if parar.load(std::sync::atomic::Ordering::Relaxed) => { let _ = e; }
+            Err(e) => {
+                erros::registrar("clonagem", &format!("{e:#}"));
+                emitir(json!({"erro": format!("{e:#}")}));
+            }
+        }
+        let st = handle.state::<App>();
+        let mut g = st.clonagem.lock().unwrap();
+        if g.as_ref().is_some_and(|p| std::sync::Arc::ptr_eq(p, &parar)) {
+            *g = None;
+        }
+    });
+}
+
+/// Clona (ou refaz) a voz a partir da gravação atual.
+#[tauri::command]
+fn clonar_voz(handle: tauri::AppHandle) -> Result<(), String> {
+    if !estado_da_voz()["existe"].as_bool().unwrap_or(false) {
+        return Err("grave a sua voz antes de clonar".into());
+    }
+    iniciar_clonagem(handle);
+    Ok(())
 }
 
 fn config_path() -> PathBuf {
@@ -298,6 +385,8 @@ fn parar_gravacao_voz(handle: tauri::AppHandle) -> Result<Value, String> {
         let p = voz_path();
         std::fs::create_dir_all(p.parent().unwrap()).map_err(|e| e.to_string())?;
         praxis_engine::audio::write_wav16(&p, &x, 16_000).map_err(|e| format!("{e:#}"))?;
+        // gravação nova: o Praxis clona a voz sozinho (a anterior deixa de valer)
+        iniciar_clonagem(handle.clone());
     }
     Ok(json!({"ok": ok, "fala": (fala * 10.0).round() / 10.0, "total": x.len() as f32 / 16_000.0, "tom": tom}))
 }
@@ -322,7 +411,12 @@ fn iniciar(handle: tauri::AppHandle, mut config: SessionConfig) -> Result<(), St
     if !estado_da_voz()["segundos"].as_f64().is_some_and(|s| s >= 10.0) {
         return Err("grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")".into());
     }
+    // a tradução só sai na voz clonada (premissa do Praxis)
+    if !omni_pronto() && clone_em_dia().is_none() {
+        return Err("a sua voz ainda está sendo clonada; espere terminar (passo \"Sua voz\")".into());
+    }
     config.minha_voz = Some(voz_path().to_string_lossy().to_string());
+    config.voz_clonada = clone_em_dia().map(|_| clone_path().to_string_lossy().to_string());
     if handle.state::<App>().session.lock().unwrap().is_some() {
         return Err("o Praxis já está traduzindo".into());
     }
@@ -391,7 +485,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

@@ -140,17 +140,22 @@ fn onnxruntime_path() -> std::path::PathBuf {
 
 static ORT_ENV: std::sync::OnceLock<std::result::Result<ort::environment::Environment, String>> = std::sync::OnceLock::new();
 
+/// O onnxruntime do Praxis (o mesmo do sherpa-onnx), carregado uma vez.
+pub fn ort_env() -> Result<&'static ort::environment::Environment> {
+    ORT_ENV
+        .get_or_init(|| {
+            ort::init_from(onnxruntime_path())
+                .map_err(|e| e.to_string())?
+                .build()
+                .map_err(|e| e.to_string())
+        })
+        .as_ref()
+        .map_err(|e| anyhow!("onnxruntime: {e}"))
+}
+
 impl SileroV6 {
     pub fn load(model: &str, threshold: f32) -> Result<Self> {
-        let env = ORT_ENV
-            .get_or_init(|| {
-                ort::init_from(onnxruntime_path())
-                    .map_err(|e| e.to_string())?
-                    .build()
-                    .map_err(|e| e.to_string())
-            })
-            .as_ref()
-            .map_err(|e| anyhow!("onnxruntime: {e}"))?;
+        let env = ort_env()?;
         let e = |x: &dyn std::fmt::Display| anyhow!("Silero v6: {x}");
         let session = ort::session::Session::builder(env)
             .map_err(|x| e(&x))?

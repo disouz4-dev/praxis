@@ -40,10 +40,13 @@ enum Kind {
     Piper,
     Kokoro { sid: i32 },
     Supertonic { lang: String, sid: i32 },
+    /// OmniVoice (clone da voz do usuário na placa de vídeo), falando `lang`
+    Omni { omni: std::sync::Arc<crate::omni::OmniVoice>, lang: String },
 }
 
 pub struct Voice {
-    tts: OfflineTts,
+    /// sherpa-onnx (vazio no OmniVoice)
+    tts: Option<OfflineTts>,
     kind: Kind,
     pub sample_rate: u32,
 }
@@ -71,7 +74,7 @@ pub fn cuda_provider_available() -> bool {
         .unwrap_or(false)
 }
 
-fn file_with(dir: &Path, prefix: &str, ext: &str) -> Result<String> {
+pub(crate) fn file_with(dir: &Path, prefix: &str, ext: &str) -> Result<String> {
     let mut v: Vec<_> = std::fs::read_dir(dir)?
         .filter_map(|e| e.ok().map(|e| e.path()))
         .filter(|p| {
@@ -112,6 +115,10 @@ impl Voice {
         let mut model = OfflineTtsModelConfig { num_threads: threads, ..Default::default() };
         if gpu && dir.join("voices.bin").exists() && cuda_provider_available() {
             model.provider = Some(cuda_provider());
+        }
+        // experimento: PRAXIS_PROVEDOR=coreml (placa do Mac pela Apple) ou outro provedor
+        if let Ok(p) = std::env::var("PRAXIS_PROVEDOR") {
+            model.provider = Some(p);
         }
         let mut config = OfflineTtsConfig { max_num_sentences: 1, ..Default::default() };
         let kind = if dir.join("voices.bin").exists() {
@@ -164,14 +171,55 @@ impl Voice {
         config.model = model;
         let tts = OfflineTts::create(&config).ok_or_else(|| anyhow!("não foi possível carregar a voz {}", dir.display()))?;
         let sample_rate = tts.sample_rate() as u32;
-        Ok(Self { tts, kind, sample_rate })
+        Ok(Self { tts: Some(tts), kind, sample_rate })
+    }
+
+    /// A voz clonada do usuário: o Supertonic do `pacote` com o `voice_bin` gerado pela clonagem
+    /// (a mesma voz nas 10 posições).
+    pub fn load_clone(pacote: &Path, voice_bin: &Path, lang: &str, threads: i32) -> Result<Self> {
+        let s = |p: &Path| Some(p.to_string_lossy().to_string());
+        let model = OfflineTtsModelConfig {
+            num_threads: threads,
+            supertonic: OfflineTtsSupertonicModelConfig {
+                duration_predictor: Some(file_with(pacote, "duration_predictor", ".onnx")?),
+                text_encoder: Some(file_with(pacote, "text_encoder", ".onnx")?),
+                vector_estimator: Some(file_with(pacote, "vector_estimator", ".onnx")?),
+                vocoder: Some(file_with(pacote, "vocoder", ".onnx")?),
+                tts_json: s(&pacote.join("tts.json")),
+                unicode_indexer: s(&pacote.join("unicode_indexer.bin")),
+                voice_style: s(voice_bin),
+            },
+            ..Default::default()
+        };
+        let config = OfflineTtsConfig { model, max_num_sentences: 1, ..Default::default() };
+        let tts = OfflineTts::create(&config).ok_or_else(|| anyhow!("não foi possível carregar a voz clonada"))?;
+        let sample_rate = tts.sample_rate() as u32;
+        Ok(Self { tts: Some(tts), kind: Kind::Supertonic { lang: lang.to_string(), sid: 0 }, sample_rate })
+    }
+
+    /// A voz clonada pelo OmniVoice (placa de vídeo), falando `lang`.
+    pub fn omni(omni: std::sync::Arc<crate::omni::OmniVoice>, lang: &str) -> Self {
+        Self { tts: None, kind: Kind::Omni { omni, lang: lang.to_string() }, sample_rate: 24_000 }
+    }
+
+    /// O OmniVoice por trás desta voz, se for ele (a tradução simultânea passa a ele o trecho
+    /// que o usuário acabou de falar, como referência ao vivo).
+    pub fn omnivoice(&self) -> Option<&std::sync::Arc<crate::omni::OmniVoice>> {
+        match &self.kind {
+            Kind::Omni { omni, .. } => Some(omni),
+            _ => None,
+        }
     }
 
     /// Sintetiza `text`; `length_scale` < 1 fala mais rápido (velocidade adaptativa do Praxis).
     pub fn synthesize(&self, text: &str, length_scale: f32) -> Result<Vec<f32>> {
+        if let Kind::Omni { omni, lang } = &self.kind {
+            let _ = length_scale; // o OmniVoice estima a duração pela própria fala de referência
+            return Ok(trim_silence(&omni.falar(text, lang)?, self.sample_rate));
+        }
         let mut cfg = GenerationConfig { speed: 1.0 / length_scale.max(0.1), ..Default::default() };
         match &self.kind {
-            Kind::Piper => {}
+            Kind::Piper | Kind::Omni { .. } => {}
             Kind::Kokoro { sid } => cfg.sid = *sid,
             Kind::Supertonic { lang, sid } => {
                 cfg.sid = *sid;
@@ -181,6 +229,8 @@ impl Voice {
         }
         let audio = self
             .tts
+            .as_ref()
+            .ok_or_else(|| anyhow!("voz sem modelo"))?
             .generate_with_config::<fn(&[f32], f32) -> bool>(text, &cfg, None)
             .ok_or_else(|| anyhow!("a síntese de voz falhou"))?;
         Ok(trim_silence(audio.samples(), self.sample_rate))

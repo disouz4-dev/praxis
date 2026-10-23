@@ -111,6 +111,99 @@ fn main() -> Result<()> {
             }
         }
         // tts <pasta da voz> <frases.txt> <pasta de saída>  — um WAV por linha
+        // robo <reconhecedor> <silero> <voz> [modelo do ollama]: a "outra pessoa" numa chamada, feita
+        // de IA local, para testar o bilateral. Ouve o "Praxis Mic" (a minha tradução), responde
+        // com o Ollama e fala no "Praxis Speaker" (o Praxis traduz a resposta de volta para mim).
+        Some("robo") if pos.len() >= 4 => {
+            use praxis_engine::pipeline::Speaker;
+            let modelo = pos.get(4).map(|s| s.to_string()).unwrap_or_else(|| "llama3.2:3b".into());
+            let lingua = std::env::var("PRAXIS_ROBO_IDIOMA").unwrap_or_else(|_| "en".into());
+            let asr = Asr::load(pos[1].as_ref(), false, 4)?;
+            let voz = tts::Voice::load_voz(pos[3].as_ref(), &lingua, 2, false, false)?;
+            let saida = devices::Speakers(vec![devices::OutputDevice::open(Some("Praxis Speaker".into()))?],
+                                          Arc::new(std::sync::atomic::AtomicBool::new(false)));
+            let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
+            let _cap = devices::spawn_capture(Some("Praxis Mic".into()), tx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?;
+            let mut seg = vad::Segmenter::new(vad::SileroV6::load(pos[2], vad::THRESHOLD)?, vad::SegmenterConfig { max_seg_s: 15.0, ..Default::default() });
+            let mut conversa = vec![serde_json::json!({"role": "system", "content": format!(
+                "You are Alex, a friendly colleague talking with Diego on a video call. Reply in language '{lingua}' only, \
+                 in one or two short natural sentences, and sometimes ask a question back. No emojis, no lists.")})];
+            eprintln!("robô pronto: ouvindo o \"Praxis Mic\", falando no \"Praxis Speaker\" ({modelo}, {lingua})");
+            let mut pedaco: Vec<f32> = vec![];
+            let mut ultimo = Instant::now();
+            loop {
+                match rx.recv_timeout(std::time::Duration::from_millis(100)) {
+                    Ok(c) => { for t in seg.push(&c) { pedaco.extend(t); ultimo = Instant::now(); } }
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                    Err(_) => break,
+                }
+                // a tradução chega em pedaços: espera 1,2 s sem fala nova para responder
+                if pedaco.is_empty() || ultimo.elapsed().as_secs_f32() < 1.2 { continue; }
+                let ouvido = asr.transcribe(&pedaco, &lingua)?.text;
+                pedaco.clear();
+                if ouvido.split_whitespace().count() < 2 { continue; }
+                eprintln!("\n🗣  ouvi: {ouvido}");
+                conversa.push(serde_json::json!({"role": "user", "content": ouvido}));
+                let t = Instant::now();
+                let corpo = serde_json::json!({"model": modelo, "stream": false, "keep_alive": "30m",
+                                               "options": {"num_predict": 60, "temperature": 0.7}, "messages": conversa});
+                let r: serde_json::Value = serde_json::from_str(&ureq::post("http://localhost:11434/api/chat")
+                    .header("Content-Type", "application/json")
+                    .send(corpo.to_string())?
+                    .body_mut().read_to_string()?)?;
+                let resposta = r["message"]["content"].as_str().unwrap_or("").trim().to_string();
+                eprintln!("🤖 respondo ({:.1} s): {resposta}", t.elapsed().as_secs_f32());
+                conversa.push(serde_json::json!({"role": "assistant", "content": resposta}));
+                for frase in praxis_engine::text::speech_chunks(&resposta) {
+                    let a = voz.synthesize(&frase, 1.0)?;
+                    saida.play(&a, voz.sample_rate);
+                }
+                // o que entrou enquanto eu falava não é resposta para mim
+                while rx.try_recv().is_ok() {}
+            }
+        }
+        // omni-falar <pasta omnivoice> <reconhecedor> <gravação.wav> <idioma da gravação> <idioma alvo> <frases.txt> <saída>
+        Some("omni-falar") if pos.len() == 8 => {
+            let d = PathBuf::from(pos[1]);
+            let t0 = Instant::now();
+            let o = praxis_engine::omni::OmniVoice::carregar(&d.join("omnivoice-base-Q8_0.gguf"), &d.join("omnivoice-tokenizer-F32.gguf"),
+                &praxis_engine::omni::dispositivo_preferido(), std::env::var("PRAXIS_PASSOS").ok().and_then(|v| v.parse().ok()).unwrap_or(8))?;
+            eprintln!("carga {:.1} s em {}", t0.elapsed().as_secs_f32(), o.dispositivo);
+            let x = audio::read_wav_16k_mono(pos[3].as_ref())?;
+            let (a, b) = praxis_engine::omni::trecho_de_referencia(&x);
+            let asr = Asr::load(pos[2].as_ref(), false, 4)?;
+            let texto = asr.transcribe(&x[a..b], pos[4])?.text;
+            eprintln!("referência {:.1}–{:.1} s: {texto}", a as f32 / 16000.0, b as f32 / 16000.0);
+            let t1 = Instant::now();
+            o.definir_referencia(&x[a..b], &texto)?;
+            eprintln!("referência codificada em {:.2} s", t1.elapsed().as_secs_f32());
+            let out = PathBuf::from(pos[7]);
+            std::fs::create_dir_all(&out)?;
+            for (i, l) in std::fs::read_to_string(pos[6])?.lines().filter(|l| !l.trim().is_empty()).enumerate() {
+                let t = Instant::now();
+                let a = o.falar(l, pos[5])?;
+                let dt = t.elapsed().as_secs_f32();
+                let dur = a.len() as f32 / 24_000.0;
+                eprintln!("{i}: {dt:.2} s para {dur:.1} s de fala ({:.2} s por s) — {l}", dt / dur);
+                audio::write_wav16(&out.join(format!("{i:02}.wav")), &a, 24_000)?;
+            }
+        }
+        // omni-passo <pacote> <processador|coreml> <llm_fp32.onnx|llm_fp16.onnx> [vezes]
+        Some("omni-passo") if pos.len() >= 4 => {
+            let placa = if pos[2].as_str() == "coreml" { praxis_engine::omni::Placa::CoreMlPlaca } else { praxis_engine::omni::Placa::Processador };
+            let vezes = pos.get(4).and_then(|v| v.parse().ok()).unwrap_or(3);
+            let (t, dif, carga) = praxis_engine::omni::medir_passo(pos[1].as_ref(), pos[3], placa, 4, vezes)?;
+            println!("{} {}: carga {carga:.1} s, passo {t:.3} s, diferença máx. {dif:.4}", pos[2], pos[3]);
+        }
+        // clonar <gravação.wav> <pacote supertonic> <medidor de voz.onnx> <saída voice.bin> [rodadas]
+        Some("clonar") if pos.len() >= 5 => {
+            let rodadas = pos.get(5).and_then(|v| v.parse().ok()).unwrap_or(praxis_engine::clone::RODADAS);
+            let x = audio::read_wav_16k_mono(pos[1].as_ref())?;
+            let parar = std::sync::atomic::AtomicBool::new(false);
+            let c = praxis_engine::clone::clonar(&x, pos[2].as_ref(), pos[3].as_ref(), pos[4].as_ref(), rodadas, 4,
+                &|f, t| eprintln!("{:3.0}% {t}", f * 100.0), &parar)?;
+            println!("{}", serde_json::to_string(&c)?);
+        }
         Some("tts") if pos.len() == 4 => {
             // teste da voz: PRAXIS_TTS_IDIOMA, PRAXIS_TTS_MASCULINA=1, PRAXIS_TTS_ESCALA (velocidade)
             let lang = std::env::var("PRAXIS_TTS_IDIOMA").unwrap_or_else(|_| "en".into());

@@ -81,6 +81,7 @@ function verificarIdiomas() {
   // o "motivo" vem do motor como está; só a moldura do aviso é traduzida
   const aviso = () => s === d ? t("warn_same_lang")
     : !(ESTADO.voz && ESTADO.voz.existe) ? t("warn_need_voice")
+    : !ESTADO.voz.clonada ? t("warn_cloning")
     : !info(s).liberado ? info(s).motivo
     : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
     : bi && ESTADO.sistema === "windows" && !$("peer_app").value ? t("warn_peer_app")
@@ -250,8 +251,9 @@ function montarGravador(c, comExplicacao) {
     const seg = (r.fala || 0).toLocaleString(cfg.ui_lang, { maximumFractionDigits: 0 });
     res.textContent = tf(r.ok ? "rec_saved" : "rec_short", { s: seg });
     res.className = "grav-resultado " + (r.ok ? "ok" : "aviso");
+    if (r.ok) { CLONAGEM.fracao = 0; CLONAGEM.erro = ""; }
     try { ESTADO.voz = await invoke("estado_voz"); } catch { /* fica o estado anterior */ }
-    atualizarVoz();
+    atualizarVoz(); verificarIdiomas();
   };
   c.append(g);
 }
@@ -263,10 +265,26 @@ async function cancelarGravacao() {
   atualizarVoz();
 }
 
+// clonagem da voz (feita pelo Praxis logo depois da gravação)
+const CLONAGEM = { fracao: 0, texto: "", erro: "" };
+async function ouvirClonagem() {
+  await listen("clonagem", async (ev) => {
+    const c = ev.payload;
+    if (c.erro) { CLONAGEM.erro = c.erro; }
+    else if (c.fim) { CLONAGEM.fracao = 1; CLONAGEM.erro = ""; try { ESTADO.voz = await invoke("estado_voz"); } catch { /* fica */ } }
+    else { CLONAGEM.fracao = c.fracao; CLONAGEM.texto = c.texto; CLONAGEM.erro = ""; }
+    atualizarVoz(); verificarIdiomas();
+  });
+}
+
 function atualizarVoz() {
   const v = ESTADO.voz || {};
-  vivo("voz_estado", () => v.existe ? tf("voice_ok", { s: Math.round(v.segundos || 0) }) : t("voice_missing"));
-  $("voz_estado").className = "voz-estado " + (v.existe ? "ok" : "falta");
+  vivo("voz_estado", () => !v.existe ? t("voice_missing")
+    : v.clonada ? tf("voice_cloned", { s: Math.round(v.segundos || 0) })
+    : CLONAGEM.erro ? tf("voice_clone_error", { e: CLONAGEM.erro })
+    : tf("voice_cloning", { p: Math.round((CLONAGEM.fracao || 0) * 100) }));
+  $("voz_estado").className = "voz-estado " + (!v.existe ? "falta" : v.clonada ? "ok" : CLONAGEM.erro ? "falta" : "clonando");
+  $("voz_clonar_btn").hidden = !v.existe || (!v.clonada && !CLONAGEM.erro);
   vivo("voz_gravar_btn", () => t(v.existe ? "btn_rerecord_voice" : "btn_record_voice"));
   // no tutorial, o passo da voz só segue depois de gravar
   if ($("tutorial").open && PASSOS[passoAtual]?.k === "tutvoz") $("tut_seguir").disabled = !v.existe;
@@ -569,6 +587,10 @@ async function main() {
     // o motor parou de gravar (90 s ou o microfone sumiu): termina e guarda como se a pessoa clicasse em Parar
     if (gravando && (fim || segundos >= 90)) document.querySelector(".gravar.ativo")?.click();
   });
+  await ouvirClonagem();
+  // voz gravada mas ainda não clonada (ou gravação nova): o Praxis clona sozinho
+  if (ESTADO.voz && ESTADO.voz.existe && !ESTADO.voz.clonada) invoke("clonar_voz").catch(() => {});
+  $("voz_clonar_btn").onclick = () => { CLONAGEM.erro = ""; CLONAGEM.fracao = 0; ESTADO.voz.clonada = false; atualizarVoz(); verificarIdiomas(); invoke("clonar_voz").catch((e) => { CLONAGEM.erro = String(e); atualizarVoz(); }); };
   atualizarVoz();
   $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;
   $("sobre_abrir").onclick = abrirSobre;
