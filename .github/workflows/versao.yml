@@ -123,7 +123,6 @@ jobs:
         with: { node-version: "20" }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: app }
-      - uses: ilammy/msvc-dev-cmd@v1
       - name: A etiqueta bate com a versão do código
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
@@ -144,6 +143,9 @@ jobs:
           $env:OMNIVOICE_CMAKE = "-DVulkan_INCLUDE_DIR=$p\include -DVulkan_LIBRARY=$p\lib\vulkan-1.lib -DVulkan_GLSLC_EXECUTABLE=$p\bin\glslc.exe"
           scripts/omnivoice.ps1
           if ($LASTEXITCODE -ne 0) { exit 1 }
+      # depois do OmniVoice: o passo do conda refazia o caminho dos programas e o Rust pegava o
+      # link.exe do Git em vez do Visual C++
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Compilar
         run: |
           $ErrorActionPreference = "Stop"
