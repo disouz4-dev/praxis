@@ -47,6 +47,18 @@ jobs:
         run: |
           PYTHON=python scripts/ct2-do-pacote-oficial.sh
           scripts/cargo-linux.sh build --release -p praxis-engine -p praxis-desktop
+      - name: Vulkan para compilar o OmniVoice (conda-forge, sem mexer no sistema)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: vk
+          create-args: libvulkan-headers libvulkan-loader shaderc spirv-headers patchelf
+          init-shell: bash
+      - name: OmniVoice (voz clonada fiel, Vulkan)
+        shell: bash -el {0}
+        run: |
+          export CMAKE_PREFIX_PATH="$CONDA_PREFIX"
+          OMNIVOICE_CMAKE="-DVulkan_INCLUDE_DIR=$CONDA_PREFIX/include -DVulkan_LIBRARY=$CONDA_PREFIX/lib/libvulkan.so -DVulkan_GLSLC_EXECUTABLE=$CONDA_PREFIX/bin/glslc" \
+            scripts/omnivoice.sh
       - name: Montar o .deb
         run: |
           scripts/empacotar-linux.sh
@@ -117,6 +129,20 @@ jobs:
         run: |
           $v = (Get-Content desktop/tauri.conf.json | ConvertFrom-Json).version
           if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "etiqueta $env:GITHUB_REF_NAME × versão $v" }
+      - name: Vulkan para compilar o OmniVoice (conda-forge)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: vk
+          create-args: libvulkan-headers libvulkan-loader shaderc spirv-headers
+          init-shell: powershell
+      - name: OmniVoice (voz clonada fiel, Vulkan)
+        shell: pwsh
+        run: |
+          $p = "$env:CONDA_PREFIX\Library"
+          $env:CMAKE_PREFIX_PATH = $p
+          $env:OMNIVOICE_CMAKE = "-DVulkan_INCLUDE_DIR=$p\include -DVulkan_LIBRARY=$p\lib\vulkan-1.lib -DVulkan_GLSLC_EXECUTABLE=$p\bin\glslc.exe"
+          scripts/omnivoice.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
       - name: Compilar
         run: |
           $ErrorActionPreference = "Stop"

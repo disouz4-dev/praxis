@@ -50,7 +50,7 @@ Section: sound
 Priority: optional
 Architecture: amd64
 Installed-Size: ${SIZE}
-Depends: libwebkit2gtk-4.1-0, libgtk-3-0 | libgtk-3-0t64, libasound2 | libasound2t64, pulseaudio-utils, curl, unzip, python3, bzip2
+Depends: libwebkit2gtk-4.1-0, libgtk-3-0 | libgtk-3-0t64, libasound2 | libasound2t64, pulseaudio-utils, curl, unzip, python3, bzip2, libvulkan1
 Maintainer: Praxis <noreply@users.noreply.github.com>
 Homepage: https://github.com/disouz4-dev/praxis
 Description: Tradutor de voz em tempo real, sem internet

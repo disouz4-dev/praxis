@@ -16,6 +16,8 @@ cp "$R/praxis" "$OUT/praxis"
 [ -f "$R/praxis-cli" ] && cp "$R/praxis-cli" "$OUT/praxis-cli"
 cp "$R"/libsherpa-onnx-c-api.so "$R"/libsherpa-onnx-cxx-api.so "$R"/libonnxruntime.so "$OUT/"
 cp -P target/ct2-lib/*.so* "$OUT/"
+# OmniVoice (voz clonada fiel na placa de vídeo, Vulkan): o Praxis carrega na hora, se houver
+[ -d "$R/omnivoice" ] && cp -r "$R/omnivoice" "$OUT/omnivoice"
 cp desktop/icons/128x128.png "$OUT/praxis.png"
 cat > "$OUT/praxis.desktop" <<'EOF'
 [Desktop Entry]

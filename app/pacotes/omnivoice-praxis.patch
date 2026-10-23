@@ -1,0 +1,14 @@
+diff --git a/src/backend.h b/src/backend.h
+index 2b7dcc0..3938cfd 100644
+--- a/src/backend.h
++++ b/src/backend.h
+@@ -27,6 +27,9 @@ struct BackendPair {
+ // Used for GGML CPU thread count: GEMM shares SIMD units across hyperthreads,
+ // so one thread per physical core is optimal.
+ static int backend_cpu_n_threads(void) {
++    // Praxis: OMNIVOICE_THREADS limita as linhas no processador (com a placa de vídeo fazendo o
++    // trabalho pesado, 8 linhas só disputavam o processador com o reconhecimento e a tradução)
++    if (const char * e = std::getenv("OMNIVOICE_THREADS")) { int v = std::atoi(e); if (v > 0) return v; }
+     int n = (int) std::thread::hardware_concurrency() / 2;
+     return n > 0 ? n : 1;
+ }
