@@ -153,6 +153,18 @@ fn live_param<T: std::str::FromStr>(name: &str, default: T) -> T {
     std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
 }
 
+/// A tradução tem um tamanho plausível para o original? O NLLB, com um pedaço solto de frase,
+/// às vezes inventa outra frase inteira (medido 23/10/2026, es→en: 11 palavras viraram "In this
+/// context, it is important to note that the Commission has not yet adopted a proposal for a
+/// regulation." — 20 palavras sem relação). Chinês e japonês não separam palavras: sem conferência.
+fn plausible(src_words: usize, tgt_words: usize, src: &str, tgt: &str) -> bool {
+    if src_words < 4 || ["zh", "ja"].contains(&src) || ["zh", "ja"].contains(&tgt) {
+        return true;
+    }
+    let r = tgt_words as f32 / src_words as f32;
+    (0.4..=1.7).contains(&r)
+}
+
 /// Palavra comparável (sem maiúsculas nem pontuação), para o acordo entre duas leituras.
 fn norm_word(w: &str) -> String {
     w.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect()
@@ -344,6 +356,10 @@ pub fn spawn_direction(
                                     continue;
                                 }
                             };
+                            // tradução inventada (tamanho fora do normal): não fala, espera mais contexto
+                            if !plausible(live.committed.len(), all.len(), &dir.src, &dir.tgt) {
+                                continue;
+                            }
                             let mut new_tgt: Vec<String> = all.get(live.tgt_spoken.len()..).unwrap_or(&[]).to_vec();
                             let sentence_end = live.committed.last().map(|w| crate::vad::sentence_complete(w)).unwrap_or(false);
                             if !sentence_end {
@@ -382,8 +398,18 @@ pub fn spawn_direction(
                     match translator.continue_from(&words.join(" "), &spoken, &dir.src, &dir.tgt) {
                         Ok(all) => {
                             let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "traduzido".into(), at_s: shared.now_s() });
-                            let rest: Vec<String> = all.get(spoken.len()..).unwrap_or(&[]).to_vec();
+                            let mut rest: Vec<String> = all.get(spoken.len()..).unwrap_or(&[]).to_vec();
                             let src_rest: Vec<String> = words.get(src_done.min(words.len())..).unwrap_or(&[]).to_vec();
+                            // a continuação forçada não cobriu o que faltava do original (o tradutor
+                            // deu a frase por terminada): traduz o resto sozinho em vez de perdê-lo
+                            if !spoken.is_empty() && !plausible(src_rest.len(), rest.len(), &dir.src, &dir.tgt) {
+                                if let Ok(t) = translator.translate(&src_rest.join(" "), &dir.src, &dir.tgt) {
+                                    rest = t.split_whitespace().map(String::from).collect();
+                                }
+                            }
+                            if std::env::var_os("PRAXIS_DEPURAR").is_some() {
+                                eprintln!("[fim {id}] lido: {:?}\n  já dito ({src_done} palavras): {:?}\n  tradução inteira: {:?}\n  resto: {:?}", words, spoken, all, rest);
+                            }
                             speak(id, &src_rest, &rest);
                             let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
                         }
@@ -465,6 +491,18 @@ pub fn spawn_direction(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn traducao_inventada_e_recusada() {
+        // o caso medido: 11 palavras em espanhol viraram 20 em inglês sem relação
+        assert!(!plausible(11, 20, "es", "en"));
+        assert!(plausible(11, 12, "es", "en"));
+        // resto sem tradução nenhuma: refaz
+        assert!(!plausible(20, 0, "es", "en"));
+        // pedaço curto ou idioma sem espaços: sem conferência
+        assert!(plausible(2, 5, "es", "en"));
+        assert!(plausible(10, 1, "en", "ja"));
+    }
 
     #[test]
     fn velocidade_adaptativa() {
