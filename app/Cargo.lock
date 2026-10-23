@@ -3584,6 +3584,7 @@ dependencies = [
  "ct2rs",
  "dirs 7.0.0",
  "hound",
+ "libloading 0.9.0",
  "ort",
  "realfft",
  "sentencepiece",
