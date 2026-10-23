@@ -18,8 +18,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: app/tools/hardware }
+      # biblioteca do C++ embutida: roda num Windows sem o Visual C++ instalado
       - run: cargo build --release
         working-directory: app/tools/hardware
+        env: { RUSTFLAGS: "-C target-feature=+crt-static" }
       - run: ./target/release/praxis-hardware.exe
         working-directory: app/tools/hardware
       - uses: actions/upload-artifact@v4
