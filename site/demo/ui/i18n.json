@@ -188,7 +188,16 @@
    "usage_cpu_hint": "Uso do processador do computador inteiro",
    "usage_praxis_hint": "Quanto do processador o Praxis usa ({mb} MB de memória)",
    "usage_gpu_hint": "Uso da placa de vídeo",
-   "chat_empty": "A conversa aparece aqui."
+   "chat_empty": "A conversa aparece aqui.",
+   "usage_cpu_hint2": "Uso do processador do computador inteiro ({n} núcleos)",
+   "usage_gpu_idle": "em repouso",
+   "usage_gpu_idle_hint": "O sistema desligou esta placa por falta de uso",
+   "sec_computer": "Seu computador",
+   "hw_cpu_label": "Processador",
+   "hw_gpu_label": "Placa de vídeo",
+   "hw_mem_label": "Memória",
+   "hw_cores": "{f} núcleos, {l} linhas",
+   "hw_mem_used": "{u} GB em uso"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -378,7 +387,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -568,7 +586,16 @@
    "usage_cpu_hint": "Uso del procesador de todo el equipo",
    "usage_praxis_hint": "Cuánto procesador usa Praxis ({mb} MB de memoria)",
    "usage_gpu_hint": "Uso de la tarjeta gráfica",
-   "chat_empty": "La conversación aparece aquí."
+   "chat_empty": "La conversación aparece aquí.",
+   "usage_cpu_hint2": "Uso del procesador de todo el equipo ({n} núcleos)",
+   "usage_gpu_idle": "en reposo",
+   "usage_gpu_idle_hint": "El sistema apagó esta tarjeta por falta de uso",
+   "sec_computer": "Tu equipo",
+   "hw_cpu_label": "Procesador",
+   "hw_gpu_label": "Tarjeta gráfica",
+   "hw_mem_label": "Memoria",
+   "hw_cores": "{f} núcleos, {l} hilos",
+   "hw_mem_used": "{u} GB en uso"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -758,7 +785,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -948,7 +984,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1138,7 +1183,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1328,7 +1382,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1518,7 +1581,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1708,7 +1780,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1898,7 +1979,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -2088,7 +2178,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2278,7 +2377,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2468,7 +2576,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2658,7 +2775,16 @@
    "usage_cpu_hint": "Processor use of the whole computer",
    "usage_praxis_hint": "How much of the processor Praxis uses ({mb} MB of memory)",
    "usage_gpu_hint": "Graphics card use",
-   "chat_empty": "The conversation shows up here."
+   "chat_empty": "The conversation shows up here.",
+   "usage_cpu_hint2": "Processor use of the whole computer ({n} cores)",
+   "usage_gpu_idle": "idle",
+   "usage_gpu_idle_hint": "The system turned this card off while unused",
+   "sec_computer": "Your computer",
+   "hw_cpu_label": "Processor",
+   "hw_gpu_label": "Graphics card",
+   "hw_mem_label": "Memory",
+   "hw_cores": "{f} cores, {l} threads",
+   "hw_mem_used": "{u} GB in use"
   }
  },
  "lang_names": {

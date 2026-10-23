@@ -177,18 +177,38 @@ function montarVozes() {
   vivo("voz_resumo", () => !v.existe ? t("voice_missing_main") : "");
 }
 
-// Monitor de uso no topo: processador do computador, só o Praxis e cada placa de vídeo
+// Seu computador (em Configurações): o hardware identificado pelo próprio Praxis e o uso de cada peça
+let HARDWARE = null;
 async function atualizarUso() {
+  if (!$("configuracoes").open) return;
+  if (!HARDWARE) { try { HARDWARE = await invoke("hardware"); } catch { return; } }
   let u;
   try { u = await invoke("uso_do_sistema"); } catch { return; }
-  const chip = (rotulo, pct, titulo) => {
-    const b = document.createElement("span"); b.className = "chip" + (pct >= 85 ? " alto" : pct >= 60 ? " medio" : "");
-    b.title = titulo; b.innerHTML = `<b></b> <i></i>`; b.querySelector("b").textContent = rotulo; b.querySelector("i").textContent = `${Math.round(pct)}%`;
-    return b;
+  const gb = (mb) => (mb / 1024).toLocaleString(cfg.ui_lang, { maximumFractionDigits: mb >= 10240 ? 0 : 1 });
+  const linha = (rotulo, nome, detalhe, pct, texto) => {
+    const d = document.createElement("div"); d.className = "uso-linha";
+    d.innerHTML = '<span class="uso-rotulo"></span><span class="uso-nome"></span><span class="uso-detalhe"></span>' +
+      '<span class="uso-barra"><i></i></span><span class="uso-pct"></span>';
+    d.querySelector(".uso-rotulo").textContent = rotulo;
+    d.querySelector(".uso-nome").textContent = nome;
+    d.querySelector(".uso-detalhe").textContent = detalhe;
+    const p = pct ?? 0;
+    d.querySelector(".uso-barra i").style.transform = `scaleX(${Math.min(1, p / 100)})`;
+    d.querySelector(".uso-barra").className = "uso-barra" + (pct == null ? " repouso" : p >= 85 ? " alto" : p >= 60 ? " medio" : "");
+    d.querySelector(".uso-pct").textContent = texto ?? `${Math.round(p)}%`;
+    return d;
   };
-  const itens = [chip(t("usage_cpu"), u.cpu, t("usage_cpu_hint")), chip("Praxis", u.cpu_praxis, tf("usage_praxis_hint", { mb: u.memoria_praxis_mb }))];
-  for (const g of u.placas || []) itens.push(chip(g.nome, g.uso, t("usage_gpu_hint")));
-  $("uso").replaceChildren(...itens);
+  const h = HARDWARE, cpu = h.processador || {}, mem = h.memoria || {};
+  const linhas = [linha(t("hw_cpu_label"), cpu.nome || "?", tf("hw_cores", { f: cpu.nucleos_fisicos ?? "?", l: cpu.nucleos ?? "?" }), u.cpu)];
+  for (const g of u.placas || []) {
+    const info = (h.placas || []).find((p) => p.nome === g.nome) || {};
+    linhas.push(linha(t("hw_gpu_label"), g.nome, info.memoria_mb ? `${gb(info.memoria_mb)} GB` : "", g.uso, g.uso == null ? t("usage_gpu_idle") : null));
+  }
+  const memDet = [mem.tipo, mem.velocidade_mhz ? `${mem.velocidade_mhz} MHz` : null, mem.fabricante].filter(Boolean).join(" · ");
+  linhas.push(linha(t("hw_mem_label"), `${gb(u.memoria_total_mb)} GB`, memDet,
+    100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), tf("hw_mem_used", { u: gb(u.memoria_usada_mb) })));
+  $("uso").replaceChildren(...linhas);
+  fixo("computador_sistema", h.sistema || "");
 }
 
 // "Quem é traduzido?": Só eu / Nós dois liga o modo bilateral (a caixa escondida #bilateral)
@@ -588,7 +608,7 @@ async function main() {
   $("monitor_btn").onclick = () => { $("monitor").checked = !$("monitor").checked; $("monitor").dispatchEvent(new Event("change")); };
   $("monitor").addEventListener("change", aplicarMonitor);
   aplicarMonitor();
-  $("config_abrir").onclick = () => $("configuracoes").showModal();
+  $("config_abrir").onclick = () => { $("configuracoes").showModal(); atualizarUso(); };
   $("config_fechar").onclick = () => $("configuracoes").close();
   $("voz_modelo").addEventListener("change", () => {
     cfg.voz_modelo = $("voz_modelo").value; salvar();

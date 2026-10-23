@@ -67,7 +67,8 @@ window.__TAURI__ = {
           return null;
         }
         case "definir_monitor": return null;
-        case "uso_do_sistema": { const r = (a, b) => Math.round(a + Math.random() * (b - a)); return { cpu: motorLigado ? r(35, 60) : r(5, 15), cpu_praxis: motorLigado ? r(20, 40) : r(0, 3), memoria_praxis_mb: 1240, placas: [{ nome: "Placa de vídeo", uso: motorLigado ? r(40, 75) : r(0, 5) }] }; }
+        case "uso_do_sistema": { const r = (a, b) => Math.round(a + Math.random() * (b - a)); return { cpu: motorLigado ? r(35, 60) : r(5, 15), memoria_usada_mb: r(9000, 11000), memoria_total_mb: 16384, placas: [{ nome: "Placa de vídeo", uso: motorLigado ? r(40, 75) : r(0, 5) }] }; }
+        case "hardware": return { processador: { nome: "Processador de 8 núcleos", nucleos: 16, nucleos_fisicos: 8 }, placas: [{ nome: "Placa de vídeo", memoria_mb: 8192 }], memoria: { total_mb: 16384, tipo: "DDR4", velocidade_mhz: 3200, fabricante: null, modulos: 2 }, sistema: "demonstração" };
         case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;

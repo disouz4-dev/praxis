@@ -10,7 +10,6 @@
   <header>
     <img id="logo" src="logo.png" alt="Praxis">
     <p id="tagline" data-t="tagline"></p>
-    <div id="uso" class="uso" role="status" aria-label="Uso do computador"></div>
     <div class="topo">
       <button id="config_abrir" class="icone" data-t-title="btn_settings" aria-label="Configurações">⚙</button>
       <button id="sobre_abrir" class="icone" data-t-title="btn_about" aria-label="Sobre">ⓘ</button>
@@ -118,6 +117,13 @@
           </div>
         </li>
       </ol>
+
+      <!-- o hardware da máquina, identificado pelo próprio Praxis, e o uso de cada peça -->
+      <section class="computador" aria-labelledby="computador_titulo">
+        <p id="computador_titulo" class="campo-titulo" data-t="sec_computer"></p>
+        <div id="uso" class="uso" role="status" aria-live="off"></div>
+        <p id="computador_sistema" class="dica"></p>
+      </section>
 
       <details class="mais">
         <summary data-t="sec_more"></summary>

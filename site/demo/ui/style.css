@@ -281,18 +281,15 @@ button.gravar.ativo { background: #7f1d1d; box-shadow: 0 0 0 3px rgba(220, 38, 3
 
 /* tela principal: idiomas + voz + conversa; o resto em Configurações */
 header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.uso { display: flex; gap: 6px; flex-wrap: wrap; flex: 1 1 auto; justify-content: flex-end; font-size: 11.5px; }
-.uso .chip { background: var(--campo); border: 1px solid var(--borda); border-radius: 999px; padding: 2px 8px; color: var(--suave); white-space: nowrap; }
-.uso .chip b { font-weight: 500; color: var(--texto); }
-.uso .chip i { font-style: normal; font-variant-numeric: tabular-nums; }
-.uso .chip.medio i { color: var(--aviso); }
-.uso .chip.alto i { color: var(--erro); }
-#inicio { display: grid; gap: 10px; margin-bottom: 12px; }
-#inicio .voz-linha { margin: 0; }
-#painel .painel-topo #painel_fechar { display: none; }
-#painel .conversa { min-height: 220px; height: calc(100vh - 420px); }
-#painel .conversa:empty::before { content: attr(data-vazio); color: var(--suave); font-size: 13px; }
-dialog#configuracoes { width: min(560px, 94vw); max-height: 88vh; overflow: auto; border: 1px solid var(--borda); border-radius: 14px;
-  background: var(--cartao); color: var(--texto); padding: 18px; }
-dialog#configuracoes::backdrop { background: rgba(0, 0, 0, .6); }
-dialog#configuracoes #config { margin: 0; }
+.computador { margin: 6px 0 10px; }
+.uso { display: grid; gap: 8px; }
+.uso-linha { display: grid; grid-template-columns: 92px 1fr auto; grid-template-areas: "rot nome pct" "rot det pct" "barra barra barra"; column-gap: 8px; row-gap: 2px; align-items: baseline; }
+.uso-rotulo { grid-area: rot; font-size: 12px; color: var(--suave); }
+.uso-nome { grid-area: nome; font-size: 13px; color: var(--texto); font-weight: 500; }
+.uso-detalhe { grid-area: det; font-size: 12px; color: var(--suave); }
+.uso-pct { grid-area: pct; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--texto); }
+.uso-barra { grid-area: barra; height: 5px; border-radius: 3px; background: var(--campo); overflow: hidden; margin-top: 3px; }
+.uso-barra i { display: block; height: 100%; background: var(--destaque); transform-origin: left; transition: transform .4s ease-out; }
+.uso-barra.medio i { background: var(--aviso); }
+.uso-barra.alto i { background: var(--erro); }
+.uso-barra.repouso i { background: transparent; }

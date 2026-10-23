@@ -18,3 +18,4 @@ benchmarks/data/
 app/target/
 .voz-usuario/
 .qa-win/
+app/tools/hardware/target/

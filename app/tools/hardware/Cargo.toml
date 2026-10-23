@@ -1,0 +1,13 @@
+# Teste do identificador de hardware do Praxis (o mesmo código do motor) em qualquer máquina,
+# sem compilar o motor inteiro.
+[package]
+name = "praxis-hardware"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = "1"
+sysinfo = { version = "0.39", default-features = false, features = ["system"] }
+
+[workspace]

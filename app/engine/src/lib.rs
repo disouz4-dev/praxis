@@ -11,6 +11,7 @@ pub mod tts;
 pub mod update;
 pub mod pipeline;
 pub mod devices;
+pub mod hardware;
 pub mod app_audio;
 pub mod models;
 pub mod session;
