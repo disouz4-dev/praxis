@@ -201,7 +201,8 @@
    "hw_no_gpu_hint": "o Praxis usa só o processador",
    "hw_reading": "Lendo o hardware…",
    "hw_error": "Não deu para ler o hardware: {e}",
-   "sec_call": "Na chamada"
+   "sec_call": "Na chamada",
+   "hw_gpu_mem": "{u} de {t} GB ocupados"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -404,7 +405,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -607,7 +609,8 @@
    "hw_no_gpu_hint": "Praxis usa solo el procesador",
    "hw_reading": "Leyendo el hardware…",
    "hw_error": "No se pudo leer el hardware: {e}",
-   "sec_call": "En la llamada"
+   "sec_call": "En la llamada",
+   "hw_gpu_mem": "{u} de {t} GB en uso"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -810,7 +813,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -1013,7 +1017,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1216,7 +1221,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1419,7 +1425,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1622,7 +1629,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1825,7 +1833,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -2028,7 +2037,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -2231,7 +2241,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2434,7 +2445,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2637,7 +2649,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2840,7 +2853,8 @@
    "hw_no_gpu_hint": "Praxis uses the processor only",
    "hw_reading": "Reading the hardware…",
    "hw_error": "Could not read the hardware: {e}",
-   "sec_call": "On the call"
+   "sec_call": "On the call",
+   "hw_gpu_mem": "{u} of {t} GB in use"
   }
  },
  "lang_names": {

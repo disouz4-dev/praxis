@@ -199,7 +199,12 @@ function montarMedidores(u) {
     return d;
   };
   const itens = [m(t("hw_cpu_label"), h.processador?.nome || "…", u.cpu)];
-  for (const g of u.placas || []) itens.push(m(t("hw_gpu_label"), g.nome, g.uso, g.uso == null ? t("usage_gpu_idle") : null));
+  for (const g of u.placas || []) {
+    // memória da placa ocupada: fica estável enquanto o modelo está carregado nela
+    const mem = g.memoria_usada_mb != null ? tf("hw_gpu_mem", { u: gb(g.memoria_usada_mb), t: g.memoria_mb ? gb(g.memoria_mb) : "?" }) : null;
+    const c = m(t("hw_gpu_label"), [g.nome, mem].filter(Boolean).join(" · "), g.uso, g.uso == null ? t("usage_gpu_idle") : null);
+    itens.push(c);
+  }
   if (!(u.placas || []).length) itens.push(m(t("hw_gpu_label"), t("hw_no_gpu"), null, "—"));
   itens.push(m(t("hw_mem_label"), [`${gb(u.memoria_total_mb)} GB`, mem.tipo].filter(Boolean).join(" "),
     100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), `${gb(u.memoria_usada_mb)} GB`));
@@ -233,7 +238,9 @@ async function atualizarUso() {
   const linhas = [linha(t("hw_cpu_label"), cpu.nome || "?", tf("hw_cores", { f: cpu.nucleos_fisicos ?? "?", l: cpu.nucleos ?? "?" }), u.cpu)];
   for (const g of u.placas || []) {
     const info = (h.placas || []).find((p) => p.nome === g.nome) || {};
-    linhas.push(linha(t("hw_gpu_label"), g.nome, info.memoria_mb ? `${gb(info.memoria_mb)} GB` : "", g.uso, g.uso == null ? t("usage_gpu_idle") : null));
+    const memTxt = g.memoria_usada_mb != null ? tf("hw_gpu_mem", { u: gb(g.memoria_usada_mb), t: info.memoria_mb ? gb(info.memoria_mb) : "?" })
+      : info.memoria_mb ? `${gb(info.memoria_mb)} GB` : "";
+    linhas.push(linha(t("hw_gpu_label"), g.nome, memTxt, g.uso, g.uso == null ? t("usage_gpu_idle") : null));
   }
   if (!(u.placas || []).length) linhas.push(linha(t("hw_gpu_label"), t("hw_no_gpu"), t("hw_no_gpu_hint"), null, "—"));
   const memDet = [mem.tipo, mem.velocidade_mhz ? `${mem.velocidade_mhz} MHz` : null, mem.fabricante].filter(Boolean).join(" · ");

@@ -160,14 +160,29 @@ fn memoria(total_mb: u64) -> Value {
     json!({"total_mb": total_mb, "tipo": tipo, "velocidade_mhz": vel, "fabricante": fab, "modulos": modulos})
 }
 
-/// Uso agora: processador (%), memória (MB usados) e cada placa (%, ou nulo = em repouso)
+/// Uso agora: processador (%), memória (MB usados) e cada placa (%, ou nulo = em repouso).
+/// As placas são lidas ~3 vezes por segundo numa tarefa própria e o monitor mostra a média dos
+/// últimos 3 s (o uso instantâneo pisca entre 0 e 100%: a voz clonada usa a placa em rajadas) e
+/// a memória da placa ocupada — constante enquanto o modelo está carregado nela (23/10/2026).
 pub struct Monitor {
     sys: Mutex<System>,
+    picos: std::sync::Arc<Mutex<std::collections::VecDeque<(std::time::Instant, Vec<Leitura>)>>>,
 }
 
 impl Default for Monitor {
     fn default() -> Self {
-        Self { sys: Mutex::new(System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::nothing().with_cpu_usage()).with_memory(MemoryRefreshKind::nothing().with_ram()))) }
+        let picos = std::sync::Arc::new(Mutex::new(std::collections::VecDeque::new()));
+        let p = picos.clone();
+        std::thread::spawn(move || loop {
+            let u = uso_das_placas();
+            {
+                let mut q = p.lock().unwrap();
+                q.push_back((std::time::Instant::now(), u));
+                while q.front().is_some_and(|(t, _)| t.elapsed().as_secs_f32() > 3.0) { q.pop_front(); }
+            }
+            std::thread::sleep(std::time::Duration::from_millis(300));
+        });
+        Self { sys: Mutex::new(System::new_with_specifics(RefreshKind::nothing().with_cpu(CpuRefreshKind::nothing().with_cpu_usage()).with_memory(MemoryRefreshKind::nothing().with_ram()))), picos }
     }
 }
 
@@ -176,22 +191,42 @@ impl Monitor {
         let mut s = self.sys.lock().unwrap();
         s.refresh_cpu_usage();
         s.refresh_memory_specifics(MemoryRefreshKind::nothing().with_ram());
-        let usos = uso_das_placas();
-        let placas: Vec<Value> = identificar()["placas"].as_array().cloned().unwrap_or_default().iter().map(|p| {
+        // média do uso de cada placa nos últimos 3 s (amostras em que ela estava ligada) e a memória
+        // ocupada mais recente
+        let mut usos: Vec<(String, u32, Option<u64>)> = vec![];
+        {
+            let q = self.picos.lock().unwrap();
+            let mut soma: Vec<(String, u32, u32, Option<u64>)> = vec![];
+            for (_, amostra) in q.iter() {
+                for l in amostra {
+                    match soma.iter_mut().find(|x| x.0 == l.pista) {
+                        Some(x) => { x.1 += l.uso; x.2 += 1; x.3 = l.mem_mb.or(x.3); }
+                        None => soma.push((l.pista.clone(), l.uso, 1, l.mem_mb)),
+                    }
+                }
+            }
+            // a placa conta as amostras em que estava desligada como uso zero
+            let total = q.len().max(1) as u32;
+            for (p, s, _, m) in soma { usos.push((p, (s as f32 / total as f32).round() as u32, m)); }
+        }
+        let lista = identificar()["placas"].as_array().cloned().unwrap_or_default();
+        let placas: Vec<Value> = lista.iter().map(|p| {
             let n = p["nome"].as_str().unwrap_or("");
-            let u = usos.iter().find(|(pista, _)| !pista.is_empty() && n.contains(pista.as_str()))
-                .or_else(|| if identificar()["placas"].as_array().is_some_and(|a| a.len() == 1) { usos.first() } else { None })
-                .map(|(_, u)| *u);
-            json!({"nome": n, "uso": u})
+            let l = usos.iter().find(|(pista, _, _)| !pista.is_empty() && n.contains(pista.as_str()))
+                .or_else(|| if lista.len() == 1 { usos.first() } else { None });
+            json!({"nome": n, "uso": l.map(|x| x.1), "memoria_usada_mb": l.and_then(|x| x.2), "memoria_mb": p["memoria_mb"]})
         }).collect();
         json!({"cpu": s.global_cpu_usage().round(), "memoria_usada_mb": s.used_memory() / 1_048_576,
                "memoria_total_mb": s.total_memory() / 1_048_576, "placas": placas})
     }
 }
 
-/// (pista do nome da placa, uso %)
-fn uso_das_placas() -> Vec<(String, u32)> {
-    let mut usos: Vec<(String, u32)> = vec![];
+/// Uma leitura de uma placa: pista do nome, uso (%) e memória da placa ocupada (MB)
+#[derive(Clone)]
+struct Leitura { pista: String, uso: u32, mem_mb: Option<u64> }
+
+fn uso_das_placas() -> Vec<Leitura> {
+    let mut usos: Vec<Leitura> = vec![];
     if cfg!(target_os = "macos") {
         // cada bloco "+-o <Classe>" traz "Device Utilization %"=N enquanto a placa está ligada
         let mut classe = String::new();
@@ -199,12 +234,14 @@ fn uso_das_placas() -> Vec<(String, u32)> {
             if let Some(r) = l.strip_prefix("+-o ") {
                 classe = r.split_whitespace().next().unwrap_or("").to_string();
             }
-            for parte in l.split("\"Device Utilization %\"=").skip(1) {
-                let n: u32 = parte.chars().take_while(|c| c.is_ascii_digit()).collect::<String>().parse().unwrap_or(0);
+            let num = |k: &str| l.split(&format!("\"{k}\"=")).nth(1)
+                .and_then(|p| p.chars().take_while(|c| c.is_ascii_digit()).collect::<String>().parse::<u64>().ok());
+            if let Some(n) = num("Device Utilization %") {
                 let pista = if classe.contains("AMD") { "AMD" } else if classe.contains("Intel") { "Intel" } else if classe.contains("AGX") { "Apple" } else { "" };
-                match usos.iter_mut().find(|(p, _)| p == pista) {
-                    Some(u) => u.1 = u.1.max(n),
-                    None => usos.push((pista.into(), n)),
+                let mem = num("inUseVidMemoryBytes").filter(|&b| b > 0).map(|b| b / 1_048_576);
+                match usos.iter_mut().find(|x| x.pista == pista) {
+                    Some(u) => { u.uso = u.uso.max(n as u32); u.mem_mb = u.mem_mb.max(mem); }
+                    None => usos.push(Leitura { pista: pista.into(), uso: n as u32, mem_mb: mem }),
                 }
             }
         }
@@ -212,16 +249,23 @@ fn uso_das_placas() -> Vec<(String, u32)> {
         let t = rodar("typeperf", &["\\GPU Engine(*engtype_3D)\\Utilization Percentage", "\\GPU Engine(*engtype_Compute*)\\Utilization Percentage", "-sc", "1"]);
         if let Some(l) = t.lines().find(|l| l.starts_with('"') && l.chars().nth(1).is_some_and(|c| c.is_ascii_digit())) {
             let soma: f32 = l.split(',').skip(1).filter_map(|v| v.trim_matches('"').parse::<f32>().ok()).sum();
-            usos.push((String::new(), soma.min(100.0).round() as u32));
+            // memória dedicada ocupada (todas as placas)
+            let m = rodar("typeperf", &["\\GPU Adapter Memory(*)\\Dedicated Usage", "-sc", "1"]);
+            let mem = m.lines().find(|l| l.starts_with('"') && l.chars().nth(1).is_some_and(|c| c.is_ascii_digit()))
+                .map(|l| l.split(',').skip(1).filter_map(|v| v.trim_matches('"').parse::<f64>().ok()).sum::<f64>() as u64 / 1_048_576);
+            usos.push(Leitura { pista: String::new(), uso: soma.min(100.0).round() as u32, mem_mb: mem.filter(|&m| m > 0) });
         }
     } else {
-        for l in rodar("nvidia-smi", &["--query-gpu=name,utilization.gpu", "--format=csv,noheader,nounits"]).lines() {
-            if let Some((n, u)) = l.rsplit_once(',') { usos.push((n.trim().into(), u.trim().parse().unwrap_or(0))); }
+        for l in rodar("nvidia-smi", &["--query-gpu=name,utilization.gpu,memory.used", "--format=csv,noheader,nounits"]).lines() {
+            let c: Vec<&str> = l.split(',').map(str::trim).collect();
+            if c.len() == 3 { usos.push(Leitura { pista: c[0].into(), uso: c[1].parse().unwrap_or(0), mem_mb: c[2].parse().ok() }); }
         }
         if let Ok(rd) = std::fs::read_dir("/sys/class/drm") {
             for e in rd.flatten() {
                 if let Ok(u) = std::fs::read_to_string(e.path().join("device/gpu_busy_percent")) {
-                    usos.push(("AMD".into(), u.trim().parse().unwrap_or(0)));
+                    let mem = std::fs::read_to_string(e.path().join("device/mem_info_vram_used")).ok()
+                        .and_then(|v| v.trim().parse::<u64>().ok()).map(|b| b / 1_048_576);
+                    usos.push(Leitura { pista: "AMD".into(), uso: u.trim().parse().unwrap_or(0), mem_mb: mem });
                 }
             }
         }

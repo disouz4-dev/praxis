@@ -168,6 +168,8 @@ struct Funcs {
 struct Referencia { codigos: Vec<i32>, t: c_int, texto: CString }
 
 pub struct OmniVoice {
+    /// Mac com duas placas: a AMD fica ligada enquanto o OmniVoice existe
+    _placa: Option<PlacaLigada>,
     _lib: libloading::Library,
     f: Funcs,
     ctx: Mutex<*mut c_void>,
@@ -186,7 +188,10 @@ unsafe impl Sync for OmniVoice {}
 /// Passos de geração. Medido (23/10/2026, Radeon Pro 5500M pelo Vulkan, modelo de 8 bits): 8 passos
 /// 0,81 s por segundo de fala, 6 passos 0,63, 4 passos 0,44, com a frase reconhecida igual. O
 /// modelo de 4 bits sai quebrado nessa placa.
-pub const PASSOS: i32 = 4;
+/// 8. Medido (23/10/2026, voz do usuário, 14 frases em inglês, reconhecidas pelo Parakeet): 4 e
+/// 6 passos 9,1% de palavras erradas (engole palavras), 8 passos 0%. Na Radeon Pro 5500M, 8 passos
+/// gastam ~1 s de cálculo por segundo de fala.
+pub const PASSOS: i32 = 8;
 
 /// Nome da biblioteca ao lado do programa (ou PRAXIS_OMNIVOICE_LIB)
 pub fn caminho_biblioteca() -> std::path::PathBuf {
@@ -248,7 +253,8 @@ impl OmniVoice {
             if ctx.is_null() {
                 bail!("OmniVoice não carregou: {}", CStr::from_ptr((f.last_error)()).to_string_lossy());
             }
-            Ok(Self { _lib: lib, f, ctx: Mutex::new(ctx), referencia: Mutex::new(None), trocada: Mutex::new(None), fixa: Mutex::new(None), passos, dispositivo: dispositivo.into() })
+            let placa = if dispositivo.starts_with("CPU") { None } else { PlacaLigada::pedir() };
+            Ok(Self { _placa: placa, _lib: lib, f, ctx: Mutex::new(ctx), referencia: Mutex::new(None), trocada: Mutex::new(None), fixa: Mutex::new(None), passos, dispositivo: dispositivo.into() })
         }
     }
 
@@ -287,7 +293,9 @@ impl OmniVoice {
     /// Referência ao vivo: o trecho que o usuário acabou de falar (como o Praxis antigo). Trechos
     /// curtos demais ou sem texto mantêm a anterior.
     pub fn referencia_ao_vivo(&self, audio_16k: &[f32], texto: &str) {
-        if std::env::var("PRAXIS_REF_AO_VIVO").is_ok_and(|v| v == "0") {
+        // desligada por padrão: o trecho do microfone, com o ruído do ambiente, piorava a voz em
+        // relação à referência limpa da gravação (23/10/2026). PRAXIS_REF_AO_VIVO=1 liga.
+        if !std::env::var("PRAXIS_REF_AO_VIVO").is_ok_and(|v| v == "1") {
             return;
         }
         let s = audio_16k.len() as f32 / 16_000.0;
@@ -325,11 +333,9 @@ impl OmniVoice {
             p.ref_audio_tokens = r.codigos.as_ptr();
             p.ref_t = r.t;
             p.ref_text = r.texto.as_ptr();
-            if escala < 0.99 {
-                let letras = |t: &str| t.chars().filter(|c| c.is_alphanumeric()).count().max(1) as f32;
-                let por_letra = r.t as f32 / letras(&r.texto.to_string_lossy());
-                p.t_override = ((por_letra * letras(texto) * escala).round() as c_int).max(8);
-            }
+            // a duração fica com o próprio OmniVoice: forçar pelo ritmo da referência (outro
+            // idioma) fazia a voz correr e soar artificial (23/10/2026)
+            let _ = escala;
             let mut out: OvAudio = std::mem::zeroed();
             let st = (self.f.synthesize)(*ctx, &p, &mut out);
             if st != 0 || out.samples.is_null() {
@@ -397,4 +403,49 @@ pub fn trecho_de_referencia(x: &[f32]) -> (usize, usize) {
         }
     }
     ((melhor.0 * q).min(x.len()), (melhor.1 * q).min(x.len()))
+}
+
+/// Mac com duas placas (Intel + AMD): enquanto existir, pede ao macOS que mantenha a placa
+/// dedicada ligada. Sem isso, entre uma fala e outra o macOS desliga a AMD (troca automática de
+/// placa) e cada frase seguinte custava 1,1–1,2 s a mais para religar e restaurar o modelo
+/// (medido 23/10/2026). Funciona como os jogos: um contexto OpenGL sem "renderizadores fora de
+/// linha" obriga o sistema a usar a placa dedicada até ele ser fechado.
+pub struct PlacaLigada(#[allow(dead_code)] *mut c_void);
+unsafe impl Send for PlacaLigada {}
+unsafe impl Sync for PlacaLigada {}
+
+#[cfg(target_os = "macos")]
+#[link(name = "OpenGL", kind = "framework")]
+unsafe extern "C" {
+    fn CGLChoosePixelFormat(attribs: *const c_int, pix: *mut *mut c_void, npix: *mut c_int) -> c_int;
+    fn CGLCreateContext(pix: *mut c_void, share: *mut c_void, ctx: *mut *mut c_void) -> c_int;
+    fn CGLDestroyPixelFormat(pix: *mut c_void) -> c_int;
+    fn CGLDestroyContext(ctx: *mut c_void) -> c_int;
+}
+
+impl PlacaLigada {
+    pub fn pedir() -> Option<Self> {
+        #[cfg(target_os = "macos")]
+        unsafe {
+            let attrs: [c_int; 1] = [0];
+            let (mut pix, mut n, mut ctx) = (std::ptr::null_mut(), 0, std::ptr::null_mut());
+            if CGLChoosePixelFormat(attrs.as_ptr(), &mut pix, &mut n) != 0 || pix.is_null() {
+                return None;
+            }
+            let ok = CGLCreateContext(pix, std::ptr::null_mut(), &mut ctx) == 0 && !ctx.is_null();
+            CGLDestroyPixelFormat(pix);
+            return ok.then_some(Self(ctx));
+        }
+        #[allow(unreachable_code)]
+        None
+    }
+}
+
+impl Drop for PlacaLigada {
+    fn drop(&mut self) {
+        #[cfg(target_os = "macos")]
+        unsafe {
+            CGLDestroyContext(self.0);
+        }
+    }
 }

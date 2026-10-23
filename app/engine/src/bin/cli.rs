@@ -187,7 +187,9 @@ fn main() -> Result<()> {
             eprintln!("referência codificada em {:.2} s", t1.elapsed().as_secs_f32());
             let out = PathBuf::from(pos[7]);
             std::fs::create_dir_all(&out)?;
+            let pausa: f32 = std::env::var("PRAXIS_PAUSA_S").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
             for (i, l) in std::fs::read_to_string(pos[6])?.lines().filter(|l| !l.trim().is_empty()).enumerate() {
+                if pausa > 0.0 { std::thread::sleep(std::time::Duration::from_secs_f32(pausa)); }
                 let t = Instant::now();
                 let a = o.falar(l, pos[5])?;
                 let dt = t.elapsed().as_secs_f32();

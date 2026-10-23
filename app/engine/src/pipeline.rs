@@ -148,6 +148,8 @@ const LIVE_HOLD_BACK: usize = 2;
 /// Menor pedaço falado no modo simultâneo (palavras da tradução), fora o fim da frase. Medido:
 /// a voz come 11–15% das palavras em pedaços de 4 e 1,4–5,5% em pedaços de 6.
 const LIVE_MIN_SPOKEN: usize = 6;
+/// Com o OmniVoice (voz clonada na placa): pedaço mínimo de 16 palavras, fora o fim da frase.
+const LIVE_MIN_SPOKEN_OMNI: usize = 16;
 
 /// Ajuste para medições: PRAXIS_RELEITURA_S, PRAXIS_PALAVRAS_MIN e PRAXIS_SEGURAR substituem
 /// os três valores acima.
@@ -397,7 +399,10 @@ pub fn spawn_direction(
                                 new_tgt.truncate(new_tgt.len().saturating_sub(live_param("PRAXIS_SEGURAR", LIVE_HOLD_BACK)));
                             }
                             // pedaço curto demais (a voz come palavras): espera juntar mais
-                            let curto = !sentence_end && new_tgt.len() < live_param("PRAXIS_FALA_MIN", LIVE_MIN_SPOKEN);
+                            // OmniVoice: cada chamada é uma interpretação nova; pedaços curtos soavam
+                            // picados, então ele fala frases inteiras (ou pedaços longos)
+                            let minimo = if voice.as_ref().is_some_and(|v| v.omnivoice().is_some()) { LIVE_MIN_SPOKEN_OMNI } else { LIVE_MIN_SPOKEN };
+                            let curto = !sentence_end && new_tgt.len() < live_param("PRAXIS_FALA_MIN", minimo);
                             if !new_tgt.is_empty() && !curto {
                                 let src_part = live.committed[live.src_spoken..].to_vec();
                                 speak(id, &src_part, &new_tgt);
