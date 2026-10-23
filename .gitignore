@@ -16,3 +16,5 @@ benchmarks/data/
 
 # Rust: saída da compilação
 app/target/
+.voz-usuario/
+.qa-win/

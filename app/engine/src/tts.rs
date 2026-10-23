@@ -183,6 +183,42 @@ impl Voice {
             .tts
             .generate_with_config::<fn(&[f32], f32) -> bool>(text, &cfg, None)
             .ok_or_else(|| anyhow!("a síntese de voz falhou"))?;
-        Ok(audio.samples().to_vec())
+        Ok(trim_silence(audio.samples(), self.sample_rate))
+    }
+}
+
+/// Corta o silêncio das pontas de um pedaço gerado. Medido (23/10/2026, Supertonic): 10,2 s
+/// de 44,7 s de fala eram silêncio no começo (~0,45 s) e no fim (~0,3 s) de cada pedaço; na
+/// tradução simultânea isso vira fila. Fica uma folga curta para não cortar a respiração.
+pub fn trim_silence(x: &[f32], sample_rate: u32) -> Vec<f32> {
+    let frame = (sample_rate as usize / 50).max(1); // 20 ms
+    let peak = x.iter().fold(0f32, |m, v| m.max(v.abs()));
+    if peak <= 0.0 {
+        return x.to_vec();
+    }
+    let thr = peak * 0.05;
+    let loud = |c: &[f32]| c.iter().any(|v| v.abs() > thr);
+    let frames: Vec<&[f32]> = x.chunks(frame).collect();
+    let (Some(first), Some(last)) = (frames.iter().position(|c| loud(c)), frames.iter().rposition(|c| loud(c))) else {
+        return x.to_vec();
+    };
+    let start = (first * frame).saturating_sub(sample_rate as usize * 40 / 1000);
+    let end = ((last + 1) * frame + sample_rate as usize * 80 / 1000).min(x.len());
+    x[start..end].to_vec()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn corta_o_silencio_das_pontas_e_mantem_a_fala() {
+        let sr = 24_000;
+        let mut x = vec![0.0f32; sr / 2]; // 0,5 s de silêncio
+        x.extend((0..sr).map(|i| (i as f32 * 0.05).sin() * 0.5)); // 1 s de "fala"
+        x.extend(vec![0.0f32; sr / 2]);
+        let y = trim_silence(&x, sr as u32);
+        let s = y.len() as f32 / sr as f32;
+        assert!((1.0..1.2).contains(&s), "sobrou {s} s");
     }
 }

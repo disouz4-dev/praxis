@@ -23,9 +23,10 @@ use crate::tts::PiperVoice;
 use crate::vad::{Segmenter, SegmenterConfig, SileroV6, SR};
 
 /// (atraso de reprodução ≤ s, length_scale): a voz acelera quando a tradução se acumula.
-/// Medido (22/10/2026, Supertonic, pedaços do modo simultâneo): acelerar 1,15× não perde
-/// palavras, mas 1,43× fez a voz comer 55% delas — a aceleração para em 1,15×.
-pub const RATE_STEPS: [(f32, f32); 3] = [(1.5, 1.0), (4.0, 0.93), (f32::INFINITY, 0.87)];
+/// Medido (22/10/2026, Supertonic, pedaços do modo simultâneo): 1,43× fez a voz comer 55% das
+/// palavras. Medido (23/10/2026, voz clonada, frases inteiras): 1,0× 2%, 1,1× 1%, 1,2× 2%,
+/// 1,3× 3,9% de palavras erradas — acelera cedo e para em 1,2×.
+pub const RATE_STEPS: [(f32, f32); 3] = [(0.5, 1.0), (1.5, 0.91), (f32::INFINITY, 0.83)];
 /// Folga da trava de eco depois que o alto-falante para.
 pub const ECHO_TAIL_S: f32 = 0.35;
 
@@ -466,11 +467,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn velocidade_adaptativa_como_no_python() {
+    fn velocidade_adaptativa() {
         assert_eq!(speech_length_scale(0.5), 1.0);
-        assert_eq!(speech_length_scale(3.0), 0.93);
-        assert_eq!(speech_length_scale(6.0), 0.87);
-        // nunca mais rápido que 1,15× (acelerar mais faz a voz comer palavras)
-        assert_eq!(speech_length_scale(30.0), 0.87);
+        assert_eq!(speech_length_scale(1.0), 0.91);
+        assert_eq!(speech_length_scale(3.0), 0.83);
+        // nunca mais rápido que 1,2× (acelerar mais faz a voz comer palavras)
+        assert_eq!(speech_length_scale(30.0), 0.83);
     }
 }
