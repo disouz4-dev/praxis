@@ -272,6 +272,8 @@ fn main() -> Result<()> {
                     let (a, b) = praxis_engine::omni::trecho_de_referencia(&x);
                     let texto = asr.transcribe(&x[a..b], &std::env::var("PRAXIS_OMNI_IDIOMA").unwrap_or_else(|_| "pt".into()))?.text;
                     o.definir_referencia(&x[a..b], &texto)?;
+                    let r = o.medir()?;
+                    eprintln!("placa: {r:.2} s por s de fala; pedaço mínimo {} palavras", o.pedaco_minimo());
                     tts::Voice::omni(Arc::new(o), &tgt)
                 }
                 _ => tts::Voice::load_on(&vdir, &tgt, vthreads, gpu)?,

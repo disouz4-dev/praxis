@@ -180,6 +180,8 @@ pub struct OmniVoice {
     fixa: Mutex<Option<Referencia>>,
     pub passos: i32,
     pub dispositivo: String,
+    /// segundos de cálculo por segundo de fala medidos nesta placa (0 = ainda não medido)
+    pub rtf: Mutex<f32>,
 }
 
 unsafe impl Send for OmniVoice {}
@@ -270,7 +272,7 @@ impl OmniVoice {
                 bail!("OmniVoice não carregou: {}", CStr::from_ptr((f.last_error)()).to_string_lossy());
             }
             let placa = if dispositivo.starts_with("CPU") { None } else { PlacaLigada::pedir() };
-            Ok(Self { _placa: placa, _lib: lib, f, ctx: Mutex::new(ctx), referencia: Mutex::new(None), trocada: Mutex::new(None), fixa: Mutex::new(None), passos, dispositivo: dispositivo.into() })
+            Ok(Self { _placa: placa, _lib: lib, f, ctx: Mutex::new(ctx), referencia: Mutex::new(None), trocada: Mutex::new(None), fixa: Mutex::new(None), passos, dispositivo: dispositivo.into(), rtf: Mutex::new(0.0) })
         }
     }
 
@@ -331,7 +333,17 @@ impl OmniVoice {
     pub fn medir(&self) -> Result<f32> {
         let t = std::time::Instant::now();
         let a = self.falar("Thank you for joining the call, let us start the meeting now.", "en")?;
-        Ok(t.elapsed().as_secs_f32() / (a.len() as f32 / 24_000.0).max(0.5))
+        let r = t.elapsed().as_secs_f32() / (a.len() as f32 / 24_000.0).max(0.5);
+        *self.rtf.lock().unwrap() = r;
+        Ok(r)
+    }
+
+    /// Menor pedaço da tradução simultânea (palavras). Placa rápida (≤ 0,4 s por segundo de fala,
+    /// ex.: RTX 3050 ~0,25): pedaços curtos, a tradução começa enquanto a pessoa fala. Placa lenta
+    /// ou não medida: pedaços longos (cada chamada tem um custo fixo e pedaço curto acumula atraso).
+    pub fn pedaco_minimo(&self) -> usize {
+        let r = *self.rtf.lock().unwrap();
+        if r > 0.0 && r <= 0.4 { 6 } else { 16 }
     }
 
     /// Gera a fala de `texto` em `lang` (código ISO) na voz da referência, a 24 kHz.

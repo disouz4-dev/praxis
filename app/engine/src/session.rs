@@ -352,11 +352,14 @@ impl Session {
                 let texto = asr.transcribe(&x[a..b], &cfg.src)?.text;
                 o.definir_referencia(&x[a..b], &texto)?;
                 // mede a placa uma vez (frase de teste) e guarda
-                if medida.is_none() {
-                    progress(89, "Medindo a sua placa de vídeo…");
-                    if let Ok(rtf) = o.medir() {
-                        crate::omni::guardar_desempenho(store, &o.dispositivo, rtf);
+                match medida {
+                    None => {
+                        progress(89, "Medindo a sua placa de vídeo…");
+                        if let Ok(rtf) = o.medir() {
+                            crate::omni::guardar_desempenho(store, &o.dispositivo, rtf);
+                        }
                     }
+                    Some(r) => *o.rtf.lock().unwrap() = r,
                 }
                 Ok(Arc::new(o))
             })() {
