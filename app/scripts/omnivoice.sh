@@ -9,6 +9,7 @@ cd "$(dirname "$0")/.."
 COMMIT=1a468d8b9d65b3544ca1004d2d7c05dfc65d1f3e
 SRC=target/omnivoice-src
 if [ ! -d "$SRC/.git" ]; then
+  rm -rf "$SRC"   # cópia incompleta (ex.: restaurada pelo cache do GitHub)
   git clone -q https://github.com/ServeurpersoCom/omnivoice.cpp.git "$SRC"
 fi
 git -C "$SRC" fetch -q origin "$COMMIT" 2>/dev/null || true

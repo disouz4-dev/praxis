@@ -52,12 +52,12 @@ jobs:
         with:
           environment-name: vk
           create-args: libvulkan-headers libvulkan-loader shaderc spirv-headers patchelf
-          init-shell: bash
+          init-shell: none
       - name: OmniVoice (voz clonada fiel, Vulkan)
-        shell: bash -el {0}
         run: |
-          export CMAKE_PREFIX_PATH="$CONDA_PREFIX"
-          OMNIVOICE_CMAKE="-DVulkan_INCLUDE_DIR=$CONDA_PREFIX/include -DVulkan_LIBRARY=$CONDA_PREFIX/lib/libvulkan.so -DVulkan_GLSLC_EXECUTABLE=$CONDA_PREFIX/bin/glslc" \
+          P="$MAMBA_ROOT_PREFIX/envs/vk"
+          export CMAKE_PREFIX_PATH="$P" PATH="$PATH:$P/bin"
+          OMNIVOICE_CMAKE="-DVulkan_INCLUDE_DIR=$P/include -DVulkan_LIBRARY=$P/lib/libvulkan.so -DVulkan_GLSLC_EXECUTABLE=$P/bin/glslc" \
             scripts/omnivoice.sh
       - name: Montar o .deb
         run: |
@@ -134,11 +134,12 @@ jobs:
         with:
           environment-name: vk
           create-args: libvulkan-headers libvulkan-loader shaderc spirv-headers
-          init-shell: powershell
+          init-shell: none
       - name: OmniVoice (voz clonada fiel, Vulkan)
         shell: pwsh
         run: |
-          $p = "$env:CONDA_PREFIX\Library"
+          # o conda só neste passo: ativado nos outros, ele trocava o ligador do Visual C++
+          $p = "$env:MAMBA_ROOT_PREFIX\envs\vk\Library"
           $env:CMAKE_PREFIX_PATH = $p
           $env:OMNIVOICE_CMAKE = "-DVulkan_INCLUDE_DIR=$p\include -DVulkan_LIBRARY=$p\lib\vulkan-1.lib -DVulkan_GLSLC_EXECUTABLE=$p\bin\glslc.exe"
           scripts/omnivoice.ps1

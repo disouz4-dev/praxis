@@ -7,7 +7,10 @@ Set-Location (Join-Path $PSScriptRoot "..")
 $commit = "1a468d8b9d65b3544ca1004d2d7c05dfc65d1f3e"
 $src = "target/omnivoice-src"
 # sem conversão de quebra de linha (senão o patch do Praxis não encaixa)
-if (-not (Test-Path "$src/.git")) { git -c core.autocrlf=false clone -q https://github.com/ServeurpersoCom/omnivoice.cpp.git $src }
+if (-not (Test-Path "$src/.git")) {
+  if (Test-Path $src) { Remove-Item -Recurse -Force $src }   # cópia incompleta (cache do GitHub)
+  git -c core.autocrlf=false clone -q https://github.com/ServeurpersoCom/omnivoice.cpp.git $src
+}
 git -C $src config core.autocrlf false
 git -C $src checkout -q -f $commit
 git -C $src submodule update -q --init --recursive
