@@ -76,7 +76,7 @@
    "hw_cpu": "Sem placa de vídeo: processador",
    "hw_detail": "{hw} · reconhecimento de fala {asr} · tradutor {tr}",
    "hw_gpu_found": "Placa de vídeo NVIDIA encontrada",
-   "hw_no_gpu": "Sem placa de vídeo compatível: o Praxis usa o processador",
+   "hw_no_gpu": "nenhuma",
    "diag_line": "{model} para {lang}: {err}",
    "diag_err": "erra cerca de {pct}% das palavras",
    "diag_none": "sem medição",
@@ -197,7 +197,8 @@
    "hw_gpu_label": "Placa de vídeo",
    "hw_mem_label": "Memória",
    "hw_cores": "{f} núcleos, {l} linhas",
-   "hw_mem_used": "{u} GB em uso"
+   "hw_mem_used": "{u} GB em uso",
+   "hw_no_gpu_hint": "o Praxis usa só o processador"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -275,7 +276,7 @@
    "hw_cpu": "No graphics card: processor",
    "hw_detail": "{hw} · speech recognition {asr} · translator {tr}",
    "hw_gpu_found": "NVIDIA graphics card found",
-   "hw_no_gpu": "No compatible graphics card: Praxis uses the processor",
+   "hw_no_gpu": "none",
    "diag_line": "{model} for {lang}: {err}",
    "diag_err": "gets about {pct}% of words wrong",
    "diag_none": "not measured",
@@ -396,7 +397,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -474,7 +476,7 @@
    "hw_cpu": "Sin tarjeta gráfica: procesador",
    "hw_detail": "{hw} · reconocimiento de voz {asr} · traductor {tr}",
    "hw_gpu_found": "Tarjeta gráfica NVIDIA detectada",
-   "hw_no_gpu": "Sin tarjeta gráfica compatible: Praxis usa el procesador",
+   "hw_no_gpu": "ninguna",
    "diag_line": "{model} para {lang}: {err}",
    "diag_err": "falla en cerca del {pct}% de las palabras",
    "diag_none": "sin medición",
@@ -595,7 +597,8 @@
    "hw_gpu_label": "Tarjeta gráfica",
    "hw_mem_label": "Memoria",
    "hw_cores": "{f} núcleos, {l} hilos",
-   "hw_mem_used": "{u} GB en uso"
+   "hw_mem_used": "{u} GB en uso",
+   "hw_no_gpu_hint": "Praxis usa solo el procesador"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -673,7 +676,7 @@
    "hw_cpu": "Sans carte graphique : processeur",
    "hw_detail": "{hw} · reconnaissance vocale {asr} · traducteur {tr}",
    "hw_gpu_found": "Carte graphique NVIDIA détectée",
-   "hw_no_gpu": "Pas de carte graphique compatible : Praxis utilise le processeur",
+   "hw_no_gpu": "none",
    "diag_line": "{model} pour {lang} : {err}",
    "diag_err": "se trompe sur environ {pct} % des mots",
    "diag_none": "non mesuré",
@@ -794,7 +797,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -872,7 +876,7 @@
    "hw_cpu": "Keine Grafikkarte: Prozessor",
    "hw_detail": "{hw} · Spracherkennung {asr} · Übersetzer {tr}",
    "hw_gpu_found": "NVIDIA-Grafikkarte gefunden",
-   "hw_no_gpu": "Keine kompatible Grafikkarte: Praxis nutzt den Prozessor",
+   "hw_no_gpu": "none",
    "diag_line": "{model} für {lang}: {err}",
    "diag_err": "liegt bei etwa {pct} % der Wörter falsch",
    "diag_none": "nicht gemessen",
@@ -993,7 +997,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1071,7 +1076,7 @@
    "hw_cpu": "Nessuna scheda video: processore",
    "hw_detail": "{hw} · riconoscimento vocale {asr} · traduttore {tr}",
    "hw_gpu_found": "Scheda video NVIDIA rilevata",
-   "hw_no_gpu": "Nessuna scheda video compatibile: Praxis usa il processore",
+   "hw_no_gpu": "none",
    "diag_line": "{model} per {lang}: {err}",
    "diag_err": "sbaglia circa il {pct}% delle parole",
    "diag_none": "non misurato",
@@ -1192,7 +1197,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1270,7 +1276,7 @@
    "hw_cpu": "Без видеокарты: процессор",
    "hw_detail": "{hw} · распознавание речи {asr} · переводчик {tr}",
    "hw_gpu_found": "Обнаружена видеокарта NVIDIA",
-   "hw_no_gpu": "Нет совместимой видеокарты: Praxis использует процессор",
+   "hw_no_gpu": "none",
    "diag_line": "{model} для языка «{lang}»: {err}",
    "diag_err": "ошибается примерно в {pct}% слов",
    "diag_none": "не измерено",
@@ -1391,7 +1397,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1469,7 +1476,7 @@
    "hw_cpu": "无显卡：使用处理器",
    "hw_detail": "{hw} · 语音识别 {asr} · 翻译引擎 {tr}",
    "hw_gpu_found": "已检测到 NVIDIA 显卡",
-   "hw_no_gpu": "没有兼容的显卡：Praxis 使用处理器",
+   "hw_no_gpu": "none",
    "diag_line": "{model}（{lang}）：{err}",
    "diag_err": "约 {pct}% 的词识别错误",
    "diag_none": "未测量",
@@ -1590,7 +1597,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1668,7 +1676,7 @@
    "hw_cpu": "Geen videokaart: processor",
    "hw_detail": "{hw} · spraakherkenning {asr} · vertaler {tr}",
    "hw_gpu_found": "NVIDIA-videokaart gevonden",
-   "hw_no_gpu": "Geen compatibele videokaart: Praxis gebruikt de processor",
+   "hw_no_gpu": "none",
    "diag_line": "{model} voor {lang}: {err}",
    "diag_err": "heeft ongeveer {pct}% van de woorden fout",
    "diag_none": "niet gemeten",
@@ -1789,7 +1797,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1867,7 +1876,7 @@
    "hw_cpu": "Bez karty graficznej: procesor",
    "hw_detail": "{hw} · rozpoznawanie mowy {asr} · tłumacz {tr}",
    "hw_gpu_found": "Wykryto kartę graficzną NVIDIA",
-   "hw_no_gpu": "Brak zgodnej karty graficznej: Praxis używa procesora",
+   "hw_no_gpu": "none",
    "diag_line": "{model} dla języka {lang}: {err}",
    "diag_err": "myli się w około {pct}% słów",
    "diag_none": "brak pomiaru",
@@ -1988,7 +1997,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -2066,7 +2076,7 @@
    "hw_cpu": "Без відеокарти: процесор",
    "hw_detail": "{hw} · розпізнавання мовлення {asr} · перекладач {tr}",
    "hw_gpu_found": "Виявлено відеокарту NVIDIA",
-   "hw_no_gpu": "Немає сумісної відеокарти: Praxis використовує процесор",
+   "hw_no_gpu": "none",
    "diag_line": "{model} для мови «{lang}»: {err}",
    "diag_err": "помиляється приблизно в {pct}% слів",
    "diag_none": "не виміряно",
@@ -2187,7 +2197,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2265,7 +2276,7 @@
    "hw_cpu": "Ekran kartı yok: işlemci",
    "hw_detail": "{hw} · konuşma tanıma {asr} · çevirmen {tr}",
    "hw_gpu_found": "NVIDIA ekran kartı bulundu",
-   "hw_no_gpu": "Uyumlu ekran kartı yok: Praxis işlemciyi kullanır",
+   "hw_no_gpu": "none",
    "diag_line": "{lang} için {model}: {err}",
    "diag_err": "kelimelerde yaklaşık %{pct} hata yapar",
    "diag_none": "ölçülmedi",
@@ -2386,7 +2397,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2464,7 +2476,7 @@
    "hw_cpu": "بدون بطاقة رسومات: المعالج",
    "hw_detail": "{hw} · التعرف على الكلام {asr} · المترجم {tr}",
    "hw_gpu_found": "تم العثور على بطاقة رسومات NVIDIA",
-   "hw_no_gpu": "لا توجد بطاقة رسومات متوافقة: يستخدم Praxis المعالج",
+   "hw_no_gpu": "none",
    "diag_line": "{model} للغة {lang}: {err}",
    "diag_err": "يخطئ في نحو {pct}% من الكلمات",
    "diag_none": "غير مُقاس",
@@ -2585,7 +2597,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2663,7 +2676,7 @@
    "hw_cpu": "ग्राफ़िक्स कार्ड नहीं: प्रोसेसर",
    "hw_detail": "{hw} · वाक् पहचान {asr} · अनुवादक {tr}",
    "hw_gpu_found": "NVIDIA ग्राफ़िक्स कार्ड मिला",
-   "hw_no_gpu": "कोई संगत ग्राफ़िक्स कार्ड नहीं: Praxis प्रोसेसर का उपयोग करता है",
+   "hw_no_gpu": "none",
    "diag_line": "{lang} के लिए {model}: {err}",
    "diag_err": "लगभग {pct}% शब्द गलत पहचानता है",
    "diag_none": "माप नहीं हुआ",
@@ -2784,7 +2797,8 @@
    "hw_gpu_label": "Graphics card",
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
-   "hw_mem_used": "{u} GB in use"
+   "hw_mem_used": "{u} GB in use",
+   "hw_no_gpu_hint": "Praxis uses the processor only"
   }
  },
  "lang_names": {

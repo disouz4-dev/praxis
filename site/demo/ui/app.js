@@ -204,6 +204,7 @@ async function atualizarUso() {
     const info = (h.placas || []).find((p) => p.nome === g.nome) || {};
     linhas.push(linha(t("hw_gpu_label"), g.nome, info.memoria_mb ? `${gb(info.memoria_mb)} GB` : "", g.uso, g.uso == null ? t("usage_gpu_idle") : null));
   }
+  if (!(u.placas || []).length) linhas.push(linha(t("hw_gpu_label"), t("hw_no_gpu"), t("hw_no_gpu_hint"), null, "—"));
   const memDet = [mem.tipo, mem.velocidade_mhz ? `${mem.velocidade_mhz} MHz` : null, mem.fabricante].filter(Boolean).join(" · ");
   linhas.push(linha(t("hw_mem_label"), `${gb(u.memoria_total_mb)} GB`, memDet,
     100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), tf("hw_mem_used", { u: gb(u.memoria_usada_mb) })));
