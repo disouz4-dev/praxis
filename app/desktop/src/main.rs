@@ -73,7 +73,8 @@ fn estado_da_voz() -> Value {
             // só vale como voz gravada com 10 s de fala (a mesma regra de quando grava)
             let omni = omni_pronto();
             json!({"existe": fala >= 10.0, "segundos": (fala * 10.0).round() / 10.0, "tom": tom, "caminho": p,
-                   "clonada": omni || clone.is_some(), "omnivoice": omni, "semelhanca": clone.map(|c| c.semelhanca)})
+                   "clonada": omni || clone.is_some(), "omnivoice": omni, "clone_leve": clone.is_some(),
+                   "semelhanca": clone.map(|c| c.semelhanca)})
         }
         Err(_) => json!({"existe": false, "clonada": false}),
     }
@@ -81,9 +82,10 @@ fn estado_da_voz() -> Value {
 
 /// Clona a voz da gravação atual em segundo plano (evento "clonagem": fração, texto, fim, erro).
 /// Uma clonagem anterior em andamento é cancelada.
-fn iniciar_clonagem(handle: tauri::AppHandle) {
-    // com o OmniVoice a gravação já é o clone; o ajuste no processador só roubaria tempo
-    if omni_pronto() {
+fn iniciar_clonagem(handle: tauri::AppHandle, forcar: bool) {
+    // com o OmniVoice a gravação já é o clone; o ajuste no processador só roda quando a pessoa
+    // escolhe a voz leve (senão só roubaria tempo)
+    if omni_pronto() && !forcar {
         let _ = handle.emit("clonagem", json!({"fim": true, "omnivoice": true}));
         return;
     }
@@ -138,7 +140,7 @@ fn clonar_voz(handle: tauri::AppHandle) -> Result<(), String> {
     if !estado_da_voz()["existe"].as_bool().unwrap_or(false) {
         return Err("grave a sua voz antes de clonar".into());
     }
-    iniciar_clonagem(handle);
+    iniciar_clonagem(handle, true);
     Ok(())
 }
 
@@ -395,7 +397,7 @@ fn parar_gravacao_voz(handle: tauri::AppHandle) -> Result<Value, String> {
         std::fs::create_dir_all(p.parent().unwrap()).map_err(|e| e.to_string())?;
         praxis_engine::audio::write_wav16(&p, &x, 16_000).map_err(|e| format!("{e:#}"))?;
         // gravação nova: o Praxis clona a voz sozinho (a anterior deixa de valer)
-        iniciar_clonagem(handle.clone());
+        iniciar_clonagem(handle.clone(), false);
     }
     Ok(json!({"ok": ok, "fala": (fala * 10.0).round() / 10.0, "total": x.len() as f32 / 16_000.0, "tom": tom}))
 }
@@ -421,7 +423,8 @@ fn iniciar(handle: tauri::AppHandle, mut config: SessionConfig) -> Result<(), St
         return Err("grave a sua voz antes de começar (tutorial ou passo \"Sua voz\")".into());
     }
     // a tradução só sai na voz clonada (premissa do Praxis)
-    if !omni_pronto() && clone_em_dia().is_none() {
+    let leve = !(config.omnivoice && omni_pronto());
+    if leve && clone_em_dia().is_none() {
         return Err("a sua voz ainda está sendo clonada; espere terminar (passo \"Sua voz\")".into());
     }
     config.minha_voz = Some(voz_path().to_string_lossy().to_string());

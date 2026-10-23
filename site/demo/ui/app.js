@@ -82,6 +82,7 @@ function verificarIdiomas() {
   const aviso = () => s === d ? t("warn_same_lang")
     : !(ESTADO.voz && ESTADO.voz.existe) ? t("warn_need_voice")
     : !ESTADO.voz.clonada ? t("warn_cloning")
+    : $("voz_modelo").value === "leve" && !ESTADO.voz.clone_leve ? t("warn_cloning")
     : !info(s).liberado ? info(s).motivo
     : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
     : bi && ESTADO.sistema === "windows" && !$("peer_app").value ? t("warn_peer_app")
@@ -589,7 +590,15 @@ async function main() {
   aplicarMonitor();
   $("config_abrir").onclick = () => $("configuracoes").showModal();
   $("config_fechar").onclick = () => $("configuracoes").close();
-  $("voz_modelo").addEventListener("change", () => { cfg.voz_modelo = $("voz_modelo").value; salvar(); });
+  $("voz_modelo").addEventListener("change", () => {
+    cfg.voz_modelo = $("voz_modelo").value; salvar();
+    // a voz leve é um ajuste fino feito no processador: se ainda não existe, começa agora
+    if (cfg.voz_modelo === "leve" && ESTADO.voz?.existe && !ESTADO.voz.clone_leve) {
+      CLONAGEM.fracao = 0; CLONAGEM.erro = ""; ESTADO.voz.clonada = false; atualizarVoz();
+      invoke("clonar_voz").catch((e) => { CLONAGEM.erro = String(e); atualizarVoz(); });
+    }
+    verificarIdiomas();
+  });
   montarVozes();
   $("conversa").dataset.vazio = t("chat_empty");
   atualizarUso(); setInterval(atualizarUso, 2000);
