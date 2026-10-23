@@ -149,6 +149,10 @@ jobs:
       - name: Compilar
         run: |
           $ErrorActionPreference = "Stop"
+          # o ligador do Visual C++ pelo caminho completo: com o conda no fluxo, o Rust achava
+          # antes o link.exe do Git (C:\Program Files\Git\usr\bin)
+          $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = Join-Path $env:VCToolsInstallDir "bin\Hostx64\x64\link.exe"
+          Write-Host "ligador: $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER"
           # o motor primeiro: o aplicativo confere, ao compilar, as DLLs que o instalador leva
           scripts/cargo-windows.ps1 build --release -p praxis-engine
           if ($LASTEXITCODE -ne 0) { exit 1 }
