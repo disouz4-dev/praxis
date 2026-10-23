@@ -112,6 +112,8 @@ pub struct Direction {
     pub echo_gate: bool,
     /// o que esta direção toca vaza para o microfone do usuário (caixa de som, sem fone)
     pub leaks: bool,
+    /// se presente, só vaza enquanto este sinal estiver ligado (a monitoria liga e desliga ao vivo)
+    pub leak_when: Option<Arc<AtomicBool>>,
     /// tradução simultânea: fala a tradução enquanto a pessoa ainda fala (a premissa do
     /// Praxis); falso = espera o fim de cada trecho
     pub simultaneous: bool,
@@ -474,7 +476,7 @@ pub fn spawn_direction(
                 };
                 let dur = pcm.len() as f32 / sr as f32;
                 let start = shared.now_s();
-                if dir.to_speaker && dir.leaks {
+                if dir.to_speaker && dir.leaks && dir.leak_when.as_ref().is_none_or(|f| f.load(Ordering::Relaxed)) {
                     let until = ((start + dur + ECHO_TAIL_S) * 1000.0) as u64;
                     shared.speaker_busy_until_ms.fetch_max(until, Ordering::Relaxed);
                 }

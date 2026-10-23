@@ -368,6 +368,14 @@ fn abrir_relato(corpo: String) -> Result<(), String> {
     erros::abrir_relato(&corpo)
 }
 
+/// Liga ou desliga a monitoria (ouvir a própria tradução) com a tradução em andamento.
+#[tauri::command]
+fn definir_monitor(handle: tauri::AppHandle, ligado: bool) {
+    if let Some(s) = handle.state::<App>().session.lock().unwrap().as_ref() {
+        s.set_monitor(ligado);
+    }
+}
+
 #[tauri::command]
 fn parar(handle: tauri::AppHandle) {
     let s = handle.state::<App>().session.lock().unwrap().take();
@@ -383,7 +391,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

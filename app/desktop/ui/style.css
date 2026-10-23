@@ -271,3 +271,7 @@ button.gravar.ativo { background: #7f1d1d; box-shadow: 0 0 0 3px rgba(220, 38, 3
 .grav-resultado { margin: 6px 0 0; font-size: 13.5px; }
 .grav-resultado.ok { color: #86efac; }
 .grav-resultado.aviso { color: var(--aviso); }
+
+/* monitoria no painel ao vivo */
+.monitoria { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.monitoria .campo { flex: 1 1 200px; margin: 0; }

@@ -45,10 +45,6 @@
           <div class="medidor" id="medidor" hidden><i id="medidor_barra"></i></div>
           <p id="dica_medidor" class="dica" data-t="hint_mic_test" hidden></p>
           <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
-          <!-- monitoria: ouvir a própria tradução (o botão da versão antiga) -->
-          <button id="monitor_btn" class="interruptor" type="button" aria-pressed="false"></button>
-          <input type="checkbox" id="monitor" hidden>
-          <label id="saida_linha" class="campo" hidden><span data-t="lbl_monitor_out"></span><select id="output"></select></label>
           <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
         </li>
         <li>
@@ -117,6 +113,12 @@
         <div id="barra"><div id="barra_cheia"></div></div>
         <p id="baixando" class="dica"></p>
         <p id="microfone_virtual" class="destaque" hidden></p>
+        <!-- monitoria: ouvir a própria tradução; liga e desliga durante a tradução -->
+        <div class="monitoria">
+          <button id="monitor_btn" class="interruptor" type="button" aria-pressed="false"></button>
+          <input type="checkbox" id="monitor" hidden>
+          <label id="saida_linha" class="campo" hidden><span data-t="lbl_monitor_out"></span><select id="output"></select></label>
+        </div>
       </div>
       <div class="cartao conversa" id="conversa"></div>
     </section>

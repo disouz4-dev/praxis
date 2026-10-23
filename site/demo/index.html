@@ -60,6 +60,7 @@ window.__TAURI__ = {
           return { ok: fala >= 10, fala, total };
         }
         case "estado_voz": return { existe: vozGravada, segundos: vozSeg };
+        case "definir_monitor": return null;
         case "parar_teste_microfone": clearInterval(testeMic); emitir({ nivel: 0, parou: true }, "nivel_mic"); return null;
         case "relatorio_de_erros": return "**Versão:** 0.3.4 · **Sistema:** demonstração\n\n### Últimos erros\n(nenhum erro registrado)";
         case "abrir_relato": window.open("https://github.com/disouz4-dev/praxis/issues", "_blank"); return null;

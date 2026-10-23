@@ -174,7 +174,7 @@ fn main() -> Result<()> {
             let (atx, arx) = std::sync::mpsc::channel();
             let (etx, erx) = std::sync::mpsc::channel();
             let shared = pipeline::Shared::new();
-            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, leaks: false, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, leaks: false, leak_when: None, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             let cfg = vad::SegmenterConfig { max_seg_s: max_seg, ..Default::default() };
             let handles = pipeline::spawn_direction(arx, asr, translator, Some(voice), Arc::new(FakeSpeaker), dir, cfg,
                                                      pos[2].to_string(), shared.clone(), etx)?;
@@ -365,7 +365,7 @@ fn main() -> Result<()> {
             let (mtx, mrx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(opt("--mic"), mtx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
             let dir_out = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(),
-                to_speaker: ouvir, echo_gate: !fones && (ouvir || opt("--voz-in").is_some()), leaks: ouvir && !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+                to_speaker: ouvir, echo_gate: !fones && (ouvir || opt("--voz-in").is_some()), leaks: ouvir && !fones, leak_when: None, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, Some(voice_out),
                 Arc::new(devices::Speakers(outs, Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
             // volta (bilateral): a outra pessoa → tradução → meu fone/caixa de som
@@ -374,7 +374,7 @@ fn main() -> Result<()> {
                 let (ptx, prx) = std::sync::mpsc::channel();
                 handles.push(devices::spawn_peer_capture(&vm, ptx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
                 let dir_in = pipeline::Direction { name: "in".into(), src: tgt.clone(), tgt: src.clone(),
-                    to_speaker: true, echo_gate: false, leaks: !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+                    to_speaker: true, echo_gate: false, leaks: !fones, leak_when: None, simultaneous: !args.iter().any(|a| a == "--por-frase") };
                 // a trava de eco da ida também precisa saber quando a volta toca no alto-falante
                 handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, Some(voice_in),
                     Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?], Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_in, cfg,

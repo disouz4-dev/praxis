@@ -154,6 +154,8 @@ function aplicarMonitor() {
   $("monitor_btn").setAttribute("aria-pressed", String(on));
   $("monitor_btn").classList.toggle("ligado", on);
   $("saida_linha").hidden = !on;
+  // com a tradução em andamento, vale na hora (sem reiniciar)
+  if (rodando) invoke("definir_monitor", { ligado: on }).catch(() => {});
 }
 
 // Painel lateral da tradução ao vivo: a janela se alarga e a conversa aparece à direita
@@ -459,6 +461,7 @@ function eventoDoMotor(e) {
       aplicarTextos(); statusT("st_stopped");
       // as configurações voltam a responder; o painel fica aberto com a conversa (✕ fecha)
       $("config").inert = false; $("config").hidden = false; $("barra").hidden = true; document.body.classList.remove("rodando");
+      $("output").disabled = false;
       break;
   }
 }
@@ -480,6 +483,7 @@ async function iniciarOuParar() {
   await salvar();
   rodando = true;
   $("config").inert = true; $("barra").hidden = false; document.body.classList.add("rodando"); abrirPainel(true);
+  $("output").disabled = true; // a saída da monitoria é aberta ao começar; troca só parando
   $("conversa").replaceChildren(); ultimoBalao = null; $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
   $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
   try { await invoke("iniciar", { config: cfg }); }
