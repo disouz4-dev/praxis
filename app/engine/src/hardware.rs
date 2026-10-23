@@ -75,7 +75,7 @@ fn placas() -> Vec<Value> {
         let s = powershell("Get-CimInstance Win32_VideoController | Select-Object Name,AdapterRAM | ConvertTo-Json -Compress");
         for g in lista_json(&s) {
             let n = g["Name"].as_str().unwrap_or("").to_string();
-            if n.is_empty() || n.contains("Basic Display") { continue; }
+            if n.is_empty() || ["Basic Display", "Basic Render", "Básico", "Basico"].iter().any(|b| n.contains(b)) { continue; }
             // AdapterRAM é de 32 bits (para em 4 GB): só vale abaixo disso
             let mem = g["AdapterRAM"].as_u64().filter(|&b| b > 0 && b < 4_294_967_295).map(|b| b / 1_048_576);
             v.push(json!({"nome": n, "memoria_mb": mem}));

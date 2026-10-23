@@ -49,11 +49,10 @@ fn clone_info_path() -> PathBuf {
 /// O OmniVoice (clone na placa de vídeo) está instalado? Com ele, a gravação já é o clone: não
 /// há ajuste a esperar.
 fn omni_pronto() -> bool {
+    // a biblioteca acompanha o Praxis e há uma placa de vídeo de verdade (identificada pelo
+    // próprio Praxis); os modelos (1,4 GB) baixam sozinhos no primeiro uso
     praxis_engine::omni::caminho_biblioteca().exists()
-        && ModelStore::default_location().is_ok_and(|s| {
-            let d = s.omnivoice_dir();
-            d.join(praxis_engine::models::OMNI_MODELO).exists() && d.join(praxis_engine::models::OMNI_CODEC).exists()
-        })
+        && praxis_engine::hardware::identificar()["placas"].as_array().is_some_and(|p| !p.is_empty())
 }
 
 /// A voz clonada existe e foi feita a partir da gravação atual?
