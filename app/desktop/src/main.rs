@@ -133,6 +133,23 @@ async fn uso_do_sistema(app: State<'_, App>) -> Result<Value, String> {
     Ok(app.uso.ler())
 }
 
+/// Registro vindo da tela: erros de JavaScript vão para o erros.log (monitor de erros); com
+/// PRAXIS_DEPURAR, tudo sai também no terminal.
+#[tauri::command]
+fn log_tela(nivel: String, msg: String) {
+    if std::env::var_os("PRAXIS_DEPURAR").is_some() {
+        eprintln!("[tela {nivel}] {msg}");
+    }
+    if nivel == "erro" {
+        erros::registrar("tela", &msg);
+    }
+}
+
+#[tauri::command]
+fn modo_depurar() -> bool {
+    std::env::var_os("PRAXIS_DEPURAR").is_some()
+}
+
 /// O hardware da máquina, identificado pelo próprio sistema.
 #[tauri::command]
 async fn hardware() -> Value {
@@ -502,7 +519,7 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, uso_do_sistema, hardware, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, uso_do_sistema, hardware, log_tela, modo_depurar, modo_qa, verificar_atualizacao, atualizar])
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {

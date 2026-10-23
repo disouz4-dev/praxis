@@ -29,6 +29,8 @@
       <button id="erro_relatar" class="pequeno" data-t="btn_send_report"></button>
     </div>
     <!-- tela principal: idiomas, voz e iniciar; a conversa logo abaixo -->
+    <!-- uso do computador, sempre à vista: processador, cada placa de vídeo e memória -->
+    <div id="medidores" class="medidores" role="status" aria-live="off"></div>
     <section id="inicio">
       <!-- o que mais importa: quem fala o quê -->
       <div class="par">
@@ -69,63 +71,67 @@
 
   <!-- Configurações: tudo o que não é "falar agora" -->
   <dialog id="configuracoes" aria-labelledby="config_titulo">
-    <div class="painel-topo"><h2 id="config_titulo" data-t="settings_title"></h2>
-      <button id="config_fechar" class="icone" type="button" data-t-title="btn_close" aria-label="Fechar">✕</button></div>
-    <section id="config">
-      <ol class="passos">
-        <li>
-          <label class="campo"><span data-t="lbl_your_mic"></span>
-            <span class="linha-botao"><select id="mic"></select>
-              <button id="testar_mic" class="secundario" type="button" data-t="btn_test_mic"></button></span>
-          </label>
-          <div class="medidor" id="medidor" hidden><i id="medidor_barra"></i></div>
-          <p id="dica_medidor" class="dica" data-t="hint_mic_test" hidden></p>
-          <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
-          <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
-        </li>
-        <li>
-          <p class="campo-titulo" data-t="lbl_your_voice"></p>
-          <p id="voz_estado" class="voz-estado" role="status" aria-live="polite"></p>
-          <button id="voz_gravar_btn" class="secundario" type="button"></button>
-          <button id="voz_clonar_btn" class="secundario" type="button" data-t="btn_clone_again" hidden></button>
-        </li>
-        <li>
-          <p class="campo-titulo" data-t="lbl_call_app_mic"></p>
-          <p class="praxis-mic"><b>Praxis Mic</b></p>
-        </li>
-        <li>
-          <fieldset class="modo">
-            <legend data-t="lbl_who_translated"></legend>
-            <label class="opcao-modo"><input type="radio" name="modo" id="modo_eu">
-              <span><b data-t="opt_only_me"></b><small data-t="opt_only_me_hint"></small></span></label>
-            <label class="opcao-modo"><input type="radio" name="modo" id="modo_dois">
-              <span><b data-t="opt_both"></b><small data-t="opt_both_hint"></small></span></label>
-          </fieldset>
-          <input type="checkbox" id="bilateral" hidden>
-          <div id="bilateral_opcoes" hidden>
-            <label class="campo"><span data-t="lbl_peer_app"></span>
-              <span class="linha-botao"><select id="peer_app"></select><button id="atualizar_apps" class="icone" type="button" data-t-title="ttl_refresh_apps" aria-label="Atualizar a lista de apps">↻</button></span>
-            </label>
-            <p id="dica_peer_app" class="dica"></p>
-            <div class="escolha"><span data-t="lbl_peer_mode"></span>
-              <label class="chave"><input type="radio" name="peer_modo" id="peer_voz"><span data-t="opt_peer_voice"></span></label>
-              <label class="chave"><input type="radio" name="peer_modo" id="peer_legenda"><span data-t="opt_peer_subtitles"></span></label>
-            </div>
-            <label id="original_linha" class="chave"><input type="checkbox" id="original"><span data-t="lbl_original"></span></label>
-            <label id="original_volume_linha" class="volume" hidden><span data-t="lbl_original_volume"></span>
-              <input type="range" id="original_volume" min="5" max="60" step="5"><output id="original_volume_valor"></output></label>
-          </div>
-        </li>
-      </ol>
-
+    <header class="cfg-topo">
+      <h2 id="config_titulo" data-t="settings_title"></h2>
+      <button id="config_fechar" class="icone" type="button" data-t-title="btn_close" aria-label="Fechar">✕</button>
+    </header>
+    <div id="config" class="cfg-corpo">
       <!-- o hardware da máquina, identificado pelo próprio Praxis, e o uso de cada peça -->
-      <section class="computador" aria-labelledby="computador_titulo">
-        <p id="computador_titulo" class="campo-titulo" data-t="sec_computer"></p>
+      <section class="cfg-secao computador" aria-labelledby="computador_titulo">
+        <h3 id="computador_titulo" data-t="sec_computer"></h3>
         <div id="uso" class="uso" role="status" aria-live="off"></div>
         <p id="computador_sistema" class="dica"></p>
       </section>
 
-      <details class="mais">
+      <section class="cfg-secao" aria-labelledby="cfg_audio">
+        <h3 id="cfg_audio" data-t="sec_audio"></h3>
+        <label class="campo"><span data-t="lbl_your_mic"></span>
+          <span class="linha-botao"><select id="mic"></select>
+            <button id="testar_mic" class="secundario" type="button" data-t="btn_test_mic"></button></span>
+        </label>
+        <div class="medidor" id="medidor" hidden><i id="medidor_barra"></i></div>
+        <p id="dica_medidor" class="dica" data-t="hint_mic_test" hidden></p>
+        <label class="chave"><input type="checkbox" id="headphones"><span data-t="lbl_headphones"></span></label>
+        <p id="aviso_eco" class="aviso" data-t="warn_echo" hidden></p>
+      </section>
+
+      <section class="cfg-secao" aria-labelledby="cfg_voz">
+        <h3 id="cfg_voz" data-t="lbl_your_voice"></h3>
+        <p id="voz_estado" class="voz-estado" role="status" aria-live="polite"></p>
+        <div class="cfg-botoes">
+          <button id="voz_gravar_btn" class="secundario" type="button"></button>
+          <button id="voz_clonar_btn" class="secundario" type="button" data-t="btn_clone_again" hidden></button>
+        </div>
+      </section>
+
+      <section class="cfg-secao" aria-labelledby="cfg_chamada">
+        <h3 id="cfg_chamada" data-t="sec_call"></h3>
+        <p class="dica" data-t="lbl_call_app_mic"></p>
+        <p class="praxis-mic"><b>Praxis Mic</b></p>
+        <fieldset class="modo">
+          <legend data-t="lbl_who_translated"></legend>
+          <label class="opcao-modo"><input type="radio" name="modo" id="modo_eu">
+            <span><b data-t="opt_only_me"></b><small data-t="opt_only_me_hint"></small></span></label>
+          <label class="opcao-modo"><input type="radio" name="modo" id="modo_dois">
+            <span><b data-t="opt_both"></b><small data-t="opt_both_hint"></small></span></label>
+        </fieldset>
+        <input type="checkbox" id="bilateral" hidden>
+        <div id="bilateral_opcoes" hidden>
+          <label class="campo"><span data-t="lbl_peer_app"></span>
+            <span class="linha-botao"><select id="peer_app"></select><button id="atualizar_apps" class="icone" type="button" data-t-title="ttl_refresh_apps" aria-label="Atualizar a lista de apps">↻</button></span>
+          </label>
+          <p id="dica_peer_app" class="dica"></p>
+          <div class="escolha"><span data-t="lbl_peer_mode"></span>
+            <label class="chave"><input type="radio" name="peer_modo" id="peer_voz"><span data-t="opt_peer_voice"></span></label>
+            <label class="chave"><input type="radio" name="peer_modo" id="peer_legenda"><span data-t="opt_peer_subtitles"></span></label>
+          </div>
+          <label id="original_linha" class="chave"><input type="checkbox" id="original"><span data-t="lbl_original"></span></label>
+          <label id="original_volume_linha" class="volume" hidden><span data-t="lbl_original_volume"></span>
+            <input type="range" id="original_volume" min="5" max="60" step="5"><output id="original_volume_valor"></output></label>
+        </div>
+      </section>
+
+      <details class="cfg-secao mais">
         <summary data-t="sec_more"></summary>
         <label class="campo"><span data-t="sec_whisper"></span>
           <select id="model">
@@ -145,8 +151,7 @@
         <p id="hardware" class="dica"></p>
         <p id="diagnostico" class="dica"></p>
       </details>
-    </section>
-
+    </div>
   </dialog>
 
   <!-- Tutorial da primeira vez (obrigatório, com "Pular tutorial"); de novo em ⓘ Sobre -->

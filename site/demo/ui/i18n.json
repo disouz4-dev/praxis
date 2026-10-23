@@ -198,7 +198,10 @@
    "hw_mem_label": "Memória",
    "hw_cores": "{f} núcleos, {l} linhas",
    "hw_mem_used": "{u} GB em uso",
-   "hw_no_gpu_hint": "o Praxis usa só o processador"
+   "hw_no_gpu_hint": "o Praxis usa só o processador",
+   "hw_reading": "Lendo o hardware…",
+   "hw_error": "Não deu para ler o hardware: {e}",
+   "sec_call": "Na chamada"
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -398,7 +401,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -598,7 +604,10 @@
    "hw_mem_label": "Memoria",
    "hw_cores": "{f} núcleos, {l} hilos",
    "hw_mem_used": "{u} GB en uso",
-   "hw_no_gpu_hint": "Praxis usa solo el procesador"
+   "hw_no_gpu_hint": "Praxis usa solo el procesador",
+   "hw_reading": "Leyendo el hardware…",
+   "hw_error": "No se pudo leer el hardware: {e}",
+   "sec_call": "En la llamada"
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -798,7 +807,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -998,7 +1010,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1198,7 +1213,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1207,7 +1225,7 @@
    "btn_save": "Сохранить",
    "btn_start": "Начать перевод",
    "btn_stop": "Стоп",
-   "sec_audio": "Аудио",
+   "sec_audio": "Audio",
    "sec_langs": "Языки",
    "sec_whisper": "Модель Whisper",
    "sec_voice_out": "Выходной голос",
@@ -1398,7 +1416,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1407,7 +1428,7 @@
    "btn_save": "保存",
    "btn_start": "开始翻译",
    "btn_stop": "停止",
-   "sec_audio": "音频",
+   "sec_audio": "Audio",
    "sec_langs": "语言",
    "sec_whisper": "Whisper 模型",
    "sec_voice_out": "输出语音",
@@ -1598,7 +1619,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1798,7 +1822,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -1998,7 +2025,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -2007,7 +2037,7 @@
    "btn_save": "Зберегти",
    "btn_start": "Почати переклад",
    "btn_stop": "Стоп",
-   "sec_audio": "Аудіо",
+   "sec_audio": "Audio",
    "sec_langs": "Мови",
    "sec_whisper": "Модель Whisper",
    "sec_voice_out": "Вихідний голос",
@@ -2198,7 +2228,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2207,7 +2240,7 @@
    "btn_save": "Kaydet",
    "btn_start": "Çevirmeye başla",
    "btn_stop": "Durdur",
-   "sec_audio": "Ses",
+   "sec_audio": "Audio",
    "sec_langs": "Diller",
    "sec_whisper": "Whisper Modeli",
    "sec_voice_out": "Çıkış sesi",
@@ -2398,7 +2431,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2407,7 +2443,7 @@
    "btn_save": "حفظ",
    "btn_start": "ابدأ الترجمة",
    "btn_stop": "إيقاف",
-   "sec_audio": "الصوت",
+   "sec_audio": "Audio",
    "sec_langs": "اللغات",
    "sec_whisper": "نموذج Whisper",
    "sec_voice_out": "صوت الإخراج",
@@ -2598,7 +2634,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2607,7 +2646,7 @@
    "btn_save": "सहेजें",
    "btn_start": "अनुवाद शुरू करें",
    "btn_stop": "रोकें",
-   "sec_audio": "ऑडियो",
+   "sec_audio": "Audio",
    "sec_langs": "भाषाएं",
    "sec_whisper": "Whisper मॉडल",
    "sec_voice_out": "आउटपुट आवाज़",
@@ -2798,7 +2837,10 @@
    "hw_mem_label": "Memory",
    "hw_cores": "{f} cores, {l} threads",
    "hw_mem_used": "{u} GB in use",
-   "hw_no_gpu_hint": "Praxis uses the processor only"
+   "hw_no_gpu_hint": "Praxis uses the processor only",
+   "hw_reading": "Reading the hardware…",
+   "hw_error": "Could not read the hardware: {e}",
+   "sec_call": "On the call"
   }
  },
  "lang_names": {

@@ -293,3 +293,38 @@ header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .uso-barra.medio i { background: var(--aviso); }
 .uso-barra.alto i { background: var(--erro); }
 .uso-barra.repouso i { background: transparent; }
+
+#inicio { display: grid; gap: 10px; margin-bottom: 12px; }
+#inicio .voz-linha { margin: 0; }
+#painel .painel-topo #painel_fechar { display: none; }
+#painel .conversa { min-height: 200px; height: calc(100vh - 470px); }
+#painel .conversa:empty::before { content: attr(data-vazio); color: var(--suave); font-size: 13px; }
+
+/* monitor sempre visível na tela principal: processador, cada placa e memória, pelo nome */
+.medidores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin: 0 0 12px; }
+.medidor-hw { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 7px 10px 8px; min-width: 0; }
+.medidor-hw .m-topo { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.medidor-hw .m-tipo { font-size: 10.5px; color: var(--suave); }
+.medidor-hw .m-pct { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); }
+.medidor-hw .m-nome { font-size: 11.5px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0 5px; }
+.medidor-hw .uso-barra, .uso-linha .uso-barra { display: block; height: 4px; border-radius: 2px; background: var(--campo); overflow: hidden; margin: 0; }
+.medidor-hw .uso-barra i, .uso-linha .uso-barra i { display: block; width: 100%; height: 100%; }
+.medidor-hw.repouso .m-pct { color: var(--suave); font-weight: 400; }
+
+/* Configurações: seções em cartões, cabeçalho fixo */
+dialog#configuracoes { width: min(600px, 94vw); max-height: 90vh; padding: 0; overflow: hidden; border: 1px solid var(--borda);
+  border-radius: 16px; background: var(--fundo); color: var(--texto); }
+dialog#configuracoes[open] { display: flex; flex-direction: column; animation: tut-entra .22s cubic-bezier(.2, .8, .2, 1); }
+dialog#configuracoes::backdrop { background: rgba(6, 8, 12, .7); }
+.cfg-topo { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--borda); background: var(--cartao); }
+.cfg-topo h2 { margin: 0; font-size: 16px; color: var(--texto); font-weight: 600; }
+.cfg-corpo { overflow: auto; padding: 14px 16px 18px; display: grid; gap: 12px; }
+.cfg-secao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; margin: 0; }
+.cfg-secao > h3, .cfg-secao > summary { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--suave); }
+.cfg-secao .campo { margin: 0 0 10px; }
+.cfg-secao .praxis-mic { margin: 4px 0 12px; }
+.cfg-secao .modo { margin: 0; padding: 0; border: 0; }
+.cfg-secao .modo legend { font-size: 12px; color: var(--suave); margin-bottom: 6px; padding: 0; }
+.cfg-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+details.cfg-secao > summary { cursor: pointer; margin: 0; }
+details.cfg-secao[open] > summary { margin-bottom: 10px; }

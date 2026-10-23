@@ -177,13 +177,44 @@ function montarVozes() {
   vivo("voz_resumo", () => !v.existe ? t("voice_missing_main") : "");
 }
 
+// erros da tela também vão para o monitor de erros (erros.log)
+window.addEventListener("error", (e) => window.__TAURI__?.core.invoke("log_tela", { nivel: "erro", msg: `${e.message} (${e.filename}:${e.lineno})` }).catch(() => {}));
+window.addEventListener("unhandledrejection", (e) => window.__TAURI__?.core.invoke("log_tela", { nivel: "erro", msg: String(e.reason) }).catch(() => {}));
+
 // Seu computador (em Configurações): o hardware identificado pelo próprio Praxis e o uso de cada peça
 let HARDWARE = null;
+// Monitor da tela principal, sempre à vista
+function montarMedidores(u) {
+  const h = HARDWARE || {}, mem = h.memoria || {};
+  const gb = (mb) => (mb / 1024).toLocaleString(cfg.ui_lang, { maximumFractionDigits: mb >= 10240 ? 0 : 1 });
+  const m = (tipo, nome, pct, texto) => {
+    const d = document.createElement("div"); d.className = "medidor-hw" + (pct == null ? " repouso" : "");
+    d.innerHTML = '<div class="m-topo"><span class="m-tipo"></span><span class="m-pct"></span></div><div class="m-nome"></div><span class="uso-barra"><i></i></span>';
+    d.querySelector(".m-tipo").textContent = tipo;
+    d.querySelector(".m-nome").textContent = nome; d.title = nome;
+    d.querySelector(".m-pct").textContent = texto ?? `${Math.round(pct ?? 0)}%`;
+    const b = d.querySelector(".uso-barra"); const p = pct ?? 0;
+    b.className = "uso-barra" + (pct == null ? " repouso" : p >= 85 ? " alto" : p >= 60 ? " medio" : "");
+    b.querySelector("i").style.transform = `scaleX(${Math.min(1, p / 100)})`;
+    return d;
+  };
+  const itens = [m(t("hw_cpu_label"), h.processador?.nome || "…", u.cpu)];
+  for (const g of u.placas || []) itens.push(m(t("hw_gpu_label"), g.nome, g.uso, g.uso == null ? t("usage_gpu_idle") : null));
+  if (!(u.placas || []).length) itens.push(m(t("hw_gpu_label"), t("hw_no_gpu"), null, "—"));
+  itens.push(m(t("hw_mem_label"), [`${gb(u.memoria_total_mb)} GB`, mem.tipo].filter(Boolean).join(" "),
+    100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), `${gb(u.memoria_usada_mb)} GB`));
+  $("medidores").replaceChildren(...itens);
+}
+
 async function atualizarUso() {
-  if (!$("configuracoes").open) return;
-  if (!HARDWARE) { try { HARDWARE = await invoke("hardware"); } catch { return; } }
+  if ($("configuracoes").open && !$("uso").children.length) fixo("computador_sistema", t("hw_reading"));
+  const falhou = (e) => { fixo("computador_sistema", tf("hw_error", { e: String(e) })); invoke("log_tela", { nivel: "erro", msg: "Seu computador: " + e }).catch(() => {}); };
+  if (!HARDWARE) { try { HARDWARE = await invoke("hardware"); } catch (e) { return falhou(e); } }
   let u;
-  try { u = await invoke("uso_do_sistema"); } catch { return; }
+  try { u = await invoke("uso_do_sistema"); } catch (e) { return falhou(e); }
+  invoke("log_tela", { nivel: "info", msg: "uso " + JSON.stringify(u) }).catch(() => {});
+  montarMedidores(u);
+  if (!$("configuracoes").open) return;
   const gb = (mb) => (mb / 1024).toLocaleString(cfg.ui_lang, { maximumFractionDigits: mb >= 10240 ? 0 : 1 });
   const linha = (rotulo, nome, detalhe, pct, texto) => {
     const d = document.createElement("div"); d.className = "uso-linha";
@@ -675,7 +706,9 @@ async function main() {
     if (e.e === "engine") eventoDoMotorInterno(e.ev);
     else eventoDoMotor(e);
   });
-  if (await invoke("modo_qa")) iniciarOuParar();   // verificação de qualidade automática
+  if (await invoke("modo_qa")) iniciarOuParar();
+  // verificação: abre as Configurações sozinho (o que a tela lê sai no terminal)
+  if (await invoke("modo_depurar").catch(() => false)) setTimeout(() => $("config_abrir").click(), 1500);   // verificação de qualidade automática
   else if (!cfg.tutorial_feito) abrirTutorial();    // primeira vez: tutorial obrigatório
   verificarAtualizacao();
 }
