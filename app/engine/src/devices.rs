@@ -131,7 +131,9 @@ pub fn spawn_capture(device: Option<String>, tx: Sender<Vec<f32>>, stop: Arc<Ato
     let (ready_tx, ready_rx) = std::sync::mpsc::channel::<Result<()>>();
     let h = std::thread::spawn(move || {
         let start = || -> Result<cpal::Stream> {
+            let t0 = std::time::Instant::now();
             let dev = find_input(device.as_deref())?;
+            if std::env::var_os("PRAXIS_DEPURAR").is_some() { eprintln!("[microfone] achado em {} ms", t0.elapsed().as_millis()); }
             let sup = dev.default_input_config().context("configuração do microfone")?;
             let (ch, rate, fmt) = (sup.channels() as usize, sup.sample_rate(), sup.sample_format());
             let state = Arc::new(Mutex::new((Resampler::new(rate, SR as u32), Vec::<f32>::new())));
@@ -144,7 +146,12 @@ pub fn spawn_capture(device: Option<String>, tx: Sender<Vec<f32>>, stop: Arc<Ato
                     let _ = tx.send(chunk);
                 }
             };
-            let cfg = sup.config();
+            let mut cfg = sup.config();
+            // blocos de ~20 ms: com o tamanho padrão do PulseAudio (~170 ms) o medidor andava aos
+            // trancos e cada bloco somava atraso à tradução (medido 24/10/2026, lab2)
+            if let cpal::SupportedBufferSize::Range { min, max } = sup.buffer_size() {
+                cfg.buffer_size = cpal::BufferSize::Fixed((rate / 50).clamp(*min, *max));
+            }
             // qualquer formato da placa (16 ou 32 bits inteiros, ponto flutuante…): a média dos
             // canais em f32 (placas profissionais, como a Scarlett, usam 32 bits inteiros)
             fn input<T: cpal::SizedSample>(dev: &cpal::Device, cfg: cpal::StreamConfig, ch: usize,

@@ -214,7 +214,9 @@ impl Voice {
     /// Sintetiza `text`; `length_scale` < 1 fala mais rápido (velocidade adaptativa do Praxis).
     pub fn synthesize(&self, text: &str, length_scale: f32) -> Result<Vec<f32>> {
         if let Kind::Omni { omni, lang } = &self.kind {
-            return Ok(trim_silence(&omni.falar_escala(text, lang, length_scale)?, self.sample_rate));
+            // números por extenso: em algarismos o OmniVoice lia "2026" como "to measurement 6"
+            let texto = crate::text::numeros_por_extenso(text, lang);
+            return Ok(trim_silence(&omni.falar_escala(&texto, lang, length_scale)?, self.sample_rate));
         }
         let mut cfg = GenerationConfig { speed: 1.0 / length_scale.max(0.1), ..Default::default() };
         match &self.kind {

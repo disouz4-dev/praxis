@@ -249,3 +249,162 @@ mod tests {
         assert_eq!(chunk_for_mt("uma frase curta"), vec!["uma frase curta"]);
     }
 }
+
+// ── Números por extenso para a voz clonada ────────────────────────────────────────────────────
+// O OmniVoice lê mal números em algarismos ("2026" virou "to measurement 6"; medido 24/10/2026) e
+// bem por extenso. Inglês, português e espanhol; nos outros idiomas o texto fica como está.
+
+fn ate_999(n: u64, lang: &str) -> String {
+    let (un, dz, ce): (&[&str], &[&str], &[&str]) = match lang {
+        "pt" => (&["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove", "dez", "onze", "doze", "treze",
+                   "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"],
+                 &["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"],
+                 &["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"]),
+        "es" => (&["cero", "uno", "dos", "tres", "cuatro", "cinco", "seis", "siete", "ocho", "nueve", "diez", "once", "doce", "trece",
+                   "catorce", "quince", "dieciséis", "diecisiete", "dieciocho", "diecinueve"],
+                 &["", "", "veinte", "treinta", "cuarenta", "cincuenta", "sesenta", "setenta", "ochenta", "noventa"],
+                 &["", "ciento", "doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos", "setecientos", "ochocientos", "novecientos"]),
+        _ => (&["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen",
+                "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"],
+              &["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"],
+              &[]),
+    };
+    let (c, r) = (n / 100, n % 100);
+    let dezena = |r: u64| -> String {
+        if r < 20 { return un[r as usize].to_string(); }
+        let (d, u) = ((r / 10) as usize, (r % 10) as usize);
+        match (lang, u) {
+            (_, 0) => dz[d].to_string(),
+            ("pt", _) => format!("{} e {}", dz[d], un[u]),
+            ("es", _) if d == 2 => format!("veinti{}", un[u]),
+            ("es", _) => format!("{} y {}", dz[d], un[u]),
+            _ => format!("{}-{}", dz[d], un[u]),
+        }
+    };
+    if c == 0 { return dezena(r); }
+    match lang {
+        "pt" => {
+            let cent = if n == 100 { "cem".to_string() } else { ce[c as usize].to_string() };
+            if r == 0 { cent } else { format!("{cent} e {}", dezena(r)) }
+        }
+        "es" => {
+            let cent = if n == 100 { "cien".to_string() } else { ce[c as usize].to_string() };
+            if r == 0 { cent } else { format!("{cent} {}", dezena(r)) }
+        }
+        _ => if r == 0 { format!("{} hundred", un[c as usize]) } else { format!("{} hundred {}", un[c as usize], dezena(r)) },
+    }
+}
+
+/// Inteiro por extenso (até 999 999 999)
+pub fn por_extenso(n: u64, lang: &str) -> String {
+    if n < 1000 { return ate_999(n, lang); }
+    let (mi, mil, resto) = (n / 1_000_000, (n / 1000) % 1000, n % 1000);
+    let mut partes = vec![];
+    if mi > 0 {
+        partes.push(match lang {
+            "pt" => if mi == 1 { "um milhão".into() } else { format!("{} milhões", ate_999(mi, lang)) },
+            "es" => if mi == 1 { "un millón".into() } else { format!("{} millones", ate_999(mi, lang)) },
+            _ => format!("{} million", ate_999(mi, lang)),
+        });
+    }
+    if mil > 0 {
+        partes.push(match lang {
+            "pt" | "es" if mil == 1 => "mil".into(),
+            "pt" | "es" => format!("{} mil", ate_999(mil, lang)),
+            _ => format!("{} thousand", ate_999(mil, lang)),
+        });
+    }
+    if resto > 0 {
+        // português: "mil e vinte", "mil e quinhentos" (o "e" antes da última parte curta ou redonda)
+        let r = ate_999(resto, lang);
+        partes.push(if lang == "pt" && (resto < 100 || resto % 100 == 0) { format!("e {r}") } else { r });
+    }
+    partes.join(" ")
+}
+
+/// Ano em inglês do jeito falado: 2026 → "twenty twenty-six", 1999 → "nineteen ninety-nine", 2005 → "two thousand five"
+fn ano_ingles(n: u64) -> String {
+    let (a, b) = (n / 100, n % 100);
+    if (2000..2010).contains(&n) { return format!("two thousand{}", if b == 0 { String::new() } else { format!(" {}", ate_999(b, "en")) }); }
+    if b == 0 { return format!("{} hundred", ate_999(a, "en")); }
+    if b < 10 { return format!("{} oh {}", ate_999(a, "en"), ate_999(b, "en")); }
+    format!("{} {}", ate_999(a, "en"), ate_999(b, "en"))
+}
+
+/// Troca os números em algarismos por extenso (inteiros, anos, decimais simples e ordinais do
+/// inglês). Idiomas fora de en/pt/es: devolve igual.
+pub fn numeros_por_extenso(texto: &str, lang: &str) -> String {
+    if !["en", "pt", "es"].contains(&lang) { return texto.to_string(); }
+    let c: Vec<char> = texto.chars().collect();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < c.len() {
+        if !c[i].is_ascii_digit() || (i > 0 && c[i - 1].is_alphanumeric()) {
+            out.push(c[i]);
+            i += 1;
+            continue;
+        }
+        let ini = i;
+        while i < c.len() && (c[i].is_ascii_digit() || (c[i] == ',' && lang == "en" && i + 3 < c.len() + 1 && c.get(i + 1).is_some_and(|x| x.is_ascii_digit()) && c.get(i + 3).is_some_and(|x| x.is_ascii_digit()) && c.get(i + 4).is_none_or(|x| !x.is_ascii_digit()))) { i += 1; }
+        let inteiro: String = c[ini..i].iter().filter(|x| x.is_ascii_digit()).collect();
+        let Ok(n) = inteiro.parse::<u64>() else { out.extend(&c[ini..i]); continue };
+        // decimal: "3.5" (en) / "3,5" (pt, es)
+        let sep = if lang == "en" { '.' } else { ',' };
+        let decimal = c.get(i) == Some(&sep) && c.get(i + 1).is_some_and(|x| x.is_ascii_digit());
+        let com_milhar = c[ini..i].contains(&',');
+        let mut fala = if lang == "en" && inteiro.len() == 4 && (1100..2100).contains(&n) && !decimal && !com_milhar {
+            ano_ingles(n)
+        } else {
+            por_extenso(n, lang)
+        };
+        if decimal {
+            let ini_d = i + 1;
+            i += 1;
+            while i < c.len() && c[i].is_ascii_digit() { i += 1; }
+            let digitos: Vec<String> = c[ini_d..i].iter().map(|d| ate_999(d.to_digit(10).unwrap() as u64, lang)).collect();
+            fala += match lang { "pt" => " vírgula ", "es" => " coma ", _ => " point " };
+            fala += &digitos.join(" ");
+        }
+        // ordinais do inglês: 3rd, 15th, 21st
+        if lang == "en" {
+            let suf: String = c[i..c.len().min(i + 2)].iter().collect::<String>().to_lowercase();
+            if ["st", "nd", "rd", "th"].contains(&suf.as_str()) && c.get(i + 2).is_none_or(|x| !x.is_alphanumeric()) {
+                i += 2;
+                fala = ordinal_ingles(&fala);
+            } else if suf.starts_with('s') && c.get(i + 1).is_none_or(|x| !x.is_alphanumeric()) && n % 10 == 0 && n > 0 {
+                // décadas: 20s → twenties, 1990s → nineteen nineties
+                i += 1;
+                fala = fala.strip_suffix('y').map(|f| format!("{f}ies")).unwrap_or_else(|| format!("{fala}s"));
+            }
+        }
+        out += &fala;
+    }
+    out
+}
+
+fn ordinal_ingles(card: &str) -> String {
+    let (cabeca, ultima) = match card.rfind([' ', '-']) { Some(p) => (&card[..=p], &card[p + 1..]), None => ("", card) };
+    let o = match ultima {
+        "one" => "first".into(), "two" => "second".into(), "three" => "third".into(), "five" => "fifth".into(),
+        "eight" => "eighth".into(), "nine" => "ninth".into(), "twelve" => "twelfth".into(),
+        u if u.ends_with('y') => format!("{}ieth", &u[..u.len() - 1]),
+        u => format!("{u}th"),
+    };
+    format!("{cabeca}{o}")
+}
+
+#[cfg(test)]
+mod testes_numeros {
+    use super::*;
+
+    #[test]
+    fn numeros_por_extenso_nos_tres_idiomas() {
+        assert_eq!(numeros_por_extenso("The meeting is on May 15, 2026.", "en"), "The meeting is on May fifteen, twenty twenty-six.");
+        assert_eq!(numeros_por_extenso("He was in his 20s, in the 3rd century.", "en"), "He was in his twenties, in the third century.");
+        assert_eq!(numeros_por_extenso("It costs 3.5 dollars and 1,250 people came.", "en"), "It costs three point five dollars and one thousand two hundred fifty people came.");
+        assert_eq!(numeros_por_extenso("Em 2026 eram 21 pessoas e 3,5 litros.", "pt"), "Em dois mil e vinte e seis eram vinte e um pessoas e três vírgula cinco litros.");
+        assert_eq!(numeros_por_extenso("Son 125 personas.", "es"), "Son ciento veinticinco personas.");
+        assert_eq!(numeros_por_extenso("mp3 e COVID-19", "pt"), "mp3 e COVID-dezenove");
+        assert_eq!(numeros_por_extenso("Nichts 42", "de"), "Nichts 42");
+    }
+}
