@@ -24,7 +24,9 @@ fn rodar(cmd: &str, args: &[&str]) -> String {
 }
 
 fn powershell(cmd: &str) -> String {
-    rodar("powershell", &["-NoProfile", "-NonInteractive", "-Command", cmd])
+    // saída em UTF-8: sem isso os acentos chegavam quebrados ("Adaptador de V�deo B�sico")
+    let cmd = format!("[Console]::OutputEncoding = [Text.Encoding]::UTF8; {cmd}");
+    rodar("powershell", &["-NoProfile", "-NonInteractive", "-Command", &cmd])
 }
 
 /// "Intel(R) Core(TM) i9-9980HK CPU @ 2.40GHz" → "Intel Core i9-9980HK"
