@@ -6,7 +6,7 @@
 set -e
 APP=/opt/praxis
 P="$APP/placa"
-# OmniVoice para NVIDIA (CUDA): a voz clonada fiel pela biblioteca da própria NVIDIA (~230 MB).
+# OmniVoice para NVIDIA (CUDA): a voz clonada fiel pela biblioteca da própria NVIDIA (~160 MB).
 # Vem da página de versões do Praxis, da mesma versão instalada; também em quem já tinha as
 # bibliotecas da placa (atualização de uma versão anterior).
 omnivoice_cuda() {
@@ -14,7 +14,7 @@ omnivoice_cuda() {
     V=$(dpkg-query -W -f='${Version}' praxis 2>/dev/null || true)
     [ -n "$V" ] || return 0
     [ -f "$O" ] && [ "$(cat "$O.versao" 2>/dev/null)" = "$V" ] && return 0
-    echo "Praxis: baixando a voz clonada para placas NVIDIA (CUDA, ~230 MB)…"
+    echo "Praxis: baixando a voz clonada para placas NVIDIA (CUDA, ~160 MB)…"
     mkdir -p "$APP/omnivoice"
     if curl -fsSL -o "$O.gz.novo" "https://github.com/disouz4-dev/praxis/releases/download/v$V/libomnivoice-cuda-linux-x64.so.gz"; then
         gzip -dc "$O.gz.novo" > "$O.novo" && mv "$O.novo" "$O" && echo "$V" > "$O.versao"

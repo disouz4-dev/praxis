@@ -1,3 +1,19 @@
+## Novidades da 0.4.1
+
+### Placa NVIDIA
+- **A voz clonada fiel usa a CUDA em toda placa NVIDIA compatível no Linux**, da GeForce 900 à RTX 50 (antes, só RTX 20 a 50). Ela é baixada na instalação (~160 MB) e é de 10% a 15% mais rápida que o Vulkan.
+- Placa anterior à GeForce 900 ou driver anterior ao 525: a voz fica no Vulkan, sem travar. Se a CUDA não carregar, o Praxis avisa e passa para o Vulkan sozinho.
+- No Windows, a voz fiel continua no Vulkan em todas as placas.
+
+### Correções do QA nos três sistemas
+- Medidor do microfone mais rápido no Linux: reage em 0,3 s (antes 2,4 s).
+- Aparelhos "Monitor of …" fora da lista de microfones.
+- O monitor mostra a memória instalada (64 GB, e não 63).
+- O relatório de erros inclui o hardware completo e o desempenho da voz.
+- A voz fiel lê os números corretamente: eles vão por extenso (antes "2026" virava "to measurement 6").
+- Sem internet no primeiro uso, aparece uma mensagem clara em vez de um erro técnico.
+- Os textos novos da interface foram traduzidos nos 14 idiomas.
+
 ## Novidades da 0.4.0
 
 ### A sua voz, clonada, dentro do Praxis
