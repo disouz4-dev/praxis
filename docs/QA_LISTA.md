@@ -57,7 +57,7 @@ Onde testar:
 | Ouvir a tradução na própria saída (Scarlett, 32 bits) | ❌ "formato não suportado: I32" (corrigido, falta reconferir) | ⏳ |
 | Bilateral (a outra pessoa traduzida na minha saída) | ❌ mesmo defeito (falta reconferir) | ⏳ |
 | Sem fone: a trava de eco não deixa a tradução voltar pelo microfone | ⏳ | ⏳ |
-| Primeira vez sem internet: mensagem clara | ⏳ | ⏳ |
+| Primeira vez sem internet: mensagem clara | ✅ 0.4 (antes saía "os error 111"; agora explica, nos 14 idiomas) | ✅ mesmo código |
 | Download interrompido: tenta de novo e retoma | ⏳ | ⏳ |
 
 ## 4b. QA do Windows 0.3.3 (máquina virtual, janela real controlada por depuração)
@@ -70,6 +70,28 @@ Onde testar:
 | Fala real entrando pelo cabo virtual (5 frases) | ✅ traduz; ❌ sem fone, no modo simultâneo, a trava de eco corta a fala enquanto a tradução toca ("paciência e compreensão…" virou "que passar"). Paliativo: aviso na janela. Solução: cancelador de eco de verdade |
 | Nomes "Praxis Mic" / "Praxis Speaker" | ✅ Linux; ✅ Windows ("Praxis Mic" pelo install.ps1) |
 | install.ps1 lido na codificação antiga do Windows | ❌ "instalaÃ§Ã£o" e símbolos que viram aspas quebravam o script — corrigido |
+
+## 4c. QA profundo da 0.4 (Mac Intel, Linux e Windows, janela real pela porta de verificação `PRAXIS_QA_PORTA`)
+
+Roteiro da tela: `app/desktop/qa/roteiro-tela.js` (40 verificações). Cliente: `app/desktop/qa/qa.py`.
+
+| Item | Mac (Radeon 5500M) | Linux (lab2, RTX 3050) | Windows (máquina virtual, sem placa) |
+|---|---|---|---|
+| Roteiro da tela (40 itens) | ✅ 40/40 | ✅ 40/40 (o medidor do microfone falhava: corrigido) | ✅ 40/40 |
+| Tutorial na primeira vez (7 passos) | ✅ | ✅ | ✅ |
+| Sem voz gravada: começar travado e o motor recusa | ✅ | ✅ | ✅ |
+| Voz fiel baixada no primeiro uso | ✅ Vulkan | ✅ CUDA (26 s) | — (sem placa: voz leve) |
+| Conversa ao vivo | ✅ ~1 s depois da fala | ✅ ~1,6 s | ✅ português → inglês pelo "Nós dois" |
+| "Nós dois" com o app escolhido; som do app volta ao parar | ✅ | ✅ | ✅ |
+| Só legenda | ✅ | ✅ | ✅ |
+| Começar/parar 3 vezes | ✅ ~4 s / 0,5 s | ✅ | ✅ 11,5 s / 0,5 s (sem placa) |
+| Fechar a janela traduzindo: app sai, aparelhos virtuais somem | ✅ | ✅ | ✅ |
+| Reabrir: configurações mantidas | ✅ | ✅ | ✅ |
+| Monitor do computador na tela principal | ✅ | ✅ (memória 64 GB: corrigido) | ✅ |
+
+Defeitos achados e corrigidos: medidor do microfone lento no Linux (blocos de 20 ms), "Monitor of …" na lista de microfones, memória mostrada sem a parte reservada, relatório de erros sem o hardware, números em algarismos mal lidos pela voz fiel (agora por extenso), erro técnico sem internet, 431 textos novos sem tradução em 11 idiomas.
+
+Pendentes: Windows com NVIDIA ainda sem CUDA na voz fiel; download interrompido não foi testado.
 
 ## 5. O que falta no aplicativo (existia na versão em Python ou é esperado)
 
