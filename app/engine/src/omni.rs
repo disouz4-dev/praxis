@@ -230,7 +230,25 @@ fn nome_lib(cuda: bool) -> &'static str {
 /// NVIDIA é a mais rápida nela (RTX 3050: 15–20% mais rápido que o Vulkan, carga em 0,9 s × 3,2 s).
 fn usar_cuda() -> bool {
     std::env::var("PRAXIS_OMNIVOICE_DISPOSITIVO").map(|d| d.starts_with("CUDA")).unwrap_or_else(|_| {
-        !cfg!(target_os = "macos") && pasta().join(nome_lib(true)).exists() && crate::session::has_nvidia_gpu()
+        !cfg!(target_os = "macos") && pasta().join(nome_lib(true)).exists() && nvidia_compativel()
+    })
+}
+
+/// A versão CUDA serve a toda placa NVIDIA da GeForce 900 (Maxwell, 5.0) em diante, com
+/// driver 525 ou mais novo (o mínimo das bibliotecas CUDA 12 que acompanham o Praxis).
+/// Placa mais antiga ou driver velho: fica no Vulkan (na CUDA, o ggml encerraria o programa).
+fn nvidia_compativel() -> bool {
+    static R: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *R.get_or_init(|| {
+        let Ok(o) = std::process::Command::new("nvidia-smi")
+            .args(["--query-gpu=compute_cap,driver_version", "--format=csv,noheader"]).output() else { return false };
+        let s = String::from_utf8_lossy(&o.stdout);
+        o.status.success() && s.lines().next().is_some_and(|l| {
+            let mut c = l.split(',').map(str::trim);
+            let cap: f32 = c.next().and_then(|v| v.parse().ok()).unwrap_or(0.0);
+            let driver: u32 = c.next().and_then(|v| v.split('.').next()?.parse().ok()).unwrap_or(0);
+            cap >= 5.0 && driver >= 525
+        })
     })
 }
 
@@ -261,12 +279,24 @@ pub fn dispositivo_preferido() -> String {
 impl OmniVoice {
     /// `modelo`: omnivoice-base-*.gguf; `codec`: omnivoice-tokenizer-*.gguf
     pub fn carregar(modelo: &Path, codec: &Path, dispositivo: &str, passos: i32) -> Result<Self> {
+        let lib = caminho_biblioteca();
+        match Self::carregar_de(&lib, modelo, codec, dispositivo, passos) {
+            // a CUDA não subiu (driver, biblioteca da NVIDIA faltando…): a mesma placa pelo Vulkan
+            Err(e) if dispositivo.starts_with("CUDA") && std::env::var_os("PRAXIS_OMNIVOICE_LIB").is_none() => {
+                eprintln!("OmniVoice: a CUDA falhou ({e:#}); usando o Vulkan");
+                Self::carregar_de(&pasta().join(nome_lib(false)), modelo, codec, "Vulkan0", passos)
+            }
+            r => r,
+        }
+    }
+
+    fn carregar_de(biblioteca: &Path, modelo: &Path, codec: &Path, dispositivo: &str, passos: i32) -> Result<Self> {
         // Mac: o Vulkan vai pelo MoltenVK que acompanha o Praxis (pasta omnivoice/)
         // na placa de vídeo, 2 linhas no processador bastam (mais só disputam com o reconhecimento)
         if !dispositivo.starts_with("CPU") && std::env::var_os("OMNIVOICE_THREADS").is_none() {
             unsafe { std::env::set_var("OMNIVOICE_THREADS", "2") };
         }
-        let icd = caminho_biblioteca().with_file_name("MoltenVK_icd.json");
+        let icd = biblioteca.with_file_name("MoltenVK_icd.json");
         if icd.exists() && std::env::var_os("VK_ICD_FILENAMES").is_none() {
             unsafe { std::env::set_var("VK_ICD_FILENAMES", &icd) };
         }
@@ -281,8 +311,8 @@ impl OmniVoice {
             }
         }
         unsafe {
-            let lib = libloading::Library::new(caminho_biblioteca())
-                .map_err(|e| anyhow!("biblioteca do OmniVoice ({}): {e}", caminho_biblioteca().display()))?;
+            let lib = libloading::Library::new(biblioteca)
+                .map_err(|e| anyhow!("biblioteca do OmniVoice ({}): {e}", biblioteca.display()))?;
             macro_rules! sym { ($n:literal) => { *lib.get($n).map_err(|e| anyhow!("OmniVoice: {e}"))? } }
             let f = Funcs {
                 init_default: sym!(b"ov_init_default_params\0"),

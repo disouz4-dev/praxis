@@ -19,10 +19,12 @@ git -C "$SRC" apply --whitespace=nowarn "$PWD/pacotes/omnivoice-praxis.patch"
 extra=()
 [ "$(uname)" = Darwin ] && extra+=(-DGGML_METAL=OFF)
 # OMNIVOICE_CUDA=1: a versão para placas NVIDIA (CUDA 12; as bibliotecas da NVIDIA vêm na pasta
-# placa/ do Praxis), para as placas de uso pessoal: GeForce 16 e RTX 20 (75), RTX 30 (86), RTX 40 (89) e RTX 50 (120)
+# placa/ do Praxis), para toda placa NVIDIA com CUDA 12: código pronto para GeForce 900 (52), GTX 10 (61),
+# Titan V (70), GTX 16/RTX 20 (75), A100 (80), RTX 30 (86), RTX 40 (89) e RTX 50 (120a); as demais
+# (GTX 750 e 50, P100, H100) pelo código intermediário, compilado pelo driver no primeiro uso
 if [ "${OMNIVOICE_CUDA:-0}" = 1 ]; then
   B="$SRC/build-cuda"; NOME=libomnivoice-cuda.so
-  extra+=(-DGGML_CUDA=ON -DGGML_VULKAN=OFF "-DCMAKE_CUDA_ARCHITECTURES=${OMNIVOICE_CUDA_ARCH:-75;86;89;120}")
+  extra+=(-DGGML_CUDA=ON -DGGML_VULKAN=OFF "-DCMAKE_CUDA_ARCHITECTURES=${OMNIVOICE_CUDA_ARCH:-50-virtual;52-real;61-real;70-real;75-real;80-real;86-real;89-real;90-virtual;120a-real}")
 else
   B="$SRC/build"; NOME=libomnivoice.so
   extra+=(-DGGML_VULKAN=ON)

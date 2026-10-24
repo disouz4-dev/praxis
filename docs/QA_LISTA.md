@@ -93,6 +93,8 @@ Defeitos achados e corrigidos: medidor do microfone lento no Linux (blocos de 20
 
 CUDA da voz fiel no Linux: a biblioteca publicada (`libomnivoice-cuda-linux-x64.so.gz` da 0.4.0), na mesma estrutura de pastas da instalação, acha as bibliotecas da NVIDIA em `/opt/praxis/placa` e é escolhida sozinha na RTX 3050: 0,15–0,18 s por segundo de fala, contra 0,17–0,19 s no Vulkan. Windows com NVIDIA: fica no Vulkan (decisão).
 
+CUDA para toda NVIDIA compatível: código pronto para GeForce 900, GTX 10, Titan V, GTX 16/RTX 20, A100, RTX 30, RTX 40 e RTX 50, e código intermediário para as demais (download de ~160 MB, quase igual ao anterior pela compactação). Testado no lab2: RTX 3050 na CUDA (0,20 s por segundo de fala); placa antiga simulada (3.5, driver 470) vai para o Vulkan; sem as bibliotecas da NVIDIA, avisa e cai no Vulkan.
+
 Pendente: download interrompido não foi testado.
 
 ## 5. O que falta no aplicativo (existia na versão em Python ou é esperado)
