@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 
 mod erros;
+mod qa;
 
 use praxis_engine::devices;
 use praxis_engine::models::ModelStore;
@@ -524,7 +525,11 @@ fn main() {
     erros::instalar_gancho();
     tauri::Builder::default()
         .manage(App::default())
-        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, uso_do_sistema, hardware, log_tela, modo_depurar, modo_qa, verificar_atualizacao, atualizar])
+        .invoke_handler(tauri::generate_handler![estado_inicial, apps_com_som, gravar_voz, parar_gravacao_voz, estado_voz, testar_microfone, parar_teste_microfone, painel_lateral, relatorio_de_erros, abrir_relato, abrir_link, salvar_config, dispositivos, iniciar, parar, definir_monitor, clonar_voz, uso_do_sistema, hardware, log_tela, modo_depurar, qa::qa_resposta, modo_qa, verificar_atualizacao, atualizar])
+        .setup(|app| {
+            qa::iniciar(app.handle().clone());
+            Ok(())
+        })
         .on_window_event(|w, e| {
             // ao fechar a janela, para o motor e remove os dispositivos virtuais
             if let tauri::WindowEvent::CloseRequested { .. } = e {
