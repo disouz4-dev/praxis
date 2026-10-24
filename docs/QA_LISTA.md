@@ -91,7 +91,9 @@ Roteiro da tela: `app/desktop/qa/roteiro-tela.js` (40 verificações). Cliente: 
 
 Defeitos achados e corrigidos: medidor do microfone lento no Linux (blocos de 20 ms), "Monitor of …" na lista de microfones, memória mostrada sem a parte reservada, relatório de erros sem o hardware, números em algarismos mal lidos pela voz fiel (agora por extenso), erro técnico sem internet, 431 textos novos sem tradução em 11 idiomas.
 
-Pendentes: Windows com NVIDIA ainda sem CUDA na voz fiel; download interrompido não foi testado.
+CUDA da voz fiel no Linux: a biblioteca publicada (`libomnivoice-cuda-linux-x64.so.gz` da 0.4.0), na mesma estrutura de pastas da instalação, acha as bibliotecas da NVIDIA em `/opt/praxis/placa` e é escolhida sozinha na RTX 3050: 0,15–0,18 s por segundo de fala, contra 0,17–0,19 s no Vulkan. Windows com NVIDIA: fica no Vulkan (decisão).
+
+Pendente: download interrompido não foi testado.
 
 ## 5. O que falta no aplicativo (existia na versão em Python ou é esperado)
 

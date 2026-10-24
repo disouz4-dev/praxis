@@ -81,7 +81,7 @@ Tudo roda **no seu computador**, sem internet depois da instalação e sem envia
 | Tradução | **NLLB-200** (Meta, 600M) com continuação da frase já falada; **Argos Translate** como reserva |
 | Voz clonada fiel | **OmniVoice** (k2-fsa) pelo **omnivoice.cpp** na placa de vídeo: **Vulkan** (AMD, Intel e NVIDIA; nos Macs Intel com AMD pelo **MoltenVK**), Metal nos Macs com chip Apple |
 | Voz clonada leve | **Supertonic 3** ajustado à impressão de voz da pessoa (ajuste fino feito no próprio computador, sem placa) |
-| Placa de vídeo | NVIDIA pelo CUDA no reconhecimento e na tradução; qualquer placa com Vulkan na voz clonada; processador quando não há |
+| Placa de vídeo | NVIDIA pelo CUDA no reconhecimento e na tradução; voz clonada pelo CUDA na NVIDIA no Linux (baixado na instalação; 10–15% mais rápido que o Vulkan) e pelo Vulkan nas outras placas e no Windows; processador quando não há |
 | Hardware | o Praxis identifica sozinho processador, placas de vídeo e memória (tipo DDR, velocidade, fabricante) e mostra o uso de cada um na tela |
 | Instalação | `.deb` (Linux) e instalador `.exe` (Windows), com **atualização automática** |
 
