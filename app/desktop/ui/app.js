@@ -80,6 +80,10 @@ function verificarIdiomas() {
   const bi = $("bilateral").checked;
   // o "motivo" vem do motor como está; só a moldura do aviso é traduzida
   const aviso = () => s === d ? t("warn_same_lang")
+    : !(ESTADO.voz && ESTADO.voz.existe) ? t("warn_need_voice")
+    : !ESTADO.voz.clonada ? t("warn_cloning")
+    : $("voz_modelo").value === "leve" && !ESTADO.voz.clone_leve ? t("warn_cloning")
+    : $("voz_modelo").value === "auto" && !ESTADO.voz.clone_leve && !ESTADO.voz.omnivoice ? t("warn_cloning")
     : !info(s).liberado ? info(s).motivo
     : bi && !info(d).liberado ? tf("warn_bilateral", { lang: nomeIdioma(d), reason: info(d).motivo })
     : bi && ESTADO.sistema === "windows" && !$("peer_app").value ? t("warn_peer_app")
@@ -146,6 +150,325 @@ function textoDoRelato() {
   return (o_que ? "### O que eu estava fazendo\n" + o_que + "\n\n" : "") + $("relatorio_texto").textContent;
 }
 
+// Monitoria (o botão da versão antiga): ouvir a própria tradução numa saída do computador
+function aplicarMonitor() {
+  const on = $("monitor").checked;
+  vivo("monitor_btn", () => t(on ? "mon_on" : "mon_off"));
+  $("monitor_btn").setAttribute("aria-pressed", String(on));
+  $("monitor_btn").classList.toggle("ligado", on);
+  $("saida_linha").hidden = !on;
+  // com a tradução em andamento, vale na hora (sem reiniciar)
+  if (rodando) invoke("definir_monitor", { ligado: on }).catch(() => {});
+}
+
+// A conversa fica sempre na tela principal (logo abaixo dos idiomas e da voz)
+async function abrirPainel() {
+  $("painel").hidden = false;
+}
+
+// Voz da tradução: o clone fiel na placa de vídeo (OmniVoice) quando há, ou o clone leve
+function montarVozes() {
+  const v = ESTADO.voz || {};
+  const opcoes = [];
+  if (v.omnivoice) opcoes.push(["auto", t("voice_model_auto")], ["omni", t("voice_model_omni")]);
+  opcoes.push(["leve", t("voice_model_light")]);
+  // quem usava a voz fiel antes da escolha automática passa para a automática (uma vez)
+  if (!cfg.voz_auto_ok) { if (cfg.voz_modelo === "omni") cfg.voz_modelo = "auto"; cfg.voz_auto_ok = true; salvar(); }
+  const atual = cfg.voz_modelo && opcoes.some(([k]) => k === cfg.voz_modelo) ? cfg.voz_modelo : opcoes[0][0];
+  $("voz_modelo").replaceChildren(...opcoes.map(([k, n]) => { const o = document.createElement("option"); o.value = k; o.textContent = n; return o; }));
+  $("voz_modelo").value = atual;
+  vivo("voz_resumo", () => !v.existe ? t("voice_missing_main") : "");
+}
+
+// erros da tela também vão para o monitor de erros (erros.log)
+window.addEventListener("error", (e) => window.__TAURI__?.core.invoke("log_tela", { nivel: "erro", msg: `${e.message} (${e.filename}:${e.lineno})` }).catch(() => {}));
+window.addEventListener("unhandledrejection", (e) => window.__TAURI__?.core.invoke("log_tela", { nivel: "erro", msg: String(e.reason) }).catch(() => {}));
+
+// Seu computador (em Configurações): o hardware identificado pelo próprio Praxis e o uso de cada peça
+let HARDWARE = null;
+// Monitor da tela principal, sempre à vista
+function montarMedidores(u) {
+  const h = HARDWARE || {}, mem = h.memoria || {};
+  const gb = (mb) => (mb / 1024).toLocaleString(cfg.ui_lang, { maximumFractionDigits: mb >= 10240 ? 0 : 1 });
+  const m = (tipo, nome, pct, texto) => {
+    const d = document.createElement("div"); d.className = "medidor-hw" + (pct == null ? " repouso" : "");
+    d.innerHTML = '<div class="m-topo"><span class="m-tipo"></span><span class="m-pct"></span></div><div class="m-nome"></div><span class="uso-barra"><i></i></span>';
+    d.querySelector(".m-tipo").textContent = tipo;
+    d.querySelector(".m-nome").textContent = nome; d.title = nome;
+    d.querySelector(".m-pct").textContent = texto ?? `${Math.round(pct ?? 0)}%`;
+    const b = d.querySelector(".uso-barra"); const p = pct ?? 0;
+    b.className = "uso-barra" + (pct == null ? " repouso" : p >= 85 ? " alto" : p >= 60 ? " medio" : "");
+    b.querySelector("i").style.transform = `scaleX(${Math.min(1, p / 100)})`;
+    return d;
+  };
+  const itens = [m(t("hw_cpu_label"), h.processador?.nome || "…", u.cpu)];
+  for (const g of u.placas || []) {
+    // memória da placa ocupada: fica estável enquanto o modelo está carregado nela
+    const mem = g.memoria_usada_mb != null ? tf("hw_gpu_mem", { u: gb(g.memoria_usada_mb), t: g.memoria_mb ? gb(g.memoria_mb) : "?" }) : null;
+    const c = m(t("hw_gpu_label"), [g.nome, mem].filter(Boolean).join(" · "), g.uso, g.uso == null ? t("usage_gpu_idle") : null);
+    itens.push(c);
+  }
+  if (!(u.placas || []).length) itens.push(m(t("hw_gpu_label"), t("hw_no_gpu"), null, "—"));
+  itens.push(m(t("hw_mem_label"), [`${gb(u.memoria_total_mb)} GB`, mem.tipo].filter(Boolean).join(" "),
+    100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), `${gb(u.memoria_usada_mb)} GB`));
+  $("medidores").replaceChildren(...itens);
+}
+
+async function atualizarUso() {
+  if ($("configuracoes").open && !$("uso").children.length) fixo("computador_sistema", t("hw_reading"));
+  const falhou = (e) => { fixo("computador_sistema", tf("hw_error", { e: String(e) })); invoke("log_tela", { nivel: "erro", msg: "Seu computador: " + e }).catch(() => {}); };
+  if (!HARDWARE) { try { HARDWARE = await invoke("hardware"); } catch (e) { return falhou(e); } }
+  let u;
+  try { u = await invoke("uso_do_sistema"); } catch (e) { return falhou(e); }
+  invoke("log_tela", { nivel: "info", msg: "uso " + JSON.stringify(u) }).catch(() => {});
+  montarMedidores(u);
+  if (!$("configuracoes").open) return;
+  const gb = (mb) => (mb / 1024).toLocaleString(cfg.ui_lang, { maximumFractionDigits: mb >= 10240 ? 0 : 1 });
+  const linha = (rotulo, nome, detalhe, pct, texto) => {
+    const d = document.createElement("div"); d.className = "uso-linha";
+    d.innerHTML = '<span class="uso-rotulo"></span><span class="uso-nome"></span><span class="uso-detalhe"></span>' +
+      '<span class="uso-barra"><i></i></span><span class="uso-pct"></span>';
+    d.querySelector(".uso-rotulo").textContent = rotulo;
+    d.querySelector(".uso-nome").textContent = nome;
+    d.querySelector(".uso-detalhe").textContent = detalhe;
+    const p = pct ?? 0;
+    d.querySelector(".uso-barra i").style.transform = `scaleX(${Math.min(1, p / 100)})`;
+    d.querySelector(".uso-barra").className = "uso-barra" + (pct == null ? " repouso" : p >= 85 ? " alto" : p >= 60 ? " medio" : "");
+    d.querySelector(".uso-pct").textContent = texto ?? `${Math.round(p)}%`;
+    return d;
+  };
+  const h = HARDWARE, cpu = h.processador || {}, mem = h.memoria || {};
+  const linhas = [linha(t("hw_cpu_label"), cpu.nome || "?", tf("hw_cores", { f: cpu.nucleos_fisicos ?? "?", l: cpu.nucleos ?? "?" }), u.cpu)];
+  for (const g of u.placas || []) {
+    const info = (h.placas || []).find((p) => p.nome === g.nome) || {};
+    const memTxt = g.memoria_usada_mb != null ? tf("hw_gpu_mem", { u: gb(g.memoria_usada_mb), t: info.memoria_mb ? gb(info.memoria_mb) : "?" })
+      : info.memoria_mb ? `${gb(info.memoria_mb)} GB` : "";
+    linhas.push(linha(t("hw_gpu_label"), g.nome, memTxt, g.uso, g.uso == null ? t("usage_gpu_idle") : null));
+  }
+  if (!(u.placas || []).length) linhas.push(linha(t("hw_gpu_label"), t("hw_no_gpu"), t("hw_no_gpu_hint"), null, "—"));
+  const memDet = [mem.tipo, mem.velocidade_mhz ? `${mem.velocidade_mhz} MHz` : null, mem.fabricante].filter(Boolean).join(" · ");
+  linhas.push(linha(t("hw_mem_label"), `${gb(u.memoria_total_mb)} GB`, memDet,
+    100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), tf("hw_mem_used", { u: gb(u.memoria_usada_mb) })));
+  $("uso").replaceChildren(...linhas);
+  fixo("computador_sistema", h.sistema || "");
+}
+
+// "Quem é traduzido?": Só eu / Nós dois liga o modo bilateral (a caixa escondida #bilateral)
+function aplicarModo() {
+  $("modo_dois").checked = $("bilateral").checked;
+  $("modo_eu").checked = !$("bilateral").checked;
+}
+
+function escolherModo(dois) {
+  if ($("bilateral").checked === dois) return;
+  $("bilateral").checked = dois;
+  $("bilateral").dispatchEvent(new Event("change"));
+}
+
+// ⇄ troca os idiomas de lado (o que eu falo passa a ser o que eles ouvem e vice-versa)
+function trocarIdiomas() {
+  const s = $("src").value, d = $("tgt").value;
+  const podeSrc = [...$("src").options].some((o) => o.value === d && !o.disabled);
+  const podeTgt = [...$("tgt").options].some((o) => o.value === s);
+  if (!podeSrc || !podeTgt) { vivo("aviso_idioma", () => t("warn_swap")); $("aviso_idioma").hidden = false; return; }
+  $("src").value = d; $("tgt").value = s;
+  verificarIdiomas(); salvar();
+}
+
+// Teste do microfone: a barra mostra o volume da voz antes de começar a traduzir
+let testandoMic = false;
+async function testarMicrofone(ligar = !testandoMic) {
+  if (!ligar) {
+    testandoMic = false;
+    try { await invoke("parar_teste_microfone"); } catch { /* já parou */ }
+    $("medidor").hidden = true; $("dica_medidor").hidden = true;
+    document.querySelectorAll(".medidor i").forEach((b) => (b.style.transform = "scaleX(0)"));
+    $("testar_mic").textContent = t("btn_test_mic");
+    return;
+  }
+  try { await invoke("testar_microfone", { nome: $("mic").value || null }); }
+  catch (e) { fixo("erro_texto", String(e)); $("erro_topo").hidden = false; return; }
+  testandoMic = true;
+  $("medidor").hidden = false; $("dica_medidor").hidden = false;
+  $("testar_mic").textContent = t("btn_test_stop");
+}
+
+function mostrarNivel(n) {
+  // todas as barras de nível visíveis (a da tela e a do tutorial)
+  document.querySelectorAll(".medidor i").forEach((b) => (b.style.transform = `scaleX(${n.toFixed(3)})`));
+}
+
+// ── Voz do usuário (obrigatória: a tradução sai na voz dele) ─────────────────
+let gravando = false;
+function textoLeitura() {
+  const tx = I18N.textos_voz || {};
+  return tx[$("src").value] || tx[cfg.ui_lang] || tx.en || "";
+}
+
+function montarGravador(c, comExplicacao) {
+  const g = document.createElement("div"); g.className = "gravador";
+  g.innerHTML = '<p class="grav-explica"></p><p class="grav-rotulo"></p><blockquote class="texto-leitura"></blockquote>' +
+    '<div class="grav-linha"><button type="button" class="gravar"></button><span class="grav-tempo">0:00</span></div>' +
+    '<div class="medidor grande voz"><i></i></div><p class="grav-resultado" role="status" aria-live="polite"></p>';
+  g.querySelector(".grav-explica").textContent = comExplicacao ? t("tutvoz_body") : "";
+  g.querySelector(".grav-explica").hidden = !comExplicacao;
+  g.querySelector(".grav-rotulo").textContent = t("rec_read");
+  g.querySelector(".texto-leitura").textContent = textoLeitura();
+  const botao = g.querySelector(".gravar");
+  const rotulo = () => { botao.textContent = t(gravando ? "btn_rec_stop" : "btn_rec_start"); botao.classList.toggle("ativo", gravando); };
+  rotulo();
+  botao.onclick = async () => {
+    const res = g.querySelector(".grav-resultado");
+    if (!gravando) {
+      if (testandoMic) await testarMicrofone(false);
+      botao.disabled = true; // um segundo clique enquanto o microfone abre não grava duas vezes
+      try { await invoke("gravar_voz", { nome: $("mic").value || null }); }
+      catch (e) { res.textContent = String(e); return; }
+      finally { botao.disabled = false; }
+      gravando = true; res.textContent = ""; rotulo();
+      return;
+    }
+    gravando = false; rotulo();
+    document.querySelectorAll(".medidor.voz i").forEach((b) => (b.style.transform = "scaleX(0)"));
+    let r;
+    try { r = await invoke("parar_gravacao_voz"); } catch (e) { res.textContent = String(e); return; }
+    const seg = (r.fala || 0).toLocaleString(cfg.ui_lang, { maximumFractionDigits: 0 });
+    res.textContent = tf(r.ok ? "rec_saved" : "rec_short", { s: seg });
+    res.className = "grav-resultado " + (r.ok ? "ok" : "aviso");
+    if (r.ok) { CLONAGEM.fracao = 0; CLONAGEM.erro = ""; }
+    try { ESTADO.voz = await invoke("estado_voz"); } catch { /* fica o estado anterior */ }
+    atualizarVoz(); verificarIdiomas();
+  };
+  c.append(g);
+}
+
+async function cancelarGravacao() {
+  if (!gravando) return;
+  gravando = false;
+  try { await invoke("parar_gravacao_voz"); ESTADO.voz = await invoke("estado_voz"); } catch { /* nada a salvar */ }
+  atualizarVoz();
+}
+
+// clonagem da voz (feita pelo Praxis logo depois da gravação)
+const CLONAGEM = { fracao: 0, texto: "", erro: "" };
+async function ouvirClonagem() {
+  await listen("clonagem", async (ev) => {
+    const c = ev.payload;
+    if (c.erro) { CLONAGEM.erro = c.erro; }
+    else if (c.fim) { CLONAGEM.fracao = 1; CLONAGEM.erro = ""; try { ESTADO.voz = await invoke("estado_voz"); } catch { /* fica */ } }
+    else { CLONAGEM.fracao = c.fracao; CLONAGEM.texto = c.texto; CLONAGEM.erro = ""; }
+    atualizarVoz(); verificarIdiomas();
+  });
+}
+
+function atualizarVoz() {
+  const v = ESTADO.voz || {};
+  if ($("voz_modelo")) montarVozes();
+  vivo("voz_estado", () => !v.existe ? t("voice_missing")
+    : v.clonada ? tf("voice_cloned", { s: Math.round(v.segundos || 0) })
+    : CLONAGEM.erro ? tf("voice_clone_error", { e: CLONAGEM.erro })
+    : tf("voice_cloning", { p: Math.round((CLONAGEM.fracao || 0) * 100) }));
+  $("voz_estado").className = "voz-estado " + (!v.existe ? "falta" : v.clonada ? "ok" : CLONAGEM.erro ? "falta" : "clonando");
+  $("voz_clonar_btn").hidden = !v.existe || (!v.clonada && !CLONAGEM.erro);
+  vivo("voz_gravar_btn", () => t(v.existe ? "btn_rerecord_voice" : "btn_record_voice"));
+  // no tutorial, o passo da voz só segue depois de gravar
+  if ($("tutorial").open && PASSOS[passoAtual]?.k === "tutvoz") $("tut_seguir").disabled = !v.existe;
+  verificarIdiomas();
+}
+
+function abrirGravador() {
+  const c = $("grav_conteudo"); c.replaceChildren(); montarGravador(c, true);
+  $("gravador").showModal();
+}
+
+// ── Tutorial ─────────────────────────────────────────────────────────────────
+// Obrigatório na primeira vez (com "Pular tutorial"); de novo em ⓘ Sobre. Os campos dos
+// passos são cópias ligadas aos de verdade: mudar aqui muda na tela principal.
+function copiaSelect(id) {
+  const orig = $(id), sel = document.createElement("select");
+  sel.innerHTML = orig.innerHTML; sel.value = orig.value;
+  sel.onchange = () => { orig.value = sel.value; orig.dispatchEvent(new Event("change")); };
+  return sel;
+}
+
+function copiaCaixa(id, chave) {
+  const lab = document.createElement("label"); lab.className = "chave";
+  const c = document.createElement("input"); c.type = "checkbox"; c.checked = $(id).checked;
+  c.onchange = () => { $(id).checked = c.checked; $(id).dispatchEvent(new Event("change")); };
+  const sp = document.createElement("span"); sp.textContent = t(chave);
+  lab.append(c, sp);
+  return lab;
+}
+
+function campo(chave, el) {
+  const lab = document.createElement("label"); lab.className = "campo";
+  const sp = document.createElement("span"); sp.textContent = t(chave);
+  lab.append(sp, el);
+  return lab;
+}
+
+const PASSOS = [
+  { k: "tut1" },
+  { k: "tut2", montar: (c) => {
+      const par = document.createElement("div"); par.className = "par tut-par";
+      const eu = campo("lbl_you_speak", copiaSelect("src")); eu.classList.add("lado", "eu");
+      const eles = campo("lbl_they_hear", copiaSelect("tgt")); eles.classList.add("lado", "eles");
+      par.append(eu, eles); c.append(par);
+    } },
+  { k: "tut3", montar: (c) => {
+      c.append(campo("lbl_your_mic", copiaSelect("mic")));
+      const m = document.createElement("div"); m.className = "medidor grande"; m.innerHTML = "<i></i>"; c.append(m);
+      c.append(copiaCaixa("headphones", "tut3_fone"));
+      c.querySelector("select").addEventListener("change", () => testarMicrofone(true));
+    }, entrar: () => testarMicrofone(true), sair: () => testarMicrofone(false) },
+  { k: "tutvoz", montar: (c) => montarGravador(c, false), sair: () => cancelarGravacao() },
+  { k: "tut4", montar: (c) => { const p = document.createElement("p"); p.className = "praxis-mic grande"; p.innerHTML = "<b>Praxis Mic</b>"; c.append(p); } },
+  { k: "tut5", montar: (c) => {
+      const f = document.createElement("div"); f.className = "modo";
+      for (const [dois, ch, dica] of [[false, "opt_only_me", "opt_only_me_hint"], [true, "opt_both", "opt_both_hint"]]) {
+        const lab = document.createElement("label"); lab.className = "opcao-modo";
+        const r = document.createElement("input"); r.type = "radio"; r.name = "tut_modo"; r.checked = $("bilateral").checked === dois;
+        r.onchange = () => escolherModo(dois);
+        const sp = document.createElement("span"); sp.innerHTML = "<b></b><small></small>";
+        sp.querySelector("b").textContent = t(ch); sp.querySelector("small").textContent = t(dica);
+        lab.append(r, sp); f.append(lab);
+      }
+      c.append(f);
+    } },
+  { k: "tut6" },
+];
+let passoAtual = 0;
+
+function mostrarPasso(i) {
+  PASSOS[passoAtual]?.sair?.();
+  passoAtual = i;
+  const p = PASSOS[i];
+  vivo("tut_passo", () => tf("tut_step", { n: i + 1, total: PASSOS.length }));
+  vivo("tut_titulo", () => tf(p.k + "_title", { mic: "Praxis Mic" }));
+  vivo("tut_texto", () => tf(p.k + "_body", { mic: "Praxis Mic" }));
+  const c = $("tut_conteudo"); c.replaceChildren(); p.montar?.(c);
+  $("tut_pontos").replaceChildren(...PASSOS.map((_, j) => { const d = document.createElement("i"); if (j === i) d.className = "atual"; return d; }));
+  $("tut_voltar").hidden = i === 0;
+  $("tut_seguir").textContent = t(i === PASSOS.length - 1 ? "tut_done" : i === 0 ? "tut_start" : "tut_next");
+  $("tut_pular").hidden = i === PASSOS.length - 1;
+  $("tut_seguir").disabled = p.k === "tutvoz" && !(ESTADO.voz && ESTADO.voz.existe);
+  p.entrar?.();
+  $("tut_seguir").focus();
+}
+
+function abrirTutorial() {
+  $("sobre").open && $("sobre").close();
+  $("tutorial").showModal();
+  mostrarPasso(0);
+}
+
+function fecharTutorial() {
+  PASSOS[passoAtual]?.sair?.();
+  $("tutorial").close();
+  cfg.tutorial_feito = true; salvar();
+  $("iniciar").focus();
+}
+
 function coletar() {
   return {
     ...cfg,
@@ -154,6 +477,7 @@ function coletar() {
     monitor: $("monitor").checked, headphones: $("headphones").checked,
     bilateral: $("bilateral").checked,
     model: $("model").value, translator: $("translator").value,
+    voz_modelo: $("voz_modelo").value, omnivoice: $("voz_modelo").value !== "leve",
     peer_app: $("peer_app").value || null,
     peer_app_nome: $("peer_app").selectedOptions[0]?.dataset.nome || null,
     peer_voice: !$("peer_legenda").checked,
@@ -224,6 +548,15 @@ function eventoDoMotor(e) {
         hw: t(e.gpu ? "hw_gpu" : "hw_cpu"),
         asr: e.model.startsWith("parakeet") ? "Parakeet" : "Whisper " + e.model, tr: e.translator }));
       break;
+    case "voz": {
+      const [tipo, n] = (e.motivo || "").split(":");
+      const placa = (HARDWARE?.placas || []).find((p) => !/Intel UHD|Intel\(R\) UHD|Iris/.test(p.nome))?.nome || t("hw_gpu_label");
+      const msg = e.qual === "leve"
+        ? (tipo === "placa" ? tf("voz_auto_leve", { placa, rtf: (+n).toLocaleString(cfg.ui_lang, { maximumFractionDigits: 1 }) }) : t("voz_leve_escolhida"))
+        : (tipo === "lenta" ? tf("voz_fiel_lenta", { placa }) : t("voz_fiel_rapida"));
+      fixo("voz_resumo", msg);
+      break;
+    }
     case "virtual_mic":
       $("microfone_virtual").hidden = false;
       vivo("microfone_virtual", () => tf("vmic_choose", { mic: e.mic }) + (e.peer ? tf("vmic_peer", { peer: e.peer }) : ""));
@@ -239,8 +572,9 @@ function eventoDoMotor(e) {
     case "stopped":
       rodando = false; $("iniciar").classList.remove("parar"); $("iniciar").disabled = false;
       aplicarTextos(); statusT("st_stopped");
-      // volta às configurações (a conversa e o erro, se houver, continuam visíveis embaixo)
-      $("config").hidden = false; $("barra").hidden = true;
+      // as configurações voltam a responder; o painel fica aberto com a conversa (✕ fecha)
+      $("config").inert = false; $("config").hidden = false; $("barra").hidden = true; document.body.classList.remove("rodando");
+      $("output").disabled = false; $("voz_modelo").disabled = false;
       break;
   }
 }
@@ -258,9 +592,13 @@ async function iniciarOuParar() {
     await invoke("parar");
     return;
   }
+  if (testandoMic) await testarMicrofone(false);
   await salvar();
   rodando = true;
-  $("config").hidden = true; $("painel").hidden = false; $("barra").hidden = false;
+  $("config").inert = true; $("barra").hidden = false; document.body.classList.add("rodando"); abrirPainel();
+  $("configuracoes").open && $("configuracoes").close();
+  $("voz_modelo").disabled = true;
+  $("output").disabled = true; // a saída da monitoria é aberta ao começar; troca só parando
   $("conversa").replaceChildren(); ultimoBalao = null; $("microfone_virtual").hidden = true; $("erro_topo").hidden = true;
   $("iniciar").classList.add("parar"); aplicarTextos(); statusT("st_starting");
   try { await invoke("iniciar", { config: cfg }); }
@@ -317,6 +655,53 @@ async function main() {
   for (const id of ["monitor", "headphones", "bilateral"]) $(id).addEventListener("change", avisoEco);
   avisoEco();
   $("iniciar").onclick = iniciarOuParar;
+  $("trocar").onclick = trocarIdiomas;
+  $("monitor_btn").onclick = () => { $("monitor").checked = !$("monitor").checked; $("monitor").dispatchEvent(new Event("change")); };
+  $("monitor").addEventListener("change", aplicarMonitor);
+  aplicarMonitor();
+  $("config_abrir").onclick = () => { $("configuracoes").showModal(); atualizarUso(); };
+  $("config_fechar").onclick = () => $("configuracoes").close();
+  $("voz_modelo").addEventListener("change", () => {
+    cfg.voz_modelo = $("voz_modelo").value; salvar();
+    // a voz leve é um ajuste fino feito no processador: se ainda não existe, começa agora
+    if (cfg.voz_modelo === "leve" && ESTADO.voz?.existe && !ESTADO.voz.clone_leve) {
+      CLONAGEM.fracao = 0; CLONAGEM.erro = ""; ESTADO.voz.clonada = false; atualizarVoz();
+      invoke("clonar_voz").catch((e) => { CLONAGEM.erro = String(e); atualizarVoz(); });
+    }
+    verificarIdiomas();
+  });
+  montarVozes();
+  $("conversa").dataset.vazio = t("chat_empty");
+  atualizarUso(); setInterval(atualizarUso, 2000);
+  $("modo_eu").onchange = () => escolherModo(false);
+  $("modo_dois").onchange = () => escolherModo(true);
+  $("bilateral").addEventListener("change", aplicarModo);
+  aplicarModo();
+  $("testar_mic").onclick = () => testarMicrofone();
+  $("mic").addEventListener("change", () => { if (testandoMic) testarMicrofone(true); });
+  await listen("nivel_mic", (ev) => { if (ev.payload.parou) { if (testandoMic) testarMicrofone(false); } else mostrarNivel(ev.payload.nivel); });
+  $("tut_seguir").onclick = () => (passoAtual < PASSOS.length - 1 ? mostrarPasso(passoAtual + 1) : fecharTutorial());
+  $("tut_voltar").onclick = () => mostrarPasso(passoAtual - 1);
+  $("tut_pular").onclick = fecharTutorial;
+  // Esc não fecha o tutorial (ele é obrigatório na primeira vez): use "Pular tutorial"
+  $("tutorial").addEventListener("cancel", (ev) => ev.preventDefault());
+  $("sobre_tutorial").onclick = abrirTutorial;
+  $("voz_gravar_btn").onclick = abrirGravador;
+  $("grav_fechar").onclick = async () => { await cancelarGravacao(); $("gravador").close(); };
+  $("gravador").addEventListener("cancel", (ev) => { ev.preventDefault(); $("grav_fechar").click(); });
+  await listen("gravacao_voz", (ev) => {
+    const { nivel, segundos, fim } = ev.payload;
+    document.querySelectorAll(".medidor.voz i").forEach((b) => (b.style.transform = `scaleX(${nivel.toFixed(3)})`));
+    const m = Math.floor(segundos / 60), sg = Math.floor(segundos % 60);
+    document.querySelectorAll(".grav-tempo").forEach((e) => (e.textContent = `${m}:${String(sg).padStart(2, "0")}`));
+    // o motor parou de gravar (90 s ou o microfone sumiu): termina e guarda como se a pessoa clicasse em Parar
+    if (gravando && (fim || segundos >= 90)) document.querySelector(".gravar.ativo")?.click();
+  });
+  await ouvirClonagem();
+  // voz gravada mas ainda não clonada (ou gravação nova): o Praxis clona sozinho
+  if (ESTADO.voz && ESTADO.voz.existe && !ESTADO.voz.clonada) invoke("clonar_voz").catch(() => {});
+  $("voz_clonar_btn").onclick = () => { CLONAGEM.erro = ""; CLONAGEM.fracao = 0; ESTADO.voz.clonada = false; atualizarVoz(); verificarIdiomas(); invoke("clonar_voz").catch((e) => { CLONAGEM.erro = String(e); atualizarVoz(); }); };
+  atualizarVoz();
   $("relatar").onclick = $("erro_relatar").onclick = abrirRelatorio;
   $("sobre_abrir").onclick = abrirSobre;
   $("sobre_fechar").onclick = () => $("sobre").close();
@@ -340,7 +725,10 @@ async function main() {
     if (e.e === "engine") eventoDoMotorInterno(e.ev);
     else eventoDoMotor(e);
   });
-  if (await invoke("modo_qa")) iniciarOuParar();   // verificação de qualidade automática
+  if (await invoke("modo_qa")) iniciarOuParar();
+  // verificação: abre as Configurações sozinho (o que a tela lê sai no terminal)
+  if (await invoke("modo_depurar").catch(() => false)) setTimeout(() => $("config_abrir").click(), 1500);   // verificação de qualidade automática
+  else if (!cfg.tutorial_feito) abrirTutorial();    // primeira vez: tutorial obrigatório
   verificarAtualizacao();
 }
 

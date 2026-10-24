@@ -12,7 +12,7 @@ use anyhow::{anyhow, bail, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::asr::Asr;
-use crate::devices::{self, OutputDevice, Speakers, VirtualMic};
+use crate::devices::{self, MonitoredSpeakers, OutputDevice, Speakers, VirtualMic};
 use crate::models::ModelStore;
 use crate::mt;
 use crate::pipeline::{self, ArgosRoute, Direction, Shared, Translate};
@@ -157,6 +157,20 @@ pub struct SessionConfig {
     /// sozinho); vazio = o usuário manda a saída do app para o "Praxis Speaker"
     #[serde(default)]
     pub peer_app: Option<String>,
+    /// gravação da voz do usuário (obrigatória; amostra da voz clonada). Enquanto a clonagem
+    /// não entra, serve para escolher a voz pronta do mesmo tipo (grave ou aguda).
+    #[serde(default)]
+    pub minha_voz: Option<String>,
+    /// a voz clonada do usuário (voice.bin do Supertonic, feito pela clonagem do Praxis): a
+    /// minha tradução sai nela nos idiomas que o Supertonic fala
+    #[serde(default)]
+    pub voz_clonada: Option<String>,
+    /// usar o OmniVoice na placa de vídeo quando houver (o clone mais fiel)
+    #[serde(default = "sim")]
+    pub omnivoice: bool,
+    /// voz da tradução: "auto" (padrão), "omni" (fiel) ou "leve"
+    #[serde(default)]
+    pub voz_modelo: Option<String>,
     /// bilateral: a outra pessoa ganha voz traduzida (falso = só legenda: ouço a voz original
     /// e leio a tradução, por exemplo para treinar o idioma)
     #[serde(default = "sim")]
@@ -188,10 +202,13 @@ pub enum SessionEvent {
     Engine { ev: pipeline::Event },
     Stopped,
     Error { msg: String },
+    /// qual voz a tradução está usando ("fiel" OmniVoice ou "leve") e por quê
+    Voz { qual: String, motivo: String },
 }
 
 pub struct Session {
     shared: Arc<Shared>,
+    monitor: Arc<AtomicBool>,
     stop_capture: Arc<AtomicBool>,
     handles: Vec<JoinHandle<()>>,
     vm: Option<VirtualMic>,
@@ -304,7 +321,80 @@ impl Session {
         progress(85, "Carregando a voz…");
         // o Kokoro precisa de mais núcleos (só é usado no processador para o chinês)
         let voice_threads = |dir: &Path| if dir.join("voices.bin").exists() && !gpu { 4 } else { 2 };
-        let voice_out = Arc::new(Voice::load_on(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu)?);
+        // a voz da MINHA tradução é do mesmo tipo da minha voz (grave: masculina), medida na gravação
+        let masculina = cfg.minha_voz.as_ref()
+            .and_then(|p| crate::audio::read_wav_16k_mono(p.as_ref()).ok())
+            .and_then(|x| crate::audio::tom_medio(&x, 16_000))
+            .map(|tom| tom < 165.0)
+            .unwrap_or(false);
+        let clone = cfg.voz_clonada.as_ref().map(PathBuf::from)
+            .filter(|p| p.exists() && crate::tts::SUPERTONIC_LANGS.contains(&cfg.tgt.as_str()));
+        // OmniVoice na placa de vídeo (Vulkan / Metal / CUDA): o clone mais fiel, com a referência
+        // ao vivo. Sem biblioteca, sem placa ou com erro, segue o clone leve do processador.
+        // Voz da tradução: "fiel" (OmniVoice na placa), "leve" (ajuste fino no processador) ou
+        // "auto" (a fiel só onde a placa dá conta de tradução simultânea; medido uma vez e guardado)
+        let modo = cfg.voz_modelo.clone().unwrap_or_else(|| if cfg.omnivoice { "omni".into() } else { "leve".into() });
+        let tem_leve = cfg.voz_clonada.as_ref().is_some_and(|p| Path::new(p).exists());
+        let medida = crate::omni::desempenho_guardado(store);
+        let tentar_omni = match modo.as_str() {
+            "leve" => false,
+            "omni" => true,
+            // auto: placa já medida como lenta e a voz leve existe → nem carrega o OmniVoice
+            _ => !(tem_leve && medida.is_some_and(|m| m > crate::omni::RTF_SIMULTANEO)),
+        };
+        let omni = if tentar_omni && cfg.minha_voz.is_some() && crate::omni::caminho_biblioteca().exists() {
+            progress(87, "Carregando a sua voz clonada (OmniVoice)…");
+            match (|| -> Result<Arc<crate::omni::OmniVoice>> {
+                let (m, c) = store.ensure_omnivoice(&dl)?;
+                let o = crate::omni::OmniVoice::carregar(&m, &c, &crate::omni::dispositivo_preferido(), crate::omni::PASSOS)?;
+                let x = crate::audio::read_wav_16k_mono(cfg.minha_voz.as_ref().unwrap().as_ref())?;
+                let (a, b) = crate::omni::trecho_de_referencia(&x);
+                let texto = asr.transcribe(&x[a..b], &cfg.src)?.text;
+                o.definir_referencia(&x[a..b], &texto)?;
+                // mede a placa uma vez (frase de teste) e guarda
+                match medida {
+                    None => {
+                        progress(89, "Medindo a sua placa de vídeo…");
+                        if let Ok(rtf) = o.medir() {
+                            crate::omni::guardar_desempenho(store, &o.dispositivo, rtf);
+                        }
+                    }
+                    Some(r) => *o.rtf.lock().unwrap() = r,
+                }
+                Ok(Arc::new(o))
+            })() {
+                Ok(o) => {
+                    let rtf = crate::omni::desempenho_guardado(store);
+                    let lenta = rtf.is_some_and(|r| r > crate::omni::RTF_SIMULTANEO);
+                    if modo == "auto" && lenta && tem_leve {
+                        emit(SessionEvent::Voz { qual: "leve".into(), motivo: format!("placa:{:.2}", rtf.unwrap_or(0.0)) });
+                        None
+                    } else {
+                        emit(SessionEvent::Voz { qual: "fiel".into(), motivo: if lenta { format!("lenta:{:.2}", rtf.unwrap_or(0.0)) } else { "rapida".into() } });
+                        Some(o)
+                    }
+                }
+                Err(e) => {
+                    emit(SessionEvent::Error { msg: format!("OmniVoice indisponível, usando o clone leve: {e:#}") });
+                    None
+                }
+            }
+        } else {
+            None
+        };
+        if omni.is_none() && !tentar_omni && modo == "auto" {
+            emit(SessionEvent::Voz { qual: "leve".into(), motivo: format!("placa:{:.2}", medida.unwrap_or(0.0)) });
+        } else if omni.is_none() && modo == "leve" {
+            emit(SessionEvent::Voz { qual: "leve".into(), motivo: "escolhida".into() });
+        }
+        let voice_out = Arc::new(match clone {
+            _ if omni.is_some() => Voice::omni(omni.clone().unwrap(), &cfg.tgt),
+            Some(vb) => {
+                let pacote = store.ensure_supertonic(&dl)?;
+                Voice::load_clone(&pacote, &vb, &cfg.tgt, 2)?
+            }
+            None => Voice::load_voz(&voice_out_dir, &cfg.tgt, voice_threads(&voice_out_dir), gpu, masculina)?,
+        });
         let shared = Shared::new();
         let stop_capture = Arc::new(AtomicBool::new(false));
         let (ptx, prx) = std::sync::mpsc::channel::<pipeline::Event>();
@@ -313,19 +403,22 @@ impl Session {
         let silero = silero.to_string_lossy().to_string();
 
         // ida: meu microfone → tradução → microfone virtual (+ minha saída, se pedi para ouvir)
-        let mut outs = vec![OutputDevice::open(vm.target.clone())?];
-        if cfg.monitor {
-            outs.push(OutputDevice::open(cfg.output.clone())?);
-        }
+        // a monitoria fica sempre aberta e liga/desliga ao vivo (painel da tradução ao vivo)
+        let monitor_on = Arc::new(AtomicBool::new(cfg.monitor));
+        let monitor_dev = match OutputDevice::open(cfg.output.clone()) {
+            Ok(d) => Some(d),
+            Err(e) if cfg.monitor => return Err(e),
+            Err(_) => None,
+        };
         let (mtx, mrx) = std::sync::mpsc::channel();
         handles.push(devices::spawn_capture(cfg.mic.clone(), mtx, stop_capture.clone())?);
         let out_dir = Direction { name: "out".into(), src: cfg.src.clone(), tgt: cfg.tgt.clone(),
-            to_speaker: cfg.monitor,
+            to_speaker: true,
             // o meu microfone fica surdo enquanto algo toca na caixa de som (sem fone)
-            echo_gate: !cfg.headphones && (cfg.monitor || cfg.bilateral),
-            leaks: cfg.monitor && !cfg.headphones, simultaneous: cfg.simultaneous };
+            echo_gate: !cfg.headphones,
+            leaks: !cfg.headphones, leak_when: Some(monitor_on.clone()), simultaneous: cfg.simultaneous };
         handles.extend(pipeline::spawn_direction(mrx, asr.clone(), make_tr(tr_out, &cfg.src, &cfg.tgt)?, Some(voice_out),
-            Arc::new(Speakers(outs, stop_capture.clone())), out_dir, seg, silero.clone(), shared.clone(), ptx.clone())?);
+            Arc::new(MonitoredSpeakers { main: OutputDevice::open(vm.target.clone())?, monitor: monitor_dev, on: monitor_on.clone(), stop: stop_capture.clone() }), out_dir, seg, silero.clone(), shared.clone(), ptx.clone())?);
 
         // volta (bilateral): a outra pessoa → tradução → minha saída
         if cfg.bilateral {
@@ -376,7 +469,7 @@ impl Session {
                 }));
             }
             let in_dir = Direction { name: "in".into(), src: cfg.tgt.clone(), tgt: cfg.src.clone(),
-                to_speaker: cfg.peer_voice, echo_gate: false, leaks: cfg.peer_voice && !cfg.headphones, simultaneous: cfg.simultaneous };
+                to_speaker: cfg.peer_voice, echo_gate: false, leaks: cfg.peer_voice && !cfg.headphones, leak_when: None, simultaneous: cfg.simultaneous };
             let seg_in = SegmenterConfig { max_seg_s: max_segment_s(&model_in, gpu), ..Default::default() };
             handles.extend(pipeline::spawn_direction(irx, asr_in, make_tr(tr_in, &cfg.tgt, &cfg.src)?, voice_in,
                 Arc::new(Speakers(vec![my_output], stop_capture.clone())), in_dir, seg_in, silero, shared.clone(), ptx.clone())?);
@@ -395,7 +488,12 @@ impl Session {
         }
         progress(100, "Traduzindo");
         emit(SessionEvent::Ready);
-        Ok(Self { shared, stop_capture, handles, vm: Some(vm) })
+        Ok(Self { shared, monitor: monitor_on, stop_capture, handles, vm: Some(vm) })
+    }
+
+    /// Liga ou desliga a monitoria (ouvir a própria tradução) sem parar a tradução.
+    pub fn set_monitor(&self, on: bool) {
+        self.monitor.store(on, Ordering::Relaxed);
     }
 
     pub fn stop(mut self) {

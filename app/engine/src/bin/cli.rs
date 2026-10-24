@@ -111,8 +111,115 @@ fn main() -> Result<()> {
             }
         }
         // tts <pasta da voz> <frases.txt> <pasta de saída>  — um WAV por linha
+        // robo <reconhecedor> <silero> <voz> [modelo do ollama]: a "outra pessoa" numa chamada, feita
+        // de IA local, para testar o bilateral. Ouve o "Praxis Mic" (a minha tradução), responde
+        // com o Ollama e fala no "Praxis Speaker" (o Praxis traduz a resposta de volta para mim).
+        Some("robo") if pos.len() >= 4 => {
+            use praxis_engine::pipeline::Speaker;
+            let modelo = pos.get(4).map(|s| s.to_string()).unwrap_or_else(|| "llama3.2:3b".into());
+            let lingua = std::env::var("PRAXIS_ROBO_IDIOMA").unwrap_or_else(|_| "en".into());
+            let asr = Asr::load(pos[1].as_ref(), false, 4)?;
+            let voz = tts::Voice::load_voz(pos[3].as_ref(), &lingua, 2, false, false)?;
+            let saida = devices::Speakers(vec![devices::OutputDevice::open(Some("Praxis Speaker".into()))?],
+                                          Arc::new(std::sync::atomic::AtomicBool::new(false)));
+            let (tx, rx) = std::sync::mpsc::channel::<Vec<f32>>();
+            let _cap = devices::spawn_capture(Some("Praxis Mic".into()), tx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?;
+            let mut seg = vad::Segmenter::new(vad::SileroV6::load(pos[2], vad::THRESHOLD)?, vad::SegmenterConfig { max_seg_s: 15.0, ..Default::default() });
+            let mut conversa = vec![serde_json::json!({"role": "system", "content": format!(
+                "You are Alex, a friendly colleague talking with Diego on a video call. Reply in language '{lingua}' only, \
+                 in one or two short natural sentences, and sometimes ask a question back. No emojis, no lists.")})];
+            eprintln!("robô pronto: ouvindo o \"Praxis Mic\", falando no \"Praxis Speaker\" ({modelo}, {lingua})");
+            let mut pedaco: Vec<f32> = vec![];
+            let mut ultimo = Instant::now();
+            // transcrição do pedaço atual (refeita só quando chega fala nova)
+            let mut lido: Option<String> = None;
+            loop {
+                match rx.recv_timeout(std::time::Duration::from_millis(100)) {
+                    Ok(c) => { for t in seg.push(&c) { pedaco.extend(t); ultimo = Instant::now(); lido = None; } }
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+                    Err(_) => break,
+                }
+                // a tradução chega em pedaços, com pausas entre eles: só responde com a frase
+                // terminada (. ? !) e 1,2 s de silêncio, ou depois de 4 s de silêncio de qualquer jeito
+                let calado = ultimo.elapsed().as_secs_f32();
+                if pedaco.is_empty() || calado < 1.2 { continue; }
+                if lido.is_none() { lido = Some(asr.transcribe(&pedaco, &lingua)?.text); }
+                let ouvido = lido.clone().unwrap_or_default();
+                let terminou = ouvido.trim_end().ends_with(['.', '?', '!']);
+                if !terminou && calado < 4.0 { continue; }
+                pedaco.clear();
+                lido = None;
+                if ouvido.split_whitespace().count() < 2 { continue; }
+                eprintln!("\n🗣  ouvi: {ouvido}");
+                conversa.push(serde_json::json!({"role": "user", "content": ouvido}));
+                let t = Instant::now();
+                let corpo = serde_json::json!({"model": modelo, "stream": false, "keep_alive": "30m",
+                                               "options": {"num_predict": 60, "temperature": 0.7}, "messages": conversa});
+                let r: serde_json::Value = serde_json::from_str(&ureq::post("http://localhost:11434/api/chat")
+                    .header("Content-Type", "application/json")
+                    .send(corpo.to_string())?
+                    .body_mut().read_to_string()?)?;
+                let resposta = r["message"]["content"].as_str().unwrap_or("").trim().to_string();
+                eprintln!("🤖 respondo ({:.1} s): {resposta}", t.elapsed().as_secs_f32());
+                conversa.push(serde_json::json!({"role": "assistant", "content": resposta}));
+                for frase in praxis_engine::text::speech_chunks(&resposta) {
+                    let a = voz.synthesize(&frase, 1.0)?;
+                    saida.play(&a, voz.sample_rate);
+                }
+                // o que entrou enquanto eu falava não é resposta para mim
+                while rx.try_recv().is_ok() {}
+            }
+        }
+        // omni-falar <pasta omnivoice> <reconhecedor> <gravação.wav> <idioma da gravação> <idioma alvo> <frases.txt> <saída>
+        Some("omni-falar") if pos.len() == 8 => {
+            let d = PathBuf::from(pos[1]);
+            let t0 = Instant::now();
+            let o = praxis_engine::omni::OmniVoice::carregar(&d.join("omnivoice-base-Q8_0.gguf"), &d.join("omnivoice-tokenizer-F32.gguf"),
+                &praxis_engine::omni::dispositivo_preferido(), std::env::var("PRAXIS_PASSOS").ok().and_then(|v| v.parse().ok()).unwrap_or(8))?;
+            eprintln!("carga {:.1} s em {}", t0.elapsed().as_secs_f32(), o.dispositivo);
+            let x = audio::read_wav_16k_mono(pos[3].as_ref())?;
+            let (a, b) = praxis_engine::omni::trecho_de_referencia(&x);
+            let asr = Asr::load(pos[2].as_ref(), false, 4)?;
+            let texto = asr.transcribe(&x[a..b], pos[4])?.text;
+            eprintln!("referência {:.1}–{:.1} s: {texto}", a as f32 / 16000.0, b as f32 / 16000.0);
+            let t1 = Instant::now();
+            o.definir_referencia(&x[a..b], &texto)?;
+            eprintln!("referência codificada em {:.2} s", t1.elapsed().as_secs_f32());
+            let out = PathBuf::from(pos[7]);
+            std::fs::create_dir_all(&out)?;
+            let pausa: f32 = std::env::var("PRAXIS_PAUSA_S").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0);
+            for (i, l) in std::fs::read_to_string(pos[6])?.lines().filter(|l| !l.trim().is_empty()).enumerate() {
+                if pausa > 0.0 { std::thread::sleep(std::time::Duration::from_secs_f32(pausa)); }
+                let t = Instant::now();
+                let a = o.falar(l, pos[5])?;
+                let dt = t.elapsed().as_secs_f32();
+                let dur = a.len() as f32 / 24_000.0;
+                eprintln!("{i}: {dt:.2} s para {dur:.1} s de fala ({:.2} s por s) — {l}", dt / dur);
+                audio::write_wav16(&out.join(format!("{i:02}.wav")), &a, 24_000)?;
+            }
+        }
+        // omni-passo <pacote> <processador|coreml> <llm_fp32.onnx|llm_fp16.onnx> [vezes]
+        Some("omni-passo") if pos.len() >= 4 => {
+            let placa = if pos[2].as_str() == "coreml" { praxis_engine::omni::Placa::CoreMlPlaca } else { praxis_engine::omni::Placa::Processador };
+            let vezes = pos.get(4).and_then(|v| v.parse().ok()).unwrap_or(3);
+            let (t, dif, carga) = praxis_engine::omni::medir_passo(pos[1].as_ref(), pos[3], placa, 4, vezes)?;
+            println!("{} {}: carga {carga:.1} s, passo {t:.3} s, diferença máx. {dif:.4}", pos[2], pos[3]);
+        }
+        // clonar <gravação.wav> <pacote supertonic> <medidor de voz.onnx> <saída voice.bin> [rodadas]
+        Some("clonar") if pos.len() >= 5 => {
+            let rodadas = pos.get(5).and_then(|v| v.parse().ok()).unwrap_or(praxis_engine::clone::RODADAS);
+            let x = audio::read_wav_16k_mono(pos[1].as_ref())?;
+            let parar = std::sync::atomic::AtomicBool::new(false);
+            let c = praxis_engine::clone::clonar(&x, pos[2].as_ref(), pos[3].as_ref(), pos[4].as_ref(), rodadas, 4,
+                &|f, t| eprintln!("{:3.0}% {t}", f * 100.0), &parar)?;
+            println!("{}", serde_json::to_string(&c)?);
+        }
         Some("tts") if pos.len() == 4 => {
-            let v = tts::PiperVoice::load(pos[1].as_ref(), 4)?;
+            // teste da voz: PRAXIS_TTS_IDIOMA, PRAXIS_TTS_MASCULINA=1, PRAXIS_TTS_ESCALA (velocidade)
+            let lang = std::env::var("PRAXIS_TTS_IDIOMA").unwrap_or_else(|_| "en".into());
+            let masc = std::env::var("PRAXIS_TTS_MASCULINA").map(|v| v == "1").unwrap_or(false);
+            let escala: f32 = std::env::var("PRAXIS_TTS_ESCALA").ok().and_then(|v| v.parse().ok()).unwrap_or(1.0);
+            let v = tts::Voice::load_voz(pos[1].as_ref(), &lang, 4, false, masc)?;
             let out = PathBuf::from(pos[3]);
             std::fs::create_dir_all(&out)?;
             let lines: Vec<String> = std::fs::read_to_string(pos[2])?.lines().map(String::from).collect();
@@ -120,7 +227,7 @@ fn main() -> Result<()> {
             let (mut synth_s, mut audio_s) = (0f64, 0f64);
             for (i, l) in lines.iter().enumerate() {
                 let t = Instant::now();
-                let a = v.synthesize(l, 1.0)?;
+                let a = v.synthesize(l, escala)?;
                 synth_s += t.elapsed().as_secs_f64();
                 audio_s += a.len() as f64 / v.sample_rate as f64;
                 let spec = hound::WavSpec { channels: 1, sample_rate: v.sample_rate, bits_per_sample: 16, sample_format: hound::SampleFormat::Int };
@@ -151,10 +258,26 @@ fn main() -> Result<()> {
                     Arc::new(pipeline::ArgosRoute(route))
                 }
             };
-            // a voz fala o idioma de destino; o Kokoro precisa de 4 núcleos
+            // a voz fala o idioma de destino; o Kokoro precisa de 4 núcleos.
+            // PRAXIS_OMNI_DIR (modelos GGUF) + PRAXIS_OMNI_GRAVACAO (a voz, no idioma de origem): OmniVoice
             let vdir = PathBuf::from(pos[8]);
             let vthreads = if vdir.join("voices.bin").exists() { 4 } else { 2 };
-            let voice = Arc::new(tts::Voice::load_on(&vdir, &tgt, vthreads, gpu)?);
+            let voice = Arc::new(match (std::env::var("PRAXIS_OMNI_DIR"), std::env::var("PRAXIS_OMNI_GRAVACAO")) {
+                (Ok(d), Ok(g)) => {
+                    let d = PathBuf::from(d);
+                    let passos = std::env::var("PRAXIS_PASSOS").ok().and_then(|v| v.parse().ok()).unwrap_or(8);
+                    let o = praxis_engine::omni::OmniVoice::carregar(&d.join("omnivoice-base-Q8_0.gguf"), &d.join("omnivoice-tokenizer-F32.gguf"),
+                                                                     &praxis_engine::omni::dispositivo_preferido(), passos)?;
+                    let x = audio::read_wav_16k_mono(g.as_ref())?;
+                    let (a, b) = praxis_engine::omni::trecho_de_referencia(&x);
+                    let texto = asr.transcribe(&x[a..b], &std::env::var("PRAXIS_OMNI_IDIOMA").unwrap_or_else(|_| "pt".into()))?.text;
+                    o.definir_referencia(&x[a..b], &texto)?;
+                    let r = o.medir()?;
+                    eprintln!("placa: {r:.2} s por s de fala; pedaço mínimo {} palavras", o.pedaco_minimo());
+                    tts::Voice::omni(Arc::new(o), &tgt)
+                }
+                _ => tts::Voice::load_on(&vdir, &tgt, vthreads, gpu)?,
+            });
             eprintln!("voz na placa de vídeo: {}", gpu && vdir.join("voices.bin").exists() && tts::cuda_provider_available());
             // aquecimento (como o teste do Python)
             asr.transcribe(&vec![0.0; 16_000], &src)?;
@@ -170,7 +293,7 @@ fn main() -> Result<()> {
             let (atx, arx) = std::sync::mpsc::channel();
             let (etx, erx) = std::sync::mpsc::channel();
             let shared = pipeline::Shared::new();
-            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, leaks: false, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+            let dir = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(), to_speaker: false, echo_gate: false, leaks: false, leak_when: None, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             let cfg = vad::SegmenterConfig { max_seg_s: max_seg, ..Default::default() };
             let handles = pipeline::spawn_direction(arx, asr, translator, Some(voice), Arc::new(FakeSpeaker), dir, cfg,
                                                      pos[2].to_string(), shared.clone(), etx)?;
@@ -276,6 +399,12 @@ fn main() -> Result<()> {
                 "drain_s": drain, "keeps_up": keeps_up, "segments": ends.len()});
             std::fs::write(pos[9], serde_json::to_string_pretty(&out)?)?;
         }
+        // tom médio de uma gravação 16 kHz (a mesma conta que escolhe a voz grave ou aguda)
+        Some("tom") if pos.len() == 2 => {
+            let x = audio::read_wav_16k_mono(pos[1].as_ref())?;
+            let tom = audio::tom_medio(&x, 16_000);
+            println!("{}", serde_json::json!({"tom_hz": tom, "masculina": tom.map(|t| t < 165.0), "segundos": x.len() as f32 / 16_000.0}));
+        }
         // apps tocando som agora (bilateral: de qual app vem a outra pessoa)
         Some("apps") => {
             println!("{}", serde_json::to_string_pretty(&praxis_engine::app_audio::list())?);
@@ -355,7 +484,7 @@ fn main() -> Result<()> {
             let (mtx, mrx) = std::sync::mpsc::channel();
             handles.push(devices::spawn_capture(opt("--mic"), mtx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
             let dir_out = pipeline::Direction { name: "out".into(), src: src.clone(), tgt: tgt.clone(),
-                to_speaker: ouvir, echo_gate: !fones && (ouvir || opt("--voz-in").is_some()), leaks: ouvir && !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+                to_speaker: ouvir, echo_gate: !fones && (ouvir || opt("--voz-in").is_some()), leaks: ouvir && !fones, leak_when: None, simultaneous: !args.iter().any(|a| a == "--por-frase") };
             handles.extend(pipeline::spawn_direction(mrx, asr.clone(), load_tr(&src, &tgt)?, Some(voice_out),
                 Arc::new(devices::Speakers(outs, Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_out, cfg, silero.clone(), shared.clone(), etx.clone())?);
             // volta (bilateral): a outra pessoa → tradução → meu fone/caixa de som
@@ -364,7 +493,7 @@ fn main() -> Result<()> {
                 let (ptx, prx) = std::sync::mpsc::channel();
                 handles.push(devices::spawn_peer_capture(&vm, ptx, Arc::new(std::sync::atomic::AtomicBool::new(false)))?);
                 let dir_in = pipeline::Direction { name: "in".into(), src: tgt.clone(), tgt: src.clone(),
-                    to_speaker: true, echo_gate: false, leaks: !fones, simultaneous: !args.iter().any(|a| a == "--por-frase") };
+                    to_speaker: true, echo_gate: false, leaks: !fones, leak_when: None, simultaneous: !args.iter().any(|a| a == "--por-frase") };
                 // a trava de eco da ida também precisa saber quando a volta toca no alto-falante
                 handles.extend(pipeline::spawn_direction(prx, asr.clone(), load_tr(&tgt, &src)?, Some(voice_in),
                     Arc::new(devices::Speakers(vec![devices::OutputDevice::open(opt("--saida"))?], Arc::new(std::sync::atomic::AtomicBool::new(false)))), dir_in, cfg,

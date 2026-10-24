@@ -7,6 +7,7 @@ name: Publicar versão
 on:
   push:
     tags: ["v*"]
+  # sem etiqueta (workflow_dispatch): compila e guarda os instaladores como artefatos de teste
   workflow_dispatch:
 
 permissions:
@@ -46,10 +47,37 @@ jobs:
         run: |
           PYTHON=python scripts/ct2-do-pacote-oficial.sh
           scripts/cargo-linux.sh build --release -p praxis-engine -p praxis-desktop
+      - name: Vulkan para compilar o OmniVoice (conda-forge, sem mexer no sistema)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: vk
+          # um ambiente só (Vulkan e CUDA): dois passos do micromamba no mesmo trabalho brigavam
+          # pela pasta temporária na limpeza final
+          create-args: libvulkan-headers libvulkan-loader shaderc spirv-headers patchelf cuda-version=12.8 cuda-nvcc cuda-cudart-dev libcublas-dev
+          init-shell: none
+      - name: OmniVoice (voz clonada fiel, Vulkan)
+        run: |
+          P="$MAMBA_ROOT_PREFIX/envs/vk"
+          export CMAKE_PREFIX_PATH="$P" PATH="$PATH:$P/bin"
+          OMNIVOICE_CMAKE="-DVulkan_INCLUDE_DIR=$P/include -DVulkan_LIBRARY=$P/lib/libvulkan.so -DVulkan_GLSLC_EXECUTABLE=$P/bin/glslc" \
+            scripts/omnivoice.sh
+      - name: OmniVoice para NVIDIA (CUDA)
+        run: |
+          P="$MAMBA_ROOT_PREFIX/envs/vk"
+          export PATH="$PATH:$P/bin" CUDA_PATH="$P" CUDAToolkit_ROOT="$P"
+          OMNIVOICE_CUDA=1 OMNIVOICE_CMAKE="-DCMAKE_CUDA_COMPILER=$P/bin/nvcc" scripts/omnivoice.sh
       - name: Montar o .deb
         run: |
           scripts/empacotar-linux.sh
           scripts/empacotar-deb.sh
+      - name: Guardar o pacote para teste (sem publicar)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: praxis-deb-teste
+          path: |
+            app/target/dist/praxis_*_amd64.deb
+            app/target/dist/libomnivoice-cuda-linux-x64.so.gz
       - name: Publicar na página de versões
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -57,7 +85,7 @@ jobs:
         run: |
           gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
             gh release create "$GITHUB_REF_NAME" --title "Praxis ${GITHUB_REF_NAME}" --notes-file ../.github/notas-da-versao.md || true
-          gh release upload "$GITHUB_REF_NAME" target/dist/praxis_*_amd64.deb ../install.sh ../install.ps1 --clobber
+          gh release upload "$GITHUB_REF_NAME" target/dist/praxis_*_amd64.deb target/dist/libomnivoice-cuda-linux-x64.so.gz ../install.sh ../install.ps1 --clobber
       - name: Repositório apt assinado (versão fixa "apt" da página de versões)
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -104,15 +132,36 @@ jobs:
         with: { node-version: "20" }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: app }
-      - uses: ilammy/msvc-dev-cmd@v1
       - name: A etiqueta bate com a versão do código
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           $v = (Get-Content desktop/tauri.conf.json | ConvertFrom-Json).version
           if ("v$v" -ne $env:GITHUB_REF_NAME) { throw "etiqueta $env:GITHUB_REF_NAME × versão $v" }
+      - name: Vulkan para compilar o OmniVoice (conda-forge)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: vk
+          create-args: libvulkan-headers libvulkan-loader shaderc spirv-headers
+          init-shell: none
+      - name: OmniVoice (voz clonada fiel, Vulkan)
+        shell: pwsh
+        run: |
+          # o conda só neste passo: ativado nos outros, ele trocava o ligador do Visual C++
+          $p = "$env:MAMBA_ROOT_PREFIX\envs\vk\Library"
+          $env:CMAKE_PREFIX_PATH = $p
+          $env:OMNIVOICE_CMAKE = "-DVulkan_INCLUDE_DIR=$p\include -DVulkan_LIBRARY=$p\lib\vulkan-1.lib -DVulkan_GLSLC_EXECUTABLE=$p\bin\glslc.exe"
+          scripts/omnivoice.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+      # depois do OmniVoice: o passo do conda refazia o caminho dos programas e o Rust pegava o
+      # link.exe do Git em vez do Visual C++
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Compilar
         run: |
           $ErrorActionPreference = "Stop"
+          # o ligador do Visual C++ pelo caminho completo: com o conda no fluxo, o Rust achava
+          # antes o link.exe do Git (C:\Program Files\Git\usr\bin)
+          $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = Join-Path $env:VCToolsInstallDir "bin\Hostx64\x64\link.exe"
+          Write-Host "ligador: $env:CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER"
           # o motor primeiro: o aplicativo confere, ao compilar, as DLLs que o instalador leva
           scripts/cargo-windows.ps1 build --release -p praxis-engine
           if ($LASTEXITCODE -ne 0) { exit 1 }
@@ -130,6 +179,12 @@ jobs:
           npx --yes @tauri-apps/cli@2 bundle --bundles nsis
           if ($LASTEXITCODE -ne 0) { exit 1 }
           Get-ChildItem ../target/release/bundle/nsis
+      - name: Guardar o instalador para teste (sem publicar)
+        if: "!startsWith(github.ref, 'refs/tags/v')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: praxis-windows-teste
+          path: app/target/release/bundle/nsis/*-setup.exe
       - name: Publicar na página de versões
         if: startsWith(github.ref, 'refs/tags/v')
         env:

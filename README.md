@@ -56,14 +56,15 @@ Eliminar barreiras linguísticas para que ideias, conhecimento e relacionamentos
 
 ## Como funciona
 
-O Praxis faz **tradução simultânea**: enquanto você fala, a tradução já vai sendo falada para a outra pessoa, como um intérprete — sem esperar você terminar o raciocínio. A meta é que ela ouça a tradução **na sua própria voz, clonada**.
+O Praxis faz **tradução simultânea**: enquanto você fala, a tradução já vai sendo falada para a outra pessoa, como um intérprete — sem esperar você terminar o raciocínio — **na sua própria voz, clonada** a partir de uma gravação de ~30 s feita no próprio aplicativo.
 
 Ele cria um **microfone virtual** no sistema: você escolhe esse microfone no Discord, WhatsApp, Google Meet, Zoom, OBS ou qualquer outro app, e o que sai dele é a sua fala já traduzida. No modo **bilateral**, a voz da outra pessoa (que chega pelo app de chamada) também é traduzida para você.
 
 ```
 microfone ─► detector de fala ─► reconhecimento em fluxo ─► tradução incremental ─► voz ─► microfone virtual ─► app de chamada
-              (Silero)            (Whisper / Parakeet)       (NLLB, continua o        (Kokoro / Supertonic;
-                                  relê a cada 0,6 s e         que já foi falado)       voz clonada em construção)
+              (Silero)            (Whisper / Parakeet)       (NLLB, continua o        (a SUA voz clonada:
+                                  relê a cada 0,6 s e         que já foi falado)       OmniVoice na placa ou
+                                  confirma as palavras                                  voz leve no processador)
                                   confirma as palavras
 ```
 
@@ -78,8 +79,10 @@ Tudo roda **no seu computador**, sem internet depois da instalação e sem envia
 | Detector de fala | **Silero VAD v6** |
 | Reconhecimento | **Whisper large-v3 / large-v3-turbo** (com placa de vídeo) e **Parakeet** da NVIDIA (ultra, v2 para inglês, japonês) — o melhor medido para cada idioma |
 | Tradução | **NLLB-200** (Meta, 600M) com continuação da frase já falada; **Argos Translate** como reserva |
-| Voz | **Kokoro** e **Supertonic 3**; voz clonada da própria pessoa em construção |
-| Placa de vídeo | NVIDIA pelo CUDA quando existe (o motor principal); processador quando não |
+| Voz clonada fiel | **OmniVoice** (k2-fsa) pelo **omnivoice.cpp** na placa de vídeo: **Vulkan** (AMD, Intel e NVIDIA; nos Macs Intel com AMD pelo **MoltenVK**), Metal nos Macs com chip Apple |
+| Voz clonada leve | **Supertonic 3** ajustado à impressão de voz da pessoa (ajuste fino feito no próprio computador, sem placa) |
+| Placa de vídeo | NVIDIA pelo CUDA no reconhecimento e na tradução; qualquer placa com Vulkan na voz clonada; processador quando não há |
+| Hardware | o Praxis identifica sozinho processador, placas de vídeo e memória (tipo DDR, velocidade, fabricante) e mostra o uso de cada um na tela |
 | Instalação | `.deb` (Linux) e instalador `.exe` (Windows), com **atualização automática** |
 
 A versão anterior, em Python (`praxis.py`), continua no repositório como bancada de testes e medições (`benchmarks/`).
@@ -129,18 +132,30 @@ Medidos com a tradução simultânea de fala real (Ryzen 7 5700X + RTX 3050; má
 |---|---|---|
 | Processador | 4 núcleos, 64 bits (com 2 a tradução fica para trás) | 6 núcleos ou mais |
 | Memória | 8 GB (o Praxis usa ~1,3 GB) | 16 GB |
-| Placa de vídeo | — | NVIDIA com 6 GB ou mais (bilateral usou até 5,5 GB); 8 GB para a voz clonada |
+| Placa de vídeo | — | com Vulkan e 4 GB ou mais para a voz clonada fiel (NVIDIA, AMD, Intel; Macs com AMD ou chip Apple); NVIDIA com 6 GB acelera também o reconhecimento |
 | Espaço | ~1,5 GB por par de idiomas | ~5 GB |
 | Idiomas | português, inglês, espanhol, alemão e italiano | os 16, com o menor erro |
 | Sistema | Windows 10 (2004+) ou 11, 64 bits · Debian, Ubuntu, Mint e derivados | igual |
 
-Microfone virtual: no Linux o Praxis cria sozinho; no Windows o `install.ps1` instala o VB-Audio Virtual Cable e o renomeia para **Praxis Mic**. Placas AMD/Intel e o macOS ainda não foram testados.
+Microfone virtual: no Linux o Praxis cria sozinho; no Windows o `install.ps1` instala o VB-Audio Virtual Cable e o renomeia para **Praxis Mic**; no Mac, o driver próprio do Praxis (`app/macos/driver`).
+
+**Voz clonada e a placa de vídeo.** Na primeira vez, o Praxis mede quanto a placa leva para gerar a voz clonada fiel (OmniVoice, 8 passos) e escolhe sozinho:
+
+| Placa (medido) | Segundos de cálculo por segundo de fala | Voz usada na escolha automática |
+|---|---:|---|
+| NVIDIA RTX 3050 (Vulkan) | 0,2–0,35 | fiel (simultânea) |
+| AMD Radeon Pro 5500M, MacBook Pro 2019 (Vulkan/MoltenVK) | ~0,85 | leve (a fiel atrasaria 3–6 s) |
+| sem placa | — | leve |
+
+A tela diz qual voz está em uso e por quê; em **Voz da tradução** dá para forçar a fiel ou a leve.
 
 ---
 
 ## Uso
 
-Abra o **Praxis** pelo menu de aplicativos, escolha os dois idiomas e clique em **Iniciar**. Na primeira vez ele baixa os modelos para os seus idiomas. No app de chamada, escolha o microfone **Praxis Mic**.
+Abra o **Praxis**. Na primeira vez, o tutorial pede que você **grave a sua voz** (~30 s lendo um texto): é dela que sai o clone — sem a voz gravada, o Praxis não traduz. Depois, na tela principal, escolha os dois idiomas e a **voz da tradução** e clique em **Começar a traduzir**. Na primeira vez ele baixa os modelos para os seus idiomas. No app de chamada, escolha o microfone **Praxis Mic**.
+
+A tela principal mostra a conversa (você de um lado, a outra pessoa do outro), a **monitoria** (ouvir a sua própria tradução, liga e desliga a qualquer momento) e o **uso do computador** — processador, cada placa de vídeo (com a memória ocupada) e memória, pelo nome. O resto (microfone, sua voz, Praxis Mic, modo bilateral, detalhes do hardware) fica em **⚙ Configurações**.
 
 **Bilateral** (a outra pessoa também é traduzida):
 
@@ -182,7 +197,9 @@ cd app && scripts/cargo-linux.sh test -p praxis-engine --lib    # testes do moto
 - [x] Tradução simultânea (fala a tradução enquanto a pessoa fala)
 - [x] Modo bilateral
 - [x] Instalação por `.deb` / `.exe` e atualização automática
-- [ ] **Voz clonada da própria pessoa** (rápida, com ~10 s de amostra; e treinada, com alguns minutos)
+- [x] **Voz clonada da própria pessoa**: fiel (OmniVoice na placa, Vulkan/Metal) e leve (ajuste fino no processador), escolhida automaticamente pela placa
+- [x] Identificação do hardware e monitor de uso na tela
+- [ ] Voz fiel em placas modestas: treinar o OmniVoice para 4 passos (destilação)
 - [ ] macOS
 - [ ] Modos "segurar uma tecla para falar" e por volume
 

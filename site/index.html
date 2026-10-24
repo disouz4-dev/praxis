@@ -121,20 +121,20 @@
       <div class="barras" id="barras-voz"></div>
     </div>
     <div class="voz-texto">
-      <p class="sobretitulo revelar">Na sua voz <span class="selo">Em desenvolvimento</span></p>
+      <p class="sobretitulo revelar">Na sua voz</p>
       <h2 class="revelar">Você, em outra língua.</h2>
-      <p class="revelar">A meta do Praxis é que a outra pessoa ouça a tradução com o <strong>seu timbre</strong>, não com uma voz de robô. Dois caminhos:</p>
+      <p class="revelar">Grave a sua voz uma vez, por uns 30 segundos, no próprio Praxis. Ele clona sozinho, no seu computador, e a outra pessoa ouve a tradução com o <strong>seu timbre</strong>. Duas vozes, escolhidas pela sua máquina:</p>
       <div class="modos revelar">
         <div class="modo">
-          <span class="modo-num">10 s</span>
-          <div><h3>Clone instantâneo</h3><p>Grave dez segundos e pronto: a sua voz em qualquer idioma.</p></div>
+          <span class="modo-num">Fiel</span>
+          <div><h3>Na placa de vídeo</h3><p>O OmniVoice imita a sua voz em mais de 600 idiomas. Roda pelo Vulkan em placas AMD, Intel e NVIDIA, e nos Macs.</p></div>
         </div>
         <div class="modo">
-          <span class="modo-num">5 min</span>
-          <div><h3>Voz treinada</h3><p>Alguns minutos de gravação treinam um modelo só seu, ainda mais fiel.</p></div>
+          <span class="modo-num">Leve</span>
+          <div><h3>Em qualquer computador</h3><p>Uma voz ajustada à sua, no próprio processador, que acompanha a fala mesmo sem placa de vídeo.</p></div>
         </div>
       </div>
-      <p class="pequena revelar">Hoje o Praxis já fala com vozes naturais de alta qualidade (Kokoro e Supertonic). A voz clonada está sendo medida e integrada.</p>
+      <p class="pequena revelar">Na primeira vez o Praxis mede a sua placa e escolhe a voz que dá conta de traduzir enquanto você fala. Sem a sua voz gravada, ele não traduz.</p>
     </div>
   </section>
 
@@ -202,7 +202,7 @@
       <article class="passo cartao brilho revelar">
         <span class="passo-n">04</span>
         <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
-        <h3>Fala</h3><p>Uma voz natural fala a tradução no microfone virtual, já no app de chamada.</p><code>Kokoro · Supertonic</code>
+        <h3>Fala</h3><p>A sua voz, clonada, fala a tradução no microfone virtual, já no app de chamada.</p><code>OmniVoice · Supertonic</code>
       </article>
     </div>
   </section>
@@ -279,18 +279,19 @@
       </article>
       <article class="cartao requisito recomendado revelar">
         <span class="selo-req">Recomendado</span>
-        <h3>Com placa de vídeo NVIDIA</h3>
+        <h3>Com placa de vídeo</h3>
         <ul>
-          <li><b>Placa de vídeo</b> NVIDIA com 6 GB ou mais <small>a conversa bilateral usou até 5,5 GB numa RTX 3050</small></li>
+          <li><b>Placa de vídeo</b> com Vulkan e 4 GB ou mais para a voz clonada fiel <small>NVIDIA, AMD ou Intel; numa RTX 3050 ela gera cada frase em menos de 1 s</small></li>
+          <li><b>NVIDIA com 6 GB</b> acelera também o reconhecimento e a tradução <small>a conversa bilateral usou até 5,5 GB</small></li>
           <li><b>Processador</b> de 6 núcleos ou mais</li>
           <li><b>Memória</b> 16 GB</li>
           <li><b>Espaço</b> ~5 GB (modelos maiores e as bibliotecas da placa de vídeo)</li>
           <li><b>Idiomas</b> 16, com o menor erro: o Praxis escolhe o melhor modelo para cada um</li>
-          <li><b>Voz clonada</b> (em breve) 8 GB de placa de vídeo para sobrar folga</li>
+          <li><b>Seu computador na tela</b> o Praxis identifica processador, placa e memória e mostra o uso de cada um</li>
         </ul>
       </article>
     </div>
-    <p class="pequena centro revelar">Placas AMD e Intel e o macOS ainda não foram testados. Medido num Ryzen 7 5700X com RTX 3050 e numa máquina virtual Windows 11 sem placa de vídeo.</p>
+    <p class="pequena centro revelar">Medido num Ryzen 7 5700X com RTX 3050, num MacBook Pro 2019 (i9 + Radeon Pro 5500M) e numa máquina virtual Windows 11 sem placa de vídeo. Em placas modestas, como a Radeon de 2019, o Praxis escolhe a voz leve para não atrasar.</p>
   </section>
 
   <!-- ───────── Código aberto ───────── -->

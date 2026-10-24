@@ -1,0 +1,30 @@
+name: Teste do identificador de hardware
+
+on:
+  push:
+    paths: ["app/engine/src/hardware.rs", "app/tools/hardware/**", ".github/workflows/teste-hardware.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: teste-hardware-${{ github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  compilar:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: app/tools/hardware }
+      # biblioteca do C++ embutida: roda num Windows sem o Visual C++ instalado
+      - run: cargo build --release
+        working-directory: app/tools/hardware
+        env: { RUSTFLAGS: "-C target-feature=+crt-static" }
+      - run: ./target/release/praxis-hardware.exe
+        working-directory: app/tools/hardware
+      - uses: actions/upload-artifact@v4
+        with:
+          name: praxis-hardware
+          path: app/tools/hardware/target/release/praxis-hardware.exe

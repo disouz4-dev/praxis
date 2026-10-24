@@ -23,7 +23,10 @@ use crate::tts::PiperVoice;
 use crate::vad::{Segmenter, SegmenterConfig, SileroV6, SR};
 
 /// (atraso de reprodução ≤ s, length_scale): a voz acelera quando a tradução se acumula.
-pub const RATE_STEPS: [(f32, f32); 4] = [(1.5, 1.0), (4.0, 0.87), (8.0, 0.77), (f32::INFINITY, 0.7)];
+/// Medido (22/10/2026, Supertonic, pedaços do modo simultâneo): 1,43× fez a voz comer 55% das
+/// palavras. Medido (23/10/2026, voz clonada, frases inteiras): 1,0× 2%, 1,1× 1%, 1,2× 2%,
+/// 1,3× 3,9% de palavras erradas — acelera cedo e para em 1,2×.
+pub const RATE_STEPS: [(f32, f32); 3] = [(0.5, 1.0), (1.5, 0.91), (f32::INFINITY, 0.83)];
 /// Folga da trava de eco depois que o alto-falante para.
 pub const ECHO_TAIL_S: f32 = 0.35;
 
@@ -109,6 +112,8 @@ pub struct Direction {
     pub echo_gate: bool,
     /// o que esta direção toca vaza para o microfone do usuário (caixa de som, sem fone)
     pub leaks: bool,
+    /// se presente, só vaza enquanto este sinal estiver ligado (a monitoria liga e desliga ao vivo)
+    pub leak_when: Option<Arc<AtomicBool>>,
     /// tradução simultânea: fala a tradução enquanto a pessoa ainda fala (a premissa do
     /// Praxis); falso = espera o fim de cada trecho
     pub simultaneous: bool,
@@ -140,11 +145,26 @@ enum Job {
 const PARTIAL_EVERY_S: f32 = 0.6;
 const LIVE_MIN_NEW_WORDS: usize = 3;
 const LIVE_HOLD_BACK: usize = 2;
+/// Menor pedaço falado no modo simultâneo (palavras da tradução), fora o fim da frase. Medido:
+/// a voz come 11–15% das palavras em pedaços de 4 e 1,4–5,5% em pedaços de 6.
+const LIVE_MIN_SPOKEN: usize = 6;
 
 /// Ajuste para medições: PRAXIS_RELEITURA_S, PRAXIS_PALAVRAS_MIN e PRAXIS_SEGURAR substituem
 /// os três valores acima.
 fn live_param<T: std::str::FromStr>(name: &str, default: T) -> T {
     std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+}
+
+/// A tradução tem um tamanho plausível para o original? O NLLB, com um pedaço solto de frase,
+/// às vezes inventa outra frase inteira (medido 23/10/2026, es→en: 11 palavras viraram "In this
+/// context, it is important to note that the Commission has not yet adopted a proposal for a
+/// regulation." — 20 palavras sem relação). Chinês e japonês não separam palavras: sem conferência.
+fn plausible(src_words: usize, tgt_words: usize, src: &str, tgt: &str) -> bool {
+    if src_words < 4 || ["zh", "ja"].contains(&src) || ["zh", "ja"].contains(&tgt) {
+        return true;
+    }
+    let r = tgt_words as f32 / src_words as f32;
+    (0.4..=1.7).contains(&r)
 }
 
 /// Palavra comparável (sem maiúsculas nem pontuação), para o acordo entre duas leituras.
@@ -242,6 +262,42 @@ pub fn spawn_direction(
         }));
     }
 
+    // 2b. voz da tradução simultânea, numa tarefa própria: com uma voz lenta (OmniVoice, ~2–3 s
+    // por pedaço) o reconhecimento parava esperando por ela e o atraso chegava a 12 s (medido
+    // 23/10/2026). O que se acumula enquanto uma frase é gerada sai junto numa chamada só (o
+    // custo fixo de cada chamada do OmniVoice é alto).
+    let (say_tx, say_rx) = channel::<(usize, String)>();
+    if let Some(voice) = voice.clone() {
+        let (shared, events, dir, backlog, play_tx) = (shared.clone(), events.clone(), dir.clone(), backlog.clone(), play_tx.clone());
+        handles.push(std::thread::spawn(move || {
+            while !shared.stop.load(Ordering::Relaxed) {
+                let (id, mut texto) = match say_rx.recv_timeout(Duration::from_millis(200)) {
+                    Ok(x) => x,
+                    Err(RecvTimeoutError::Timeout) => continue,
+                    Err(RecvTimeoutError::Disconnected) => break,
+                };
+                let mut ult = id;
+                while let Ok((i, t)) = say_rx.try_recv() {
+                    texto.push(' ');
+                    texto.push_str(&t);
+                    ult = i;
+                }
+                let scale = speech_length_scale(*backlog.lock().unwrap());
+                match voice.synthesize(&texto, scale) {
+                    Ok(pcm) if !pcm.is_empty() => {
+                        let _ = events.send(Event::Stage { dir: dir.name.clone(), id: ult, stage: "voz".into(), at_s: shared.now_s() });
+                        *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
+                        let _ = play_tx.send((id, pcm, voice.sample_rate));
+                    }
+                    Ok(_) => {}
+                    Err(e) => {
+                        let _ = events.send(Event::Error { msg: format!("síntese de voz: {e:#}") });
+                    }
+                }
+            }
+        }));
+    }
+
     // 2. reconhecimento + tradução + voz
     {
         let (shared, events, dir, backlog) = (shared.clone(), events.clone(), dir.clone(), backlog.clone());
@@ -275,17 +331,9 @@ pub fn spawn_direction(
                 let (src_txt, tgt_txt) = (src_words.join(" "), tgt_words.join(" "));
                 let _ = events.send(Event::Transcript { dir: dir.name.clone(), text: src_txt });
                 let _ = events.send(Event::Translation { dir: dir.name.clone(), text: tgt_txt.clone() });
-                let Some(voice) = &voice else { return };
-                let scale = speech_length_scale(*backlog.lock().unwrap());
-                match voice.synthesize(&tgt_txt, scale) {
-                    Ok(pcm) if !pcm.is_empty() => {
-                        *backlog.lock().unwrap() += pcm.len() as f32 / voice.sample_rate as f32;
-                        let _ = play_tx.send((id, pcm, voice.sample_rate));
-                    }
-                    Ok(_) => {}
-                    Err(e) => {
-                        let _ = events.send(Event::Error { msg: format!("síntese de voz: {e:#}") });
-                    }
+                // a voz é gerada na tarefa 2b: o reconhecimento da fala seguinte não espera por ela
+                if voice.is_some() {
+                    let _ = say_tx.send((id, tgt_txt));
                 }
             };
             while !shared.stop.load(Ordering::Relaxed) {
@@ -338,13 +386,25 @@ pub fn spawn_direction(
                                     continue;
                                 }
                             };
+                            // tradução inventada (tamanho fora do normal): não fala, espera mais contexto
+                            if !plausible(live.committed.len(), all.len(), &dir.src, &dir.tgt) {
+                                continue;
+                            }
                             let mut new_tgt: Vec<String> = all.get(live.tgt_spoken.len()..).unwrap_or(&[]).to_vec();
                             let sentence_end = live.committed.last().map(|w| crate::vad::sentence_complete(w)).unwrap_or(false);
                             if !sentence_end {
                                 // as últimas palavras traduzidas ainda podem mudar: esperam
                                 new_tgt.truncate(new_tgt.len().saturating_sub(live_param("PRAXIS_SEGURAR", LIVE_HOLD_BACK)));
                             }
-                            if !new_tgt.is_empty() {
+                            // pedaço curto demais (a voz come palavras): espera juntar mais
+                            // OmniVoice: cada chamada é uma interpretação nova; pedaços curtos soavam
+                            // picados, então ele fala frases inteiras (ou pedaços longos)
+                            let minimo = match voice.as_ref().and_then(|v| v.omnivoice()) {
+                                Some(o) => o.pedaco_minimo(),
+                                None => LIVE_MIN_SPOKEN,
+                            };
+                            let curto = !sentence_end && new_tgt.len() < live_param("PRAXIS_FALA_MIN", minimo);
+                            if !new_tgt.is_empty() && !curto {
                                 let src_part = live.committed[live.src_spoken..].to_vec();
                                 speak(id, &src_part, &new_tgt);
                                 live.src_spoken = live.committed.len();
@@ -371,13 +431,27 @@ pub fn spawn_direction(
                     if words.is_empty() {
                         continue;
                     }
+                    // OmniVoice: o trecho que a pessoa acabou de falar vira a referência da voz
+                    // (entonação e timbre do momento, como o Praxis antigo)
+                    if let Some(o) = voice.as_ref().and_then(|v| v.omnivoice()) {
+                        o.referencia_ao_vivo(&audio, &words.join(" "));
+                    }
                     match translator.continue_from(&words.join(" "), &spoken, &dir.src, &dir.tgt) {
                         Ok(all) => {
                             let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "traduzido".into(), at_s: shared.now_s() });
-                            let rest: Vec<String> = all.get(spoken.len()..).unwrap_or(&[]).to_vec();
+                            let mut rest: Vec<String> = all.get(spoken.len()..).unwrap_or(&[]).to_vec();
                             let src_rest: Vec<String> = words.get(src_done.min(words.len())..).unwrap_or(&[]).to_vec();
+                            // a continuação forçada não cobriu o que faltava do original (o tradutor
+                            // deu a frase por terminada): traduz o resto sozinho em vez de perdê-lo
+                            if !spoken.is_empty() && !plausible(src_rest.len(), rest.len(), &dir.src, &dir.tgt) {
+                                if let Ok(t) = translator.translate(&src_rest.join(" "), &dir.src, &dir.tgt) {
+                                    rest = t.split_whitespace().map(String::from).collect();
+                                }
+                            }
+                            if std::env::var_os("PRAXIS_DEPURAR").is_some() {
+                                eprintln!("[fim {id}] lido: {:?}\n  já dito ({src_done} palavras): {:?}\n  tradução inteira: {:?}\n  resto: {:?}", words, spoken, all, rest);
+                            }
                             speak(id, &src_rest, &rest);
-                            let _ = events.send(Event::Stage { dir: dir.name.clone(), id, stage: "voz".into(), at_s: shared.now_s() });
                         }
                         Err(e) => {
                             let _ = events.send(Event::Error { msg: format!("{e:#}") });
@@ -440,7 +514,7 @@ pub fn spawn_direction(
                 };
                 let dur = pcm.len() as f32 / sr as f32;
                 let start = shared.now_s();
-                if dir.to_speaker && dir.leaks {
+                if dir.to_speaker && dir.leaks && dir.leak_when.as_ref().is_none_or(|f| f.load(Ordering::Relaxed)) {
                     let until = ((start + dur + ECHO_TAIL_S) * 1000.0) as u64;
                     shared.speaker_busy_until_ms.fetch_max(until, Ordering::Relaxed);
                 }
@@ -459,10 +533,23 @@ mod tests {
     use super::*;
 
     #[test]
-    fn velocidade_adaptativa_como_no_python() {
+    fn traducao_inventada_e_recusada() {
+        // o caso medido: 11 palavras em espanhol viraram 20 em inglês sem relação
+        assert!(!plausible(11, 20, "es", "en"));
+        assert!(plausible(11, 12, "es", "en"));
+        // resto sem tradução nenhuma: refaz
+        assert!(!plausible(20, 0, "es", "en"));
+        // pedaço curto ou idioma sem espaços: sem conferência
+        assert!(plausible(2, 5, "es", "en"));
+        assert!(plausible(10, 1, "en", "ja"));
+    }
+
+    #[test]
+    fn velocidade_adaptativa() {
         assert_eq!(speech_length_scale(0.5), 1.0);
-        assert_eq!(speech_length_scale(3.0), 0.87);
-        assert_eq!(speech_length_scale(6.0), 0.77);
-        assert_eq!(speech_length_scale(30.0), 0.7);
+        assert_eq!(speech_length_scale(1.0), 0.91);
+        assert_eq!(speech_length_scale(3.0), 0.83);
+        // nunca mais rápido que 1,2× (acelerar mais faz a voz comer palavras)
+        assert_eq!(speech_length_scale(30.0), 0.83);
     }
 }

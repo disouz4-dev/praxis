@@ -18,7 +18,8 @@
       "../target/release/msvcp140_2.dll": "msvcp140_2.dll",
       "../target/release/vcruntime140.dll": "vcruntime140.dll",
       "../target/release/vcruntime140_1.dll": "vcruntime140_1.dll",
-      "../target/release/concrt140.dll": "concrt140.dll"
+      "../target/release/concrt140.dll": "concrt140.dll",
+      "../target/release/omnivoice/omnivoice.dll": "omnivoice/omnivoice.dll"
     },
     "windows": {
       "nsis": {

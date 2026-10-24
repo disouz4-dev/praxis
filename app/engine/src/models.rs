@@ -45,7 +45,7 @@ fn extrair_pacote(arc: &Path, pai: &Path, nome: &str) -> Result<PathBuf> {
 }
 
 /// Impressão digital de um arquivo já baixado.
-fn sha256_arquivo(p: &Path) -> Result<String> {
+pub fn sha256_arquivo(p: &Path) -> Result<String> {
     let mut f = std::fs::File::open(p)?;
     let mut h = Sha256::new();
     let mut buf = vec![0u8; 1 << 20];
@@ -110,6 +110,9 @@ pub const DEFAULT_VOICES: &[(&str, &str)] = &[
 
 /// Pacotes de voz do sherpa-onnx que falam vários idiomas
 pub const KOKORO_PKG: &str = "kokoro-multi-lang-v1_0"; // 384 MB, Apache 2.0
+pub const OMNI_URL: &str = "https://huggingface.co/Serveurperso/OmniVoice-GGUF/resolve/main";
+pub const OMNI_MODELO: &str = "omnivoice-base-Q8_0.gguf";
+pub const OMNI_CODEC: &str = "omnivoice-tokenizer-F32.gguf";
 pub const SUPERTONIC_PKG: &str = "sherpa-onnx-supertonic-3-tts-int8-2026-05-11"; // 139 MB, OpenRAIL-M
 
 #[derive(Debug, Clone, PartialEq)]
@@ -123,7 +126,7 @@ pub enum VoiceChoice {
 /// placa de vídeo (no processador leva ~1 s para a 1ª frase), menos no chinês, que o Supertonic
 /// não fala. O Piper só para idioma que nenhum dos dois fale: hoje, nenhum.
 pub fn voice_choice(lang: &str, gpu: bool) -> Option<VoiceChoice> {
-    let kokoro = crate::tts::KOKORO_VOICES.iter().any(|(l, _, _)| *l == lang);
+    let kokoro = crate::tts::KOKORO_VOICES.iter().any(|(l, _, _, _)| *l == lang);
     if kokoro && (gpu || lang == "zh") {
         Some(VoiceChoice::Kokoro)
     } else if crate::tts::SUPERTONIC_LANGS.contains(&lang) {
@@ -309,6 +312,42 @@ impl ModelStore {
             bail!("o pacote {pkg} não tinha o formato esperado");
         }
         Ok(dir)
+    }
+
+    /// A voz Supertonic (base da voz clonada), baixada na 1ª vez.
+    pub fn ensure_supertonic(&self, p: Progress) -> Result<PathBuf> {
+        self.ensure_tts_package(SUPERTONIC_PKG, "voz (Supertonic)", "tts.json", p)
+    }
+
+    /// Pasta do OmniVoice (modelos GGUF do omnivoice.cpp)
+    pub fn omnivoice_dir(&self) -> PathBuf {
+        self.root.join("omnivoice")
+    }
+
+    /// Modelos do OmniVoice (clone na placa de vídeo), baixados na 1ª vez: o modelo de
+    /// linguagem em 8 bits (656 MB) e o codificador de áudio (734 MB). MIT / Apache 2.0.
+    pub fn ensure_omnivoice(&self, p: Progress) -> Result<(PathBuf, PathBuf)> {
+        let dir = self.omnivoice_dir();
+        criar_pasta(&dir)?;
+        let mut out = vec![];
+        for (arq, oque) in [(OMNI_MODELO, "voz clonada (OmniVoice)"), (OMNI_CODEC, "codificador de voz (OmniVoice)")] {
+            let dest = dir.join(arq);
+            if !dest.exists() {
+                download(&format!("{OMNI_URL}/{arq}"), &dest, None, &|_, a, b| p(oque, a, b))?;
+            }
+            out.push(dest);
+        }
+        Ok((out[0].clone(), out[1].clone()))
+    }
+
+    /// O medidor de impressão de voz usado na clonagem (26 MB), baixado na 1ª vez.
+    pub fn ensure_speaker_model(&self, p: Progress) -> Result<PathBuf> {
+        let dest = self.root.join(crate::clone::EMB_FILE);
+        if !dest.exists() {
+            criar_pasta(&self.root)?;
+            download(crate::clone::EMB_URL, &dest, Some(crate::clone::EMB_SHA256), &|_, a, b| p("medidor de voz", a, b))?;
+        }
+        Ok(dest)
     }
 
     pub fn ensure_voice(&self, voice: &str, p: Progress) -> Result<PathBuf> {

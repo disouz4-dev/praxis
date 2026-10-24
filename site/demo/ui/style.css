@@ -23,8 +23,7 @@ main { flex: 1; overflow-y: auto; padding: 8px 16px 12px; }
   background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px;
   padding: 12px 14px; margin-bottom: 10px;
 }
-h2, summary { margin: 0 0 8px; font-size: 12px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: .04em; color: var(--suave); cursor: default; }
+h2, summary { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--suave); cursor: default; }
 summary { cursor: pointer; margin: 0; }
 details[open] summary { margin-bottom: 8px; }
 label { display: block; margin-bottom: 8px; }
@@ -142,3 +141,190 @@ button.secundario { border: 1px solid var(--borda); border-radius: 8px; padding:
 .sobre-links { font-size: 13px; margin: 12px 0 14px; }
 .sobre-links a { color: var(--destaque); text-decoration: none; }
 .sobre-links a:hover { text-decoration: underline; }
+
+/* ── Tela principal: quem fala o quê ─────────────────────────────────────────── */
+:root { --eu: #3b82f6; --eu-claro: #93c5fd; --eles: #14b8a6; --eles-claro: #5eead4; }
+#config { display: flex; flex-direction: column; gap: 14px; }
+.par { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; gap: 10px; }
+.par .lado { margin: 0; }
+.par .lado > span { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.par .eu > span { color: var(--eu-claro); }
+.par .eles > span { color: var(--eles-claro); }
+.par select { font-size: 19px; font-weight: 650; padding: 11px 34px 11px 12px; border-radius: 12px; border-width: 1.5px; }
+.par .eu select { border-color: rgba(59, 130, 246, .55); }
+.par .eles select { border-color: rgba(20, 184, 166, .55); }
+.trocar { width: 40px; height: 40px; margin-bottom: 4px; border-radius: 50%; border: 1px solid var(--borda);
+  background: var(--cartao); color: var(--texto); font-size: 18px; cursor: pointer;
+  transition: transform .16s ease-out, background-color .16s ease-out; }
+.trocar:hover { background: var(--campo); }
+.trocar:active { transform: scale(.94) rotate(180deg); }
+.tut-par { grid-template-columns: 1fr 1fr; }
+
+/* passos numerados (é uma sequência de verdade: idiomas → microfone → app de chamada → modo) */
+.passos { list-style: none; counter-reset: passo; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.passos > li { counter-increment: passo; position: relative; padding-left: 36px; }
+.passos > li::before { content: counter(passo); position: absolute; left: 0; top: 0; width: 24px; height: 24px;
+  border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: var(--campo); border: 1px solid var(--borda); color: var(--suave); }
+.campo { margin-bottom: 8px; }
+.campo > span:first-child, .campo-titulo { display: block; font-size: 13.5px; font-weight: 600; color: var(--texto); margin: 2px 0 6px; }
+
+/* "Praxis Mic": o nome que a pessoa procura no app de chamada */
+.praxis-mic { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 8px 14px 8px 12px; border-radius: 10px;
+  background: rgba(59, 130, 246, .14); border: 1px solid rgba(59, 130, 246, .45); font-size: 15px; }
+.praxis-mic::before { content: ""; width: 10px; height: 16px; border-radius: 5px; border: 2px solid var(--eu-claro); }
+.praxis-mic.grande { font-size: 22px; padding: 14px 20px; margin-top: 4px; }
+
+/* Só eu / Nós dois */
+.modo { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.modo legend { font-size: 13.5px; font-weight: 600; margin: 2px 0 8px; padding: 0; }
+.opcao-modo { position: relative; display: block; margin: 0; padding: 10px 12px; border-radius: 12px; cursor: pointer;
+  background: var(--campo); border: 1.5px solid var(--borda); transition: border-color .15s ease-out, background-color .15s ease-out; }
+.opcao-modo input { position: absolute; opacity: 0; pointer-events: none; }
+.opcao-modo b { display: block; font-size: 14px; }
+.opcao-modo small { display: block; color: var(--suave); font-size: 12px; margin-top: 2px; line-height: 1.35; }
+.opcao-modo:has(input:checked) { border-color: var(--destaque); background: rgba(59, 130, 246, .12); }
+.opcao-modo:has(input:focus-visible) { outline: 2px solid var(--destaque); outline-offset: 2px; }
+#bilateral_opcoes { margin-top: 12px; }
+
+/* barra do microfone */
+.medidor { height: 8px; border-radius: 4px; background: var(--campo); border: 1px solid var(--borda); overflow: hidden; margin: 6px 0 4px; }
+.medidor[hidden] { display: none; }
+.medidor i { display: block; height: 100%; background: linear-gradient(90deg, #22c55e, #84cc16 70%, #eab308);
+  transform: scaleX(0); transform-origin: left; transition: transform 90ms linear; }
+.medidor.grande { height: 14px; border-radius: 7px; margin: 10px 0 12px; }
+[dir="rtl"] .medidor i { transform-origin: right; }
+
+/* mais opções */
+details.mais { border-top: 1px solid var(--borda); padding-top: 10px; }
+details.mais summary { font-size: 13.5px; color: var(--suave); }
+details.mais[open] summary { margin-bottom: 10px; }
+
+button.principal { transition: transform .12s ease-out, filter .15s ease-out; }
+button.principal:hover:not(:disabled) { filter: brightness(1.08); }
+button.principal:active:not(:disabled) { transform: scale(.98); }
+:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+
+/* ── Tutorial ─────────────────────────────────────────────────────────────── */
+dialog#tutorial { width: min(470px, 92vw); border: 1px solid var(--borda); border-radius: 16px; background: var(--cartao);
+  color: var(--texto); padding: 18px 20px 16px; }
+dialog#tutorial::backdrop { background: rgba(6, 8, 12, .78); }
+dialog#tutorial[open] { animation: tut-entra .26s cubic-bezier(.2, .8, .2, 1); }
+@keyframes tut-entra { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+.tut-topo { display: flex; justify-content: space-between; align-items: center; }
+.tut-topo .dica { margin: 0; }
+button.link { border: 0; background: none; color: var(--suave); font: inherit; font-size: 13px; cursor: pointer; padding: 4px 2px; text-decoration: underline; text-underline-offset: 3px; }
+button.link:hover { color: var(--texto); }
+.tut-corpo { min-height: 230px; padding: 10px 0 6px; }
+.tut-corpo h2 { font-size: 21px; color: var(--texto); margin: 8px 0 8px; line-height: 1.25; }
+.tut-corpo > p { color: var(--suave); font-size: 14.5px; line-height: 1.5; margin: 0 0 14px; }
+.tut-pontos { display: flex; gap: 6px; justify-content: center; margin: 4px 0 14px; }
+.tut-pontos i { width: 7px; height: 7px; border-radius: 50%; background: var(--borda); transition: width .2s ease-out, background-color .2s; }
+.tut-pontos i.atual { width: 20px; border-radius: 4px; background: var(--destaque); }
+dialog#tutorial .botoes { display: flex; gap: 8px; justify-content: flex-end; }
+dialog#tutorial .botoes .pequeno { padding: 9px 18px; font-size: 14px; }
+dialog#tutorial .botoes .secundario { padding: 8px 14px; }
+@media (prefers-reduced-motion: reduce) { dialog#tutorial[open] { animation: none; } .medidor i, .trocar { transition: none; } }
+
+/* monitoria: interruptor visível (como na versão antiga) */
+.interruptor { display: inline-flex; align-items: center; gap: 6px; margin: 8px 0 4px; padding: 7px 12px; border-radius: 999px;
+  border: 1px solid var(--borda); background: var(--campo); color: var(--suave); font: inherit; font-size: 13px; cursor: pointer;
+  transition: background-color .15s ease-out, color .15s ease-out, border-color .15s ease-out; }
+.interruptor.ligado { color: #bbf7d0; border-color: rgba(34, 197, 94, .55); background: rgba(34, 197, 94, .14); }
+.interruptor:active { transform: scale(.97); }
+#saida_linha { margin-top: 6px; }
+#saida_linha[hidden] { display: none; }
+
+/* painel lateral da tradução ao vivo */
+.painel-topo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.painel-topo h2 { margin: 0; font-size: 15px; color: var(--texto); }
+body.monitorando main { display: grid; grid-template-columns: minmax(420px, 520px) 1fr; gap: 18px; align-items: start; }
+body.monitorando #painel { position: sticky; top: 0; }
+body.monitorando .conversa { height: calc(100vh - 340px); }
+#painel #iniciar { margin-top: 10px; }
+#config[inert] { opacity: .55; }
+body.rodando #painel_fechar { visibility: hidden; }
+@media (max-width: 900px) {
+  /* janela estreita (o sistema não deixou alargar): a conversa ocupa a tela, como antes */
+  body.monitorando main { display: block; }
+  body.monitorando.rodando #config { display: none; }
+}
+
+/* voz do usuário */
+.voz-estado { margin: 0 0 8px; font-size: 13.5px; }
+.voz-estado.ok { color: #86efac; }
+.voz-estado.falta { color: var(--aviso); }
+dialog#gravador { width: min(500px, 92vw); border: 1px solid var(--borda); border-radius: 16px; background: var(--cartao); color: var(--texto); padding: 18px 20px 16px; }
+dialog#gravador::backdrop { background: rgba(6, 8, 12, .78); }
+dialog#gravador h2 { font-size: 20px; color: var(--texto); margin: 0 0 8px; }
+dialog#gravador .botoes { display: flex; justify-content: flex-end; margin-top: 12px; }
+.gravador .grav-explica { color: var(--suave); font-size: 14px; line-height: 1.5; margin: 0 0 10px; }
+.gravador .grav-rotulo { font-size: 13px; font-weight: 600; margin: 4px 0 6px; }
+.texto-leitura { margin: 0 0 12px; padding: 12px 14px; border-left: 3px solid var(--eu); background: var(--campo);
+  border-radius: 8px; font-size: 15px; line-height: 1.6; max-height: 34vh; overflow-y: auto; }
+.grav-linha { display: flex; align-items: center; gap: 12px; }
+button.gravar { border: 0; border-radius: 999px; padding: 9px 18px; background: #dc2626; color: #fff; font: inherit; font-weight: 600; cursor: pointer;
+  transition: transform .12s ease-out, background-color .15s; }
+button.gravar:active { transform: scale(.97); }
+button.gravar.ativo { background: #7f1d1d; box-shadow: 0 0 0 3px rgba(220, 38, 38, .35); }
+.grav-tempo { font-variant-numeric: tabular-nums; color: var(--suave); }
+.grav-resultado { margin: 6px 0 0; font-size: 13.5px; }
+.grav-resultado.ok { color: #86efac; }
+.grav-resultado.aviso { color: var(--aviso); }
+
+/* monitoria no painel ao vivo */
+.monitoria { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.monitoria .campo { flex: 1 1 200px; margin: 0; }
+
+/* clonagem da voz em andamento */
+.voz-estado.clonando { color: var(--aviso); }
+
+/* tela principal: idiomas + voz + conversa; o resto em Configurações */
+header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.computador { margin: 6px 0 10px; }
+.uso { display: grid; gap: 8px; }
+.uso-linha { display: grid; grid-template-columns: 92px 1fr auto; grid-template-areas: "rot nome pct" "rot det pct" "barra barra barra"; column-gap: 8px; row-gap: 2px; align-items: baseline; }
+.uso-rotulo { grid-area: rot; font-size: 12px; color: var(--suave); }
+.uso-nome { grid-area: nome; font-size: 13px; color: var(--texto); font-weight: 500; }
+.uso-detalhe { grid-area: det; font-size: 12px; color: var(--suave); }
+.uso-pct { grid-area: pct; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--texto); }
+.uso-barra { grid-area: barra; height: 5px; border-radius: 3px; background: var(--campo); overflow: hidden; margin-top: 3px; }
+.uso-barra i { display: block; height: 100%; background: var(--destaque); transform-origin: left; transition: transform .4s ease-out; }
+.uso-barra.medio i { background: var(--aviso); }
+.uso-barra.alto i { background: var(--erro); }
+.uso-barra.repouso i { background: transparent; }
+
+#inicio { display: grid; gap: 10px; margin-bottom: 12px; }
+#inicio .voz-linha { margin: 0; }
+#painel .painel-topo #painel_fechar { display: none; }
+#painel .conversa { min-height: 200px; height: calc(100vh - 470px); }
+#painel .conversa:empty::before { content: attr(data-vazio); color: var(--suave); font-size: 13px; }
+
+/* monitor sempre visível na tela principal: processador, cada placa e memória, pelo nome */
+.medidores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; margin: 0 0 12px; }
+.medidor-hw { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 7px 10px 8px; min-width: 0; }
+.medidor-hw .m-topo { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.medidor-hw .m-tipo { font-size: 10.5px; color: var(--suave); }
+.medidor-hw .m-pct { font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--texto); }
+.medidor-hw .m-nome { font-size: 11.5px; color: var(--texto); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0 5px; }
+.medidor-hw .uso-barra, .uso-linha .uso-barra { display: block; height: 4px; border-radius: 2px; background: var(--campo); overflow: hidden; margin: 0; }
+.medidor-hw .uso-barra i, .uso-linha .uso-barra i { display: block; width: 100%; height: 100%; }
+.medidor-hw.repouso .m-pct { color: var(--suave); font-weight: 400; }
+
+/* Configurações: seções em cartões, cabeçalho fixo */
+dialog#configuracoes { width: min(600px, 94vw); max-height: 90vh; padding: 0; overflow: hidden; border: 1px solid var(--borda);
+  border-radius: 16px; background: var(--fundo); color: var(--texto); }
+dialog#configuracoes[open] { display: flex; flex-direction: column; animation: tut-entra .22s cubic-bezier(.2, .8, .2, 1); }
+dialog#configuracoes::backdrop { background: rgba(6, 8, 12, .7); }
+.cfg-topo { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--borda); background: var(--cartao); }
+.cfg-topo h2 { margin: 0; font-size: 16px; color: var(--texto); font-weight: 600; }
+.cfg-corpo { overflow: auto; padding: 14px 16px 18px; display: grid; gap: 12px; }
+.cfg-secao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 14px 16px; margin: 0; }
+.cfg-secao > h3, .cfg-secao > summary { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--suave); }
+.cfg-secao .campo { margin: 0 0 10px; }
+.cfg-secao .praxis-mic { margin: 4px 0 12px; }
+.cfg-secao .modo { margin: 0; padding: 0; border: 0; }
+.cfg-secao .modo legend { font-size: 12px; color: var(--suave); margin-bottom: 6px; padding: 0; }
+.cfg-botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+details.cfg-secao > summary { cursor: pointer; margin: 0; }
+details.cfg-secao[open] > summary { margin-bottom: 10px; }

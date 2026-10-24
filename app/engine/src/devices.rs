@@ -315,6 +315,41 @@ impl crate::pipeline::Speaker for Speakers {
     }
 }
 
+/// A saída da minha tradução: sempre o microfone virtual; e também a monitoria (ouvir a própria
+/// tradução), que liga e desliga durante a tradução pelo painel ao vivo.
+pub struct MonitoredSpeakers {
+    pub main: Arc<OutputDevice>,
+    pub monitor: Option<Arc<OutputDevice>>,
+    pub on: Arc<AtomicBool>,
+    pub stop: Arc<AtomicBool>,
+}
+
+impl crate::pipeline::Speaker for MonitoredSpeakers {
+    fn play(&self, samples: &[f32], sample_rate: u32) {
+        self.main.enqueue(samples, sample_rate);
+        let mon = self.monitor.as_ref().filter(|_| self.on.load(Ordering::Relaxed));
+        if let Some(m) = mon {
+            m.enqueue(samples, sample_rate);
+        }
+        loop {
+            if self.stop.load(Ordering::Relaxed) {
+                self.main.queue.lock().unwrap().clear();
+                if let Some(m) = &self.monitor { m.queue.lock().unwrap().clear(); }
+                return;
+            }
+            // desligou no meio da frase: a monitoria cala na hora
+            if let (Some(m), false) = (mon, self.on.load(Ordering::Relaxed)) {
+                m.queue.lock().unwrap().clear();
+            }
+            let busy = self.main.pending_s() > 0.0 || mon.is_some_and(|m| m.pending_s() > 0.0);
+            if !busy {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(10));
+        }
+    }
+}
+
 // ── Microfone virtual ─────────────────────────────────────────────────────────
 
 pub const SINK_OUT: &str = "Praxis_Out";

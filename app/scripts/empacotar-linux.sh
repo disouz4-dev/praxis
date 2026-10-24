@@ -16,6 +16,14 @@ cp "$R/praxis" "$OUT/praxis"
 [ -f "$R/praxis-cli" ] && cp "$R/praxis-cli" "$OUT/praxis-cli"
 cp "$R"/libsherpa-onnx-c-api.so "$R"/libsherpa-onnx-cxx-api.so "$R"/libonnxruntime.so "$OUT/"
 cp -P target/ct2-lib/*.so* "$OUT/"
+# OmniVoice (voz clonada fiel na placa de vídeo, Vulkan): o Praxis carrega na hora, se houver
+# (a versão CUDA não vai no pacote: é baixada com as bibliotecas da NVIDIA, por praxis-placa)
+if [ -d "$R/omnivoice" ]; then
+  mkdir -p "$OUT/omnivoice" && cp "$R/omnivoice/libomnivoice.so" "$OUT/omnivoice/"
+fi
+if [ -f "$R/omnivoice/libomnivoice-cuda.so" ]; then
+  mkdir -p target/dist && gzip -9c "$R/omnivoice/libomnivoice-cuda.so" > target/dist/libomnivoice-cuda-linux-x64.so.gz
+fi
 cp desktop/icons/128x128.png "$OUT/praxis.png"
 cat > "$OUT/praxis.desktop" <<'EOF'
 [Desktop Entry]
