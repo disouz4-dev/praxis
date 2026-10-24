@@ -100,7 +100,7 @@ function preencherDispositivos() {
     sel.replaceChildren(opcao("", padrao));
     // os cabos virtuais do Praxis não são microfone nem fone de ninguém: escolhê-los fazia a
     // tradução voltar para dentro do Praxis
-    for (const n of lista) if (!/^(Monitor of )?Praxis[ _]|VB-Audio Virtual Cable|BlackHole/.test(n)) sel.append(opcao(n, n));
+    for (const n of lista) if (!/^Monitor of |^Praxis[ _]|VB-Audio Virtual Cable|BlackHole/.test(n)) sel.append(opcao(n, n));
     sel.value = cfg[id] || "";
     if (sel.selectedIndex < 0) sel.value = "";   // o aparelho salvo sumiu (desplugado): volta ao padrão
   }
@@ -209,7 +209,7 @@ function montarMedidores(u) {
     itens.push(c);
   }
   if (!(u.placas || []).length) itens.push(m(t("hw_gpu_label"), t("hw_no_gpu"), null, "—"));
-  itens.push(m(t("hw_mem_label"), [`${gb(u.memoria_total_mb)} GB`, mem.tipo].filter(Boolean).join(" "),
+  itens.push(m(t("hw_mem_label"), [`${gb(mem.instalada_mb || u.memoria_total_mb)} GB`, mem.tipo].filter(Boolean).join(" "),
     100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), `${gb(u.memoria_usada_mb)} GB`));
   $("medidores").replaceChildren(...itens);
 }
@@ -247,7 +247,7 @@ async function atualizarUso() {
   }
   if (!(u.placas || []).length) linhas.push(linha(t("hw_gpu_label"), t("hw_no_gpu"), t("hw_no_gpu_hint"), null, "—"));
   const memDet = [mem.tipo, mem.velocidade_mhz ? `${mem.velocidade_mhz} MHz` : null, mem.fabricante].filter(Boolean).join(" · ");
-  linhas.push(linha(t("hw_mem_label"), `${gb(u.memoria_total_mb)} GB`, memDet,
+  linhas.push(linha(t("hw_mem_label"), `${gb(mem.instalada_mb || u.memoria_total_mb)} GB`, memDet,
     100 * u.memoria_usada_mb / Math.max(1, u.memoria_total_mb), tf("hw_mem_used", { u: gb(u.memoria_usada_mb) })));
   $("uso").replaceChildren(...linhas);
   fixo("computador_sistema", h.sistema || "");
@@ -565,6 +565,8 @@ function eventoDoMotor(e) {
       statusT("st_translating", "ok"); fixo("baixando", ""); $("barra").hidden = true; break;
     case "error":
       statusT("st_error", "erro");
+      // falta de internet no primeiro download: explica em vez de mostrar o erro técnico (que vai para o registro)
+      if (/\(internet\?\)/.test(e.msg)) { invoke("log_tela", { nivel: "erro", msg: e.msg }).catch(() => {}); e = { ...e, msg: t("err_internet") }; }
       { const p = document.createElement("p"); p.className = "erro-msg"; p.textContent = e.msg; $("conversa").append(p); }
       // o erro também vai para o alto da janela: ao voltar às configurações ele ficava escondido embaixo
       fixo("erro_texto", e.msg); $("erro_topo").hidden = false; $("erro_topo").scrollIntoView({ block: "start" });

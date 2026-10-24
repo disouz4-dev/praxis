@@ -113,6 +113,8 @@ fn lista_json(s: &str) -> Vec<Value> {
 /// {total_mb, tipo, velocidade_mhz, fabricante, modulos}
 fn memoria(total_mb: u64) -> Value {
     let (mut tipo, mut vel, mut fab, mut modulos): (Option<String>, Option<u64>, Option<String>, usize) = (None, None, None, 0);
+    // capacidade instalada (soma dos módulos): o sistema reserva uma parte e informa um pouco menos
+    let mut instalada_mb: u64 = 0;
     if cfg!(target_os = "macos") {
         if let Ok(j) = serde_json::from_str::<Value>(&rodar("system_profiler", &["SPMemoryDataType", "-json"])) {
             for b in j["SPMemoryDataType"].as_array().into_iter().flatten() {
@@ -121,6 +123,7 @@ fn memoria(total_mb: u64) -> Value {
                 if let Some(f) = b["dimm_manufacturer"].as_str() { fab = Some(f.into()); }
                 for m in b["_items"].as_array().into_iter().flatten() {
                     modulos += 1;
+                    instalada_mb += m["dimm_size"].as_str().and_then(mb_de_texto).unwrap_or(0);
                     tipo = tipo.or(m["dimm_type"].as_str().map(String::from));
                     fab = fab.or(m["dimm_manufacturer"].as_str().map(String::from));
                     vel = vel.or(m["dimm_speed"].as_str().and_then(|s| s.split_whitespace().next()?.parse().ok()));
@@ -128,9 +131,10 @@ fn memoria(total_mb: u64) -> Value {
             }
         }
     } else if cfg!(windows) {
-        let s = powershell("Get-CimInstance Win32_PhysicalMemory | Select-Object Manufacturer,Speed,SMBIOSMemoryType | ConvertTo-Json -Compress");
+        let s = powershell("Get-CimInstance Win32_PhysicalMemory | Select-Object Manufacturer,Speed,SMBIOSMemoryType,Capacity | ConvertTo-Json -Compress");
         for m in lista_json(&s) {
             modulos += 1;
+            instalada_mb += m["Capacity"].as_u64().unwrap_or(0) / 1_048_576;
             tipo = tipo.or(m["SMBIOSMemoryType"].as_u64().and_then(tipo_smbios).map(String::from));
             vel = vel.or(m["Speed"].as_u64().filter(|&v| v > 0));
             fab = fab.or(m["Manufacturer"].as_str().map(str::trim).filter(|f| !f.is_empty() && *f != "Unknown").map(String::from));
@@ -142,8 +146,9 @@ fn memoria(total_mb: u64) -> Value {
         let campo = |n: &str, k: &str| udev.lines().find_map(|l| l.strip_prefix(&format!("E: MEMORY_DEVICE_{n}_{k}=")).map(|v| v.trim().to_string()));
         for n in 0..64 {
             let n = n.to_string();
-            if campo(&n, "SIZE").is_none() { continue; }
+            let Some(tam) = campo(&n, "SIZE") else { continue };
             modulos += 1;
+            instalada_mb += tam.parse::<u64>().unwrap_or(0) / 1_048_576;
             tipo = tipo.or(campo(&n, "TYPE").filter(|t| t != "Unknown"));
             vel = vel.or(campo(&n, "SPEED_MTS").and_then(|v| v.parse().ok()));
             fab = fab.or(campo(&n, "MANUFACTURER").filter(|f| f != "Unknown" && !f.is_empty()));
@@ -159,7 +164,8 @@ fn memoria(total_mb: u64) -> Value {
             fab = fab.or(campo("Manufacturer:").filter(|f| f != "Unknown"));
         }
     }
-    json!({"total_mb": total_mb, "tipo": tipo, "velocidade_mhz": vel, "fabricante": fab, "modulos": modulos})
+    json!({"total_mb": total_mb, "instalada_mb": (instalada_mb > 0).then_some(instalada_mb), "tipo": tipo,
+           "velocidade_mhz": vel, "fabricante": fab, "modulos": modulos})
 }
 
 /// Uso agora: processador (%), memória (MB usados) e cada placa (%, ou nulo = em repouso).

@@ -207,7 +207,8 @@
    "voz_auto_leve": "Usando a voz leve: a {placa} gera a voz fiel em {rtf} s por segundo de fala, lenta para tradução simultânea.",
    "voz_leve_escolhida": "Usando a voz leve (escolhida por você).",
    "voz_fiel_lenta": "Usando a voz fiel na {placa}: a tradução pode começar alguns segundos depois de você falar.",
-   "voz_fiel_rapida": "Usando a voz fiel na placa de vídeo (rápida o bastante para tradução simultânea)."
+   "voz_fiel_rapida": "Usando a voz fiel na placa de vídeo (rápida o bastante para tradução simultânea).",
+   "err_internet": "Sem internet. Na primeira vez o Praxis baixa os modelos de tradução e de voz; conecte-se e clique em Começar de novo. Depois disso ele funciona sem internet."
   },
   "en": {
    "tagline": "One message. Every language.",
@@ -416,7 +417,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "No internet connection. The first time, Praxis downloads its translation and voice models; connect and click Start again. After that it works offline."
   },
   "es": {
    "tagline": "Un mensaje. Todos los idiomas.",
@@ -625,7 +627,8 @@
    "voz_auto_leve": "Usando la voz ligera: la {placa} genera la voz fiel en {rtf} s por segundo de habla, lenta para traducción simultánea.",
    "voz_leve_escolhida": "Usando la voz ligera (elegida por ti).",
    "voz_fiel_lenta": "Usando la voz fiel en la {placa}: la traducción puede empezar unos segundos después de que hables.",
-   "voz_fiel_rapida": "Usando la voz fiel en la tarjeta gráfica (rápida para traducción simultánea)."
+   "voz_fiel_rapida": "Usando la voz fiel en la tarjeta gráfica (rápida para traducción simultánea).",
+   "err_internet": "Sin internet. La primera vez, Praxis descarga los modelos de traducción y de voz; conéctate y vuelve a hacer clic en Empezar. Después funciona sin internet."
   },
   "fr": {
    "tagline": "Un message. Toutes les langues.",
@@ -834,7 +837,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Pas de connexion internet. La première fois, Praxis télécharge ses modèles de traduction et de voix ; connectez-vous et cliquez à nouveau sur Démarrer. Ensuite, il fonctionne hors ligne."
   },
   "de": {
    "tagline": "Eine Nachricht. Alle Sprachen.",
@@ -1043,7 +1047,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Keine Internetverbindung. Beim ersten Mal lädt Praxis seine Übersetzungs- und Sprachmodelle herunter; verbinde dich und klicke erneut auf Starten. Danach funktioniert es offline."
   },
   "it": {
    "tagline": "Un messaggio. Tutte le lingue.",
@@ -1252,7 +1257,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Nessuna connessione internet. La prima volta Praxis scarica i modelli di traduzione e di voce; connettiti e fai di nuovo clic su Avvia. Dopo funziona anche offline."
   },
   "ru": {
    "tagline": "Одно сообщение. Все языки.",
@@ -1461,7 +1467,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Нет подключения к интернету. В первый раз Praxis загружает модели перевода и голоса; подключитесь и снова нажмите «Начать». После этого он работает без интернета."
   },
   "zh": {
    "tagline": "一条消息。所有语言。",
@@ -1670,7 +1677,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "没有网络连接。Praxis 第一次使用时需要下载翻译和语音模型；请联网后再次点击开始。之后即可离线使用。"
   },
   "nl": {
    "tagline": "Één bericht. Elke taal.",
@@ -1879,7 +1887,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Geen internetverbinding. De eerste keer downloadt Praxis de vertaal- en spraakmodellen; maak verbinding en klik opnieuw op Starten. Daarna werkt het offline."
   },
   "pl": {
    "tagline": "Jedna wiadomość. Każdy język.",
@@ -2088,7 +2097,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Brak połączenia z internetem. Za pierwszym razem Praxis pobiera modele tłumaczenia i głosu; połącz się i ponownie kliknij Rozpocznij. Potem działa bez internetu."
   },
   "uk": {
    "tagline": "Одне повідомлення. Всі мови.",
@@ -2297,7 +2307,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "Немає підключення до інтернету. Першого разу Praxis завантажує моделі перекладу й голосу; підключіться і знову натисніть «Почати». Після цього він працює без інтернету."
   },
   "tr": {
    "tagline": "Bir mesaj. Her dil.",
@@ -2506,7 +2517,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "İnternet bağlantısı yok. Praxis ilk seferde çeviri ve ses modellerini indirir; bağlanın ve Başlat'a yeniden tıklayın. Sonrasında internetsiz çalışır."
   },
   "ar": {
    "tagline": "رسالة واحدة. كل اللغات.",
@@ -2715,7 +2727,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "لا يوجد اتصال بالإنترنت. في المرة الأولى يقوم Praxis بتنزيل نماذج الترجمة والصوت؛ اتصل بالإنترنت ثم انقر على ابدأ مرة أخرى. بعد ذلك يعمل دون إنترنت."
   },
   "hi": {
    "tagline": "एक संदेश। हर भाषा।",
@@ -2924,7 +2937,8 @@
    "voz_auto_leve": "Using the light voice: the {placa} makes the faithful voice at {rtf} s per second of speech, too slow for simultaneous translation.",
    "voz_leve_escolhida": "Using the light voice (your choice).",
    "voz_fiel_lenta": "Using the faithful voice on the {placa}: translation may start a few seconds after you speak.",
-   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation)."
+   "voz_fiel_rapida": "Using the faithful voice on the graphics card (fast enough for simultaneous translation).",
+   "err_internet": "इंटरनेट कनेक्शन नहीं है। पहली बार Praxis अनुवाद और आवाज़ के मॉडल डाउनलोड करता है; कनेक्ट करें और फिर से शुरू करें पर क्लिक करें। उसके बाद यह बिना इंटरनेट के चलता है।"
   }
  },
  "lang_names": {

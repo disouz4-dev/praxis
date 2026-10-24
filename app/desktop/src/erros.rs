@@ -98,9 +98,22 @@ pub fn relatorio(config: &Value, gpu: bool) -> String {
         .map(|v| format!("- {} · {} · {} · `{}`", v["quando"].as_str().unwrap_or(""), v["versao"].as_str().unwrap_or(""),
                          v["tipo"].as_str().unwrap_or(""), v["msg"].as_str().unwrap_or("").replace('`', "'")))
         .collect();
+    // o hardware identificado pelo próprio Praxis (ajuda a reproduzir o problema)
+    let h = praxis_engine::hardware::identificar();
+    let placas: Vec<String> = h["placas"].as_array().into_iter().flatten()
+        .map(|p| match p["memoria_mb"].as_u64() { Some(m) => format!("{} ({} GB)", p["nome"].as_str().unwrap_or("?"), m / 1024), None => p["nome"].as_str().unwrap_or("?").to_string() })
+        .collect();
+    let m = &h["memoria"];
+    let mem = format!("{} GB {}", m["instalada_mb"].as_u64().or(m["total_mb"].as_u64()).unwrap_or(0) / 1024, m["tipo"].as_str().unwrap_or(""));
+    let voz = std::fs::read_to_string(praxis_engine::models::ModelStore::default_location().map(|s| s.omnivoice_dir().join("desempenho.json")).unwrap_or_default())
+        .ok().and_then(|t| serde_json::from_str::<Value>(&t).ok())
+        .map(|v| format!("{} a {:.2} s por segundo de fala", v["dispositivo"].as_str().unwrap_or("?"), v["rtf"].as_f64().unwrap_or(0.0)))
+        .unwrap_or_else(|| "não medida".into());
     format!(
-        "**Versão:** {} · **Sistema:** {} {} · **Placa de vídeo NVIDIA:** {}\n**Modo:** {}\n\n### Últimos erros (do mais novo para o mais antigo)\n{}\n",
-        env!("CARGO_PKG_VERSION"), std::env::consts::OS, std::env::consts::ARCH, sim(gpu), modo,
+        "**Versão:** {} · **Sistema:** {} ({} {})\n**Processador:** {} · **Placas de vídeo:** {} · **Memória:** {} · **NVIDIA (CUDA):** {}\n**Voz fiel nesta placa:** {} · **Voz escolhida:** {}\n**Modo:** {}\n\n### Últimos erros (do mais novo para o mais antigo)\n{}\n",
+        env!("CARGO_PKG_VERSION"), h["sistema"].as_str().unwrap_or(""), std::env::consts::OS, std::env::consts::ARCH,
+        h["processador"]["nome"].as_str().unwrap_or("?"), if placas.is_empty() { "nenhuma".into() } else { placas.join(", ") },
+        mem.trim(), sim(gpu), voz, c("voz_modelo"), modo,
         if erros.is_empty() { "(nenhum erro registrado)".into() } else { erros.join("\n") })
 }
 
